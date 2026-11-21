@@ -19,6 +19,10 @@ Redis, APScheduler, pytest + pytest-asyncio. Mini App: React + Vite + TypeScript
 
 ## Global Constraints
 
+- **Тесты (решение заказчика): рутинные тесты НЕ пишем.** Шаги «failing test / run test» ниже игнорировать.
+  Единственный обязательный тест — одновременное списание с баланса (T2.3 `test_concurrent_spend_only_one_wins`).
+  Проверка задачи: `uv run ruff check app`, `uv run mypy app`, импорт/старт бота, ручная проверка в Telegram.
+
 - Python `>=3.12,<3.13`. aiogram `~=3.33` (НЕ 3.29.0/3.29.1). pydantic `>=2.8`.
 - Валюта только USDT, отображение `$`. Деньги — `Decimal`, колонка `Numeric(18, 2)`. float для денег запрещён.
 - Время — UTC, `DateTime(timezone=True)`.
