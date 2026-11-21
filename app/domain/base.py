@@ -1,10 +1,21 @@
 from datetime import datetime
+from decimal import Decimal
+from enum import StrEnum
 
-from sqlalchemy import BigInteger, DateTime, Integer, SmallInteger, String
-from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy import BigInteger, DateTime, Enum, Integer, Numeric, SmallInteger, String
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, registry
 
-from app.utils.custom_types import DictStrAny, Int16, Int32, Int64
+from app.domain.enums.catalog import AssignMode
+from app.domain.enums.ledger import LedgerAccount, LedgerKind, PaymentStatus, WithdrawalStatus
+from app.domain.enums.order import OrderStatus
+from app.domain.enums.support import ConversationKind, TicketStatus
+from app.utils.custom_types import DictStrAny, Int16, Int32, Int64, Money
+
+
+def _str_enum(cls: type[StrEnum]) -> Enum:
+    # VARCHAR, not a native PG enum: adding a value later needs no ALTER TYPE
+    return Enum(cls, native_enum=False, length=32, values_callable=lambda e: [m.value for m in e])
 
 
 class Base(DeclarativeBase):
@@ -13,8 +24,24 @@ class Base(DeclarativeBase):
             Int16: SmallInteger(),
             Int32: Integer(),
             Int64: BigInteger(),
-            DictStrAny: JSON(),
+            Money: Numeric(18, 2),
+            Decimal: Numeric(18, 2),
+            DictStrAny: JSONB(),
             list[str]: ARRAY(String()),
+            list[int]: ARRAY(BigInteger()),
             datetime: DateTime(timezone=True),
+            **{
+                cls: _str_enum(cls)
+                for cls in (
+                    AssignMode,
+                    LedgerAccount,
+                    LedgerKind,
+                    PaymentStatus,
+                    WithdrawalStatus,
+                    OrderStatus,
+                    ConversationKind,
+                    TicketStatus,
+                )
+            },
         }
     )

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import TYPE_CHECKING, Annotated, Any, NewType, TypeAlias, Union
 
 from aiogram.types import (
@@ -41,3 +42,4 @@ Int16: TypeAlias = Annotated[int, 16]
 Int32: TypeAlias = Annotated[int, 32]
 Int64: TypeAlias = Annotated[int, 64]
 DictStrAny: TypeAlias = dict[str, Any]
+Money: TypeAlias = Annotated[Decimal, "money"]
