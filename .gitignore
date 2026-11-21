@@ -9,7 +9,6 @@ data/*
 .env
 venv/
 docker-compose.yml
-uv.lock
 .tests
 
 # Cache
