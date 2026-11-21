@@ -17,6 +17,9 @@ class UoW:
         self.session.add_all(instances)
         await self.session.flush()
 
+    async def rollback(self) -> None:
+        await self.session.rollback()
+
     async def merge(self, *instances: Base) -> None:
         for instance in instances:
             await self.session.merge(instance)

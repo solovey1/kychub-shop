@@ -4,6 +4,7 @@ from dishka import AsyncContainer, make_async_container
 from dishka.provider import BaseProvider
 
 from app.providers.handling.flows import FlowsProvider
+from app.providers.handling.fulfillment import FulfillmentProvider
 from app.providers.handling.interactors import InteractorsProvider
 from app.providers.handling.presenters import PresentersProvider
 from app.providers.infrastructure.app import AppInfrastructureProvider
@@ -34,6 +35,7 @@ def create_container(
         RequestInfrastructureProvider(),
         I18nProvider(),
         UserLocaleProvider(),
+        FulfillmentProvider(),
         InteractorsProvider(),
         PresentersProvider(),
         FlowsProvider(),
