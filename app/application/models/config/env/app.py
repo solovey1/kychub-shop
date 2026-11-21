@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from .common import CommonConfig
+from .payments import PaymentsConfig
 from .postgres import PostgresConfig
 from .redis import RedisConfig
 from .server import ServerConfig
@@ -15,3 +16,4 @@ class AppConfig(BaseModel):
     redis: RedisConfig
     server: ServerConfig
     common: CommonConfig
+    payments: PaymentsConfig

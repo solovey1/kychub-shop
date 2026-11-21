@@ -3,6 +3,7 @@ from dishka import Provider, Scope, provide, provide_all
 from app.application.models.config import AppConfig, Assets
 from app.application.models.config.env import (
     CommonConfig,
+    PaymentsConfig,
     PostgresConfig,
     RedisConfig,
     ServerConfig,
@@ -21,6 +22,7 @@ def create_app_config() -> AppConfig:
         redis=RedisConfig(),
         server=ServerConfig(),
         common=CommonConfig(),
+        payments=PaymentsConfig(),
     )
 
 

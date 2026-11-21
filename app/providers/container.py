@@ -9,6 +9,7 @@ from app.providers.handling.interactors import InteractorsProvider
 from app.providers.handling.presenters import PresentersProvider
 from app.providers.infrastructure.app import AppInfrastructureProvider
 from app.providers.infrastructure.i18n import I18nProvider, UserLocaleProvider
+from app.providers.infrastructure.payments import PaymentsProvider
 from app.providers.infrastructure.postgres import PostgresProvider
 from app.providers.infrastructure.redis import RedisProvider
 from app.providers.infrastructure.repositories import RepositoriesProvider
@@ -28,6 +29,7 @@ def create_container(
         AppInfrastructureProvider(),
         BotProvider(),
         PostgresProvider(),
+        PaymentsProvider(),
         RedisProvider(),
         RepositoriesProvider(),
         UserProvider(),
