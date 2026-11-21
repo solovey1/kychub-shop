@@ -5,7 +5,7 @@ from typing import Final
 from app.domain.enums.locale import Locale
 
 TIMEZONE: Final[timezone] = timezone.utc
-DEFAULT_LOCALE: Final[str] = Locale.EN
+DEFAULT_LOCALE: Final[str] = Locale.RU
 ROOT_DIR: Final[Path] = Path(__file__).parent.parent
 ENV_FILE: Final[Path] = ROOT_DIR / ".env"
 ASSETS_SOURCE_DIR: Final[Path] = ROOT_DIR / "assets"

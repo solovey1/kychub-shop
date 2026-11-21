@@ -1,8 +1,6 @@
-
 messages-greeting =
-    👋 Hello, { $name }!
+    Hello, { $name }.
 
-    💬 Zakyn meny na dep bud' laska.
+    This is a digital goods store. The catalog and your orders will appear here soon.
 
-buttons-deposit = 💳 Depnut'
-buttons-back = 🔙 Back
+buttons-back = Back

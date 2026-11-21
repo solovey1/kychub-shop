@@ -15,6 +15,3 @@ class CommonMenuFlow(BaseFlow):
 
     async def greeting(self) -> Any:
         return await self.renderer.apply(self.presenter.greeting(user=self.user))
-
-    async def answer_deposit(self) -> Any:
-        return await self.renderer.apply(self.presenter.deposit())
