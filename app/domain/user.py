@@ -20,6 +20,7 @@ class User(Base, TimestampMixin):
     language: Mapped[str] = mapped_column(String(length=2))
     language_code: Mapped[Optional[str]] = mapped_column()
     blocked_at: Mapped[Optional[datetime]] = mapped_column()
+    roles: Mapped[int] = mapped_column(default=0, server_default="0")
 
     @property
     def url(self) -> str:
