@@ -8,3 +8,7 @@ class UserNotFound(AppError):  # noqa: N818
 
 class InsufficientFunds(AppError):  # noqa: N818
     pass
+
+
+class LedgerConflict(AppError):  # noqa: N818
+    pass

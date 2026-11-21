@@ -22,8 +22,15 @@ class LedgerRepository(LedgerGateway):
         if row is None:
             raise UserNotFound(user_id)
 
-    async def get_by_ref(self, kind: LedgerKind, ref: str) -> LedgerEntry | None:
-        return await self._helper.get_one(LedgerEntry.kind == kind, LedgerEntry.ref == ref)
+    async def get_by_ref(
+        self, user_id: int, account: LedgerAccount, kind: LedgerKind, ref: str
+    ) -> LedgerEntry | None:
+        return await self._helper.get_one(
+            LedgerEntry.user_id == user_id,
+            LedgerEntry.account == account,
+            LedgerEntry.kind == kind,
+            LedgerEntry.ref == ref,
+        )
 
     async def balance(self, user_id: int, account: LedgerAccount) -> Decimal:
         query = select(func.coalesce(func.sum(LedgerEntry.amount), 0)).where(

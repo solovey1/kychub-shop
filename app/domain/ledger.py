@@ -30,7 +30,9 @@ class LedgerEntry(Base):
         CheckConstraint("amount <> 0", name="ledger_amount_non_zero"),
         Index("ix_ledger_user_account_id", "user_id", "account", "id"),
         Index(
-            "uq_ledger_kind_ref",
+            "uq_ledger_idempotency",
+            "user_id",
+            "account",
             "kind",
             "ref",
             unique=True,

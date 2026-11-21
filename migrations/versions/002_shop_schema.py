@@ -488,9 +488,9 @@ def upgrade() -> None:
         "ix_ledger_user_account_id", "ledger_entries", ["user_id", "account", "id"], unique=False
     )
     op.create_index(
-        "uq_ledger_kind_ref",
+        "uq_ledger_idempotency",
         "ledger_entries",
-        ["kind", "ref"],
+        ["user_id", "account", "kind", "ref"],
         unique=True,
         postgresql_where=sa.text("ref IS NOT NULL"),
     )
@@ -679,7 +679,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_order_events_order_id"), table_name="order_events")
     op.drop_table("order_events")
     op.drop_index(
-        "uq_ledger_kind_ref",
+        "uq_ledger_idempotency",
         table_name="ledger_entries",
         postgresql_where=sa.text("ref IS NOT NULL"),
     )
