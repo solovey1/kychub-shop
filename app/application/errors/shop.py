@@ -75,3 +75,19 @@ class WalletNotSet(AppError):  # noqa: N818
 
 class BelowMinimum(AppError):  # noqa: N818
     """The available balance is smaller than the minimum withdrawal."""
+
+
+class TicketUnavailable(AppError):  # noqa: N818
+    """No such ticket, it is closed, or the actor may not do this with it."""
+
+
+class ChatForbidden(AppError):  # noqa: N818
+    """The user may not write to this conversation (any more)."""
+
+
+class ManagerExists(AppError):  # noqa: N818
+    pass
+
+
+class ManagerNotFound(AppError):  # noqa: N818
+    pass

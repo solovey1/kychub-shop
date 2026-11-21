@@ -4,9 +4,9 @@ from aiogram import Router
 
 from app.presentation.telegram.filters import ADMIN_FILTER
 
-from . import executors
+from . import executors, managers
 
 router: Final[Router] = Router(name=__name__)
 router.message.filter(ADMIN_FILTER)
 router.callback_query.filter(ADMIN_FILTER)
-router.include_router(executors.router)
+router.include_routers(executors.router, managers.router)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.support import ConversationKind, TicketStatus
@@ -40,6 +40,16 @@ class Conversation(Base):
         ForeignKey("orders.id", ondelete="CASCADE"), index=True
     )
     thread_id: Mapped[Optional[int]] = mapped_column(index=True)
+
+    __table_args__ = (
+        Index(
+            "uq_conversations_order",
+            "order_id",
+            unique=True,
+            postgresql_where=text("kind = 'order'"),
+        ),
+        Index("uq_conversations_ticket", "ticket_id", unique=True),
+    )
 
 
 class Message(Base):

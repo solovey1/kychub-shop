@@ -9,6 +9,7 @@ from app.application.ports.repositories.payments import PaymentsGateway
 from app.application.ports.repositories.promo import PromoGateway
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.repositories.stock import StockGateway
+from app.application.ports.repositories.support import SupportGateway
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.uow import UnitOfWork
 from app.infrastructure.postgres.repositories.balance import BalanceRepository
@@ -20,6 +21,7 @@ from app.infrastructure.postgres.repositories.payments import PaymentsRepository
 from app.infrastructure.postgres.repositories.promo import PromoRepository
 from app.infrastructure.postgres.repositories.settings import SettingsRepository
 from app.infrastructure.postgres.repositories.stock import StockRepository
+from app.infrastructure.postgres.repositories.support import SupportRepository
 from app.infrastructure.postgres.repositories.users import UsersRepository
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -41,5 +43,6 @@ class RepositoriesProvider(Provider):
         provide(PaymentsRepository, provides=PaymentsGateway),
         provide(SettingsRepository, provides=SettingsGateway),
         provide(ExecutorsRepository, provides=ExecutorsGateway),
+        provide(SupportRepository, provides=SupportGateway),
         alias(source=UoW, provides=UnitOfWork),
     )
