@@ -41,12 +41,12 @@ class BinancePayGateway:
             if response.status != 200:
                 raise RuntimeError(f"Binance Pay error {response.status}: {body}")
         for tx in body.get("data") or []:
-            if pay_id not in (tx.get("note") or "") or tx.get("currency") != "USDT":
+            if (tx.get("note") or "").strip() != pay_id or tx.get("currency") != "USDT":
                 continue
             try:
                 received = Decimal(str(tx["amount"]))
             except (KeyError, InvalidOperation):
                 continue
-            if received >= amount:  # outgoing transfers are negative
+            if received > 0 and received >= amount:  # outgoing transfers are negative
                 return PaymentStatus.success
         return PaymentStatus.created

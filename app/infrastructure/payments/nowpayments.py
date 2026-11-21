@@ -1,6 +1,6 @@
 import time
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, ClassVar
 
 from aiohttp import ClientSession
@@ -90,10 +90,21 @@ class NowPaymentsGateway:
             },
         )
         found = [
-            STATUSES.get(p.get("payment_status"), PaymentStatus.created)
+            self._status(p, amount)
             for p in body.get("data") or []
             if str(p.get("invoice_id")) == pay_id
         ]
         if PaymentStatus.success in found:
             return PaymentStatus.success
         return found[0] if found else PaymentStatus.created  # newest first
+
+    @staticmethod
+    def _status(payment: dict[str, Any], amount: Decimal) -> PaymentStatus:
+        status = STATUSES.get(str(payment.get("payment_status")), PaymentStatus.created)
+        if status is not PaymentStatus.success:
+            return status
+        try:
+            paid = Decimal(str(payment["price_amount"]))
+        except (KeyError, InvalidOperation):
+            return PaymentStatus.partially_paid
+        return PaymentStatus.success if paid >= amount else PaymentStatus.partially_paid
