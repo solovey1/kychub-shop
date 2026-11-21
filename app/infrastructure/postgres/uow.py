@@ -13,6 +13,10 @@ class UoW:
         self.session.add_all(instances)
         await self.session.commit()
 
+    async def flush(self, *instances: Base) -> None:
+        self.session.add_all(instances)
+        await self.session.flush()
+
     async def merge(self, *instances: Base) -> None:
         for instance in instances:
             await self.session.merge(instance)

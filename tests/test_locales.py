@@ -12,7 +12,7 @@ def _keys(locale: str) -> set[str]:
     return keys
 
 
-def test_all_locales_have_same_keys():
+def test_all_locales_have_same_keys() -> None:
     base = _keys("ru")
     assert base, "ru locale is empty"
     for loc in LOCALES[1:]:
