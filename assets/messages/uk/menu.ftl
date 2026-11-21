@@ -1,8 +1,14 @@
 messages-greeting =
     Вітаємо, { $name }.
 
-    Це магазин цифрових товарів. Каталог і замовлення скоро з'являться тут.
+    Магазин цифрових товарів. Оберіть розділ.
+messages-language = Оберіть мову інтерфейсу.
 
 buttons-back = Назад
 buttons-menu = Головне меню
 buttons-cancel = Скасувати
+buttons-catalog = Каталог
+buttons-search = Пошук
+buttons-orders = Мої замовлення
+buttons-balance = Баланс: { $amount }
+buttons-language = Мова

@@ -31,6 +31,12 @@ make migration message=MESSAGE_WHAT_THE_MIGRATION_DOES
 make migrate
 ```
 
+### Bot settings in @BotFather
+- Enable inline mode (`/setinline`): product search runs through `@bot query` and the "Search" button of the main menu.
+- Set `COMMON_OWNER_IDS` (comma separated Telegram ids) so owners get all roles on first contact.
+- `COMMON_TEST_PAYMENTS=True` turns on the test top-up gateway, keep it `False` in production.
+- Demo catalog: `uv run python -m scripts.seed_demo` (idempotent).
+
 ## 🚀 Used technologies:
 - [uv](https://docs.astral.sh/uv/) (an extremely fast Python package and project manager)
 - [Aiogram 3.x](https://github.com/aiogram/aiogram) (Telegram bot framework)

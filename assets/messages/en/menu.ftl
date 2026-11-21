@@ -1,8 +1,14 @@
 messages-greeting =
     Hello, { $name }.
 
-    This is a digital goods store. The catalog and your orders will appear here soon.
+    A digital goods store. Choose a section.
+messages-language = Choose the interface language.
 
 buttons-back = Back
 buttons-menu = Main menu
 buttons-cancel = Cancel
+buttons-catalog = Catalog
+buttons-search = Search
+buttons-orders = My orders
+buttons-balance = Balance: { $amount }
+buttons-language = Language

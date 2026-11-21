@@ -2,7 +2,29 @@ commands:
   en:
     - command: start
       description: Main menu
+    - command: catalog
+      description: Catalog
+    - command: orders
+      description: My orders
+    - command: balance
+      description: Balance
 
   ru:
     - command: start
       description: Главное меню
+    - command: catalog
+      description: Каталог
+    - command: orders
+      description: Мои заказы
+    - command: balance
+      description: Баланс
+
+  uk:
+    - command: start
+      description: Головне меню
+    - command: catalog
+      description: Каталог
+    - command: orders
+      description: Мої замовлення
+    - command: balance
+      description: Баланс
