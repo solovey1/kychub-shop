@@ -36,6 +36,10 @@ class Notifier:
     def _tr(self, locale: str) -> Translate:
         return lambda key, **kw: self.core.get(key, locale, **kw)
 
+    async def translator(self, user_id: int) -> Translate:
+        """A translator into the user's own language."""
+        return self._tr(await self._locale(user_id))
+
     def _render(self, locale: str, key: Text, kwargs: dict[str, Any]) -> str:
         if callable(key):
             return key(self._tr(locale), locale)

@@ -2,7 +2,7 @@ from typing import Final
 
 from aiogram import Router
 
-from . import balance, catalog, executor, feedback, inline, menu, orders, purchase
+from . import balance, catalog, executor, feedback, inline, menu, orders, purchase, relay
 
 router: Final[Router] = Router(name=__name__)
 router.include_routers(
@@ -15,4 +15,5 @@ router.include_routers(
     executor.router,
     executor.review_router,
     feedback.router,
+    relay.router,
 )

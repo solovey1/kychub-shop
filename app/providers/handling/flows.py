@@ -7,6 +7,7 @@ from app.presentation.telegram.flows.common.managers import ManagerAdminFlow
 from app.presentation.telegram.flows.common.menu import CommonMenuFlow
 from app.presentation.telegram.flows.common.orders import OrdersFlow
 from app.presentation.telegram.flows.common.purchase import PurchaseFlow
+from app.presentation.telegram.flows.common.relay import RelayFlow
 from app.presentation.telegram.flows.executor.admin import ExecutorAdminFlow
 from app.presentation.telegram.flows.executor.cabinet import CabinetFlow
 from app.presentation.telegram.flows.executor.orders import ExecutorOrdersFlow
@@ -32,4 +33,5 @@ class FlowsProvider(Provider):
         ReviewFlow,
         FeedbackFlow,
         ManagerAdminFlow,
+        RelayFlow,
     )

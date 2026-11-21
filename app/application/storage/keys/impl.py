@@ -22,3 +22,24 @@ class OrderOfferKey(StorageKey[list[list[int]]], prefix="order_offer", type=list
     """Значение — пары [chat_id, message_id] отправленных исполнителям предложений заказа."""
 
     order_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class ActiveConversationKey(StorageKey[int], prefix="chat_active", type=int):
+    """Значение — id текущей переписки пользователя (куда уходят его сообщения)."""
+
+    user_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class ChatHintKey(StorageKey[int], prefix="chat_hint", type=int):
+    """Флаг: подсказка «как написать» уже показана этому пользователю в последний час."""
+
+    user_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class TicketOfferKey(StorageKey[list[list[int]]], prefix="ticket_offer", type=list[list[int]]):
+    """Значение — пары [chat_id, message_id] уведомлений менеджерам о новом тикете."""
+
+    ticket_id: int

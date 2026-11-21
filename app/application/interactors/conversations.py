@@ -90,6 +90,9 @@ class ConversationInteractor(BaseInteractor):
             await self.uow.rollback()
             raise
 
+    async def get_conversation(self, conversation_id: int) -> Conversation | None:
+        return await self.support.conversation(conversation_id)
+
     async def get_ticket(self, ticket_id: int) -> Ticket | None:
         return await self.support.ticket(ticket_id)
 
