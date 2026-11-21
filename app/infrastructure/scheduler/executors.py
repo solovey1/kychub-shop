@@ -5,7 +5,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
 from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.hold import HoldInteractor
+from app.infrastructure.telegram.notices import OrderNotices
 from app.infrastructure.telegram.offers import OfferService
 
 logger: Final = logging.getLogger(__name__)
@@ -38,6 +40,15 @@ async def release_holds(container: AsyncContainer) -> None:
         logger.info("hold released for orders %s", released)
 
 
+async def request_reviews(container: AsyncContainer) -> None:
+    """Rating requests for orders completed a while ago, one message per order."""
+    async with container() as request:
+        orders = await (await request.get(ReviewInteractor)).request_due()
+        notices = await request.get(OrderNotices)
+        for order in orders:
+            await notices.review_request(order)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -57,3 +68,4 @@ def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
     _job(scheduler, container, requeue_stale, "requeue_stale", 300)
     _job(scheduler, container, release_holds, "release_holds", 600)
+    _job(scheduler, container, request_reviews, "request_reviews", 300)

@@ -1,22 +1,28 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from html import escape
 
 from aiogram_i18n import I18nContext
 
 from app.application.cards import render_card
-from app.application.i18n_text import pick_i18n
+from app.application.i18n_text import fmt_usd, pick_i18n
+from app.application.interactors.executor_wallet import WalletSummary
 from app.application.interactors.executors import CabinetOverview
 from app.application.interactors.fulfillment_work import ExecutorOrderView
+from app.application.interactors.stats import Stats
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.keyboards.executor import (
+    back_to_cabinet,
+    balance_keyboard,
     cabinet_keyboard,
     order_back_keyboard,
     order_keyboard,
     orders_keyboard,
     refuse_keyboard,
     result_ask_keyboard,
+    wallet_keyboard,
 )
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.view.models import RenderMode, View
@@ -112,3 +118,71 @@ class ExecutorPresenter(BasePresenter):
             text=self.i18n.get(key, id=str(order_id), **kwargs),
             reply_markup=order_back_keyboard(self.i18n, order_id),
         )
+
+    def rating(self, stats: Stats) -> View:
+        i18n = self.i18n
+        text = i18n.messages.executor.rating(
+            completed=str(stats.completed),
+            failed=str(stats.failed),
+            overdue=str(stats.overdue),
+            refused=str(stats.refused),
+            minutes=f"{stats.avg_minutes:.0f}" if stats.avg_minutes is not None else "-",
+            score=f"{stats.avg_score:.2f}" if stats.avg_score is not None else "-",
+        )
+        return View(text=text, reply_markup=back_to_cabinet(i18n))
+
+    def balance(self, summary: WalletSummary, notice: str | None = None) -> View:
+        i18n = self.i18n
+        if summary.entries:
+            history = "\n".join(
+                i18n.messages.balance.entry(
+                    date=e.created_at.strftime("%d.%m.%Y"),
+                    kind=i18n.get(f"ledger-kind-{e.kind}"),
+                    amount=("+" if e.amount > 0 else "") + fmt_usd(e.amount),
+                )
+                for e in summary.entries
+            )
+        else:
+            history = i18n.messages.balance.history_empty()
+        text = i18n.messages.executor.balance(
+            hold=fmt_usd(summary.hold),
+            available=fmt_usd(summary.available),
+            minimum=fmt_usd(summary.minimum),
+            history=history,
+        )
+        if notice:
+            text = f"{notice}\n\n{text}"
+        return View(text=text, reply_markup=balance_keyboard(i18n))
+
+    def wallet(
+        self, summary: WalletSummary, notice_key: str | None = None, *, current: bool = False
+    ) -> View:
+        i18n = self.i18n
+        text = (
+            i18n.messages.executor.wallet(address=escape(summary.wallet))
+            if summary.wallet
+            else i18n.messages.executor.wallet_empty()
+        )
+        if notice_key:
+            text = f"{i18n.get(notice_key)}\n\n{text}"
+        return View(
+            text=text,
+            reply_markup=wallet_keyboard(i18n),
+            mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
+        )
+
+    def ask_wallet(self, *, error: bool = False, current: bool = False) -> View:
+        text = self.i18n.messages.executor.wallet_ask()
+        if error:
+            text = self.i18n.messages.executor.wallet_invalid() + "\n\n" + text
+        return View(
+            text=text,
+            reply_markup=back_to_cabinet(self.i18n),
+            mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
+        )
+
+    def below_minimum(self, minimum: Decimal) -> str:
+        return self.i18n.messages.executor.below_minimum(minimum=fmt_usd(minimum))
+
+    def withdrawal_created(self, amount: Decimal) -> str:
+        return self.i18n.messages.executor.withdrawal_created(amount=fmt_usd(amount))

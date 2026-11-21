@@ -22,6 +22,11 @@ def cabinet_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
     return markup(
         [
             [button(i18n.buttons.my_orders(), CDXOrders())],
+            [
+                button(i18n.buttons.balance_short(), CDCabinet(section="balance")),
+                button(i18n.buttons.rating(), CDCabinet(section="rating")),
+            ],
+            [button(i18n.buttons.payout_wallet(), CDCabinet(section="wallet"))],
             [button(i18n.buttons.back(), CDMenu())],
         ]
     )
@@ -129,3 +134,25 @@ def fail_confirm_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboardMar
 
 def review_cancel_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboardMarkup:
     return markup([[button(i18n.buttons.cancel(), CDReview(action="open", id=order_id))]])
+
+
+def back_to_cabinet(i18n: I18nContext) -> InlineKeyboardMarkup:
+    return markup([[button(i18n.buttons.back(), CDCabinet())]])
+
+
+def balance_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
+    return markup(
+        [
+            [button(i18n.buttons.withdraw(), CDCabinet(section="withdraw"), style="primary")],
+            [button(i18n.buttons.back(), CDCabinet())],
+        ]
+    )
+
+
+def wallet_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
+    return markup(
+        [
+            [button(i18n.buttons.wallet_set(), CDCabinet(section="wallet_set"))],
+            [button(i18n.buttons.back(), CDCabinet())],
+        ]
+    )

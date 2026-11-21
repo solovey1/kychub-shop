@@ -127,3 +127,19 @@ class OrdersRepository(OrdersGateway):
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))
+
+    async def review_due_ids(self, now: datetime) -> list[int]:
+        asked = exists().where(
+            OrderEvent.order_id == Order.id, OrderEvent.type == "review_requested"
+        )
+        query = (
+            select(Order.id)
+            .where(
+                Order.status == OrderStatus.completed,
+                Order.executor_id.is_not(None),
+                Order.review_due_at <= now,
+                ~asked,
+            )
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))

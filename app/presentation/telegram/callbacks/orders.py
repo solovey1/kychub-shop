@@ -10,6 +10,10 @@ class CDOrder(CallbackData, prefix="ordv"):
     page: int = 0
 
 
+class CDMyExecutors(CallbackData, prefix="mx"):
+    pass
+
+
 class CDCancel(CallbackData, prefix="oc"):
     id: int
     page: int = 0

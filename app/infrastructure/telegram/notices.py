@@ -11,6 +11,7 @@ from app.infrastructure.telegram.notifier import Notifier, Translate
 from app.presentation.telegram.callbacks.executor import CDReview, CDXOrder
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.keyboards.common import button, markup
+from app.presentation.telegram.keyboards.feedback import rate_keyboard
 from app.presentation.telegram.presenters.common.purchase import COPY_LIMIT, FILE_LIMIT
 
 
@@ -111,3 +112,12 @@ class OrderNotices:
             await self.notifier.send(
                 refund.executor_id, "messages-executor-order_closed", id=str(refund.order_id)
             )
+
+    async def review_request(self, order: Order) -> None:
+        order_id = order.id
+        await self.notifier.send(
+            order.user_id,
+            "messages-feedback-ask",
+            lambda tr: rate_keyboard(tr, order_id),
+            id=str(order_id),
+        )

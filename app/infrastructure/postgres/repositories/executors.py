@@ -2,13 +2,16 @@ from dataclasses import dataclass
 
 from sqlalchemy import delete, exists, func, select
 
-from app.application.ports.repositories.executors import Candidate, ExecutorsGateway
+from app.application.ports.repositories.executors import Candidate, ExecutorsGateway, StatsRow
 from app.domain.audit import AuditLog
 from app.domain.catalog import Service
+from app.domain.enums.ledger import LedgerAccount
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
 from app.domain.executor import ExecutorPermission, ExecutorProfile
-from app.domain.order import Order
+from app.domain.ledger import LedgerEntry, Withdrawal
+from app.domain.order import Order, OrderEvent
+from app.domain.review import OrderReview
 from app.domain.user import User
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -111,3 +114,78 @@ class ExecutorsRepository(ExecutorsGateway):
             query = query.where(ExecutorProfile.user_id == only)
         rows = (await self._helper.session.execute(query)).all()
         return [Candidate(int(u), int(ld), int(c)) for u, ld, c in rows]
+
+    async def review_exists(self, order_id: int) -> bool:
+        return (
+            await self._helper.session.scalar(
+                select(OrderReview.id).where(OrderReview.order_id == order_id)
+            )
+            is not None
+        )
+
+    async def add_review(self, review: OrderReview) -> None:
+        await self._uow.flush(review)
+
+    async def stats(self, executor_id: int) -> StatsRow:
+        session = self._helper.session
+        mine = Order.executor_id == executor_id
+
+        async def orders_in(*statuses: OrderStatus) -> int:
+            query = select(func.count()).select_from(Order).where(mine, Order.status.in_(statuses))
+            return int(await session.scalar(query) or 0)
+
+        async def events(kind: str) -> int:
+            query = select(func.count()).where(
+                OrderEvent.type == kind,
+                OrderEvent.payload.op("->>")("executor_id") == str(executor_id),
+            )
+            return int(await session.scalar(query) or 0)
+
+        seconds = func.extract("epoch", Order.completed_at - Order.assigned_at)
+        minutes = await session.scalar(
+            select(func.avg(seconds)).where(
+                mine,
+                Order.status == OrderStatus.completed,
+                Order.assigned_at.is_not(None),
+                Order.completed_at.is_not(None),
+            )
+        )
+        score = await session.scalar(
+            select(func.avg(OrderReview.score)).where(OrderReview.executor_id == executor_id)
+        )
+        return StatsRow(
+            completed=await orders_in(OrderStatus.completed),
+            failed=await orders_in(OrderStatus.failed, OrderStatus.refunded),
+            overdue=await events("overdue"),
+            refused=await events("refused"),
+            avg_minutes=None if minutes is None else float(minutes) / 60,
+            avg_score=None if score is None else float(score),
+        )
+
+    async def buyer_executors(self, user_id: int) -> list[tuple[str, int]]:
+        count = func.count()
+        query = (
+            select(ExecutorProfile.alias, count)
+            .join(Order, Order.executor_id == ExecutorProfile.user_id)
+            .where(Order.user_id == user_id, Order.status == OrderStatus.completed)
+            .group_by(ExecutorProfile.alias)
+            .order_by(count.desc(), ExecutorProfile.alias)
+        )
+        return [(alias, int(n)) for alias, n in (await self._helper.session.execute(query)).all()]
+
+    async def add_withdrawal(self, withdrawal: Withdrawal) -> None:
+        await self._uow.flush(withdrawal)
+
+    async def wallet_entries(self, user_id: int, limit: int) -> list[LedgerEntry]:
+        query = (
+            select(LedgerEntry)
+            .where(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.account.in_(
+                    (LedgerAccount.executor_hold, LedgerAccount.executor_available)
+                ),
+            )
+            .order_by(LedgerEntry.id.desc())
+            .limit(limit)
+        )
+        return list(await self._helper.session.scalars(query))

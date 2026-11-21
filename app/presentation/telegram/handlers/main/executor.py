@@ -1,7 +1,6 @@
 from typing import Any, Final
 
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from dishka import FromDishka
 
@@ -18,7 +17,7 @@ from app.presentation.telegram.filters import HasRole
 from app.presentation.telegram.flows.executor.cabinet import CabinetFlow
 from app.presentation.telegram.flows.executor.orders import ExecutorOrdersFlow
 from app.presentation.telegram.flows.executor.review import ReviewFlow
-from app.presentation.telegram.states.executor import ResultForm, ReviewForm
+from app.presentation.telegram.states.executor import ResultForm, ReviewForm, WalletForm
 
 router: Final[Router] = Router(name=__name__)
 router.callback_query.filter(HasRole(Role.EXECUTOR))
@@ -31,9 +30,10 @@ review_router.message.filter(HasRole(Role.ADMIN | Role.MANAGER))
 
 
 @router.callback_query(CDCabinet.filter())
-async def cabinet(_: CallbackQuery, state: FSMContext, flow: FromDishka[CabinetFlow]) -> Any:
-    await state.clear()
-    return await flow.show()
+async def cabinet(
+    _: CallbackQuery, callback_data: CDCabinet, flow: FromDishka[CabinetFlow]
+) -> Any:
+    return await flow.section(callback_data)
 
 
 @router.callback_query(CDOrderAct.filter())
@@ -67,6 +67,11 @@ async def result_action(
 @router.message(ResultForm.answer, F.text | F.document | F.photo)
 async def result_answer(message: Message, flow: FromDishka[ExecutorOrdersFlow]) -> Any:
     return await flow.answer_message(message)
+
+
+@router.message(WalletForm.address, F.text)
+async def wallet_address(message: Message, flow: FromDishka[CabinetFlow]) -> Any:
+    return await flow.set_wallet(message)
 
 
 @review_router.callback_query(CDReview.filter())

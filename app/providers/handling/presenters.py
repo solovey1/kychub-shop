@@ -2,6 +2,7 @@ from dishka import Provider, Scope, provide_all
 
 from app.presentation.telegram.presenters.common.balance import BalancePresenter
 from app.presentation.telegram.presenters.common.catalog import CatalogPresenter
+from app.presentation.telegram.presenters.common.feedback import FeedbackPresenter
 from app.presentation.telegram.presenters.common.menu import CommonMenuPresenter
 from app.presentation.telegram.presenters.common.orders import OrdersPresenter
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
@@ -22,4 +23,5 @@ class PresentersProvider(Provider):
         BalancePresenter,
         ExecutorPresenter,
         ReviewPresenter,
+        FeedbackPresenter,
     )

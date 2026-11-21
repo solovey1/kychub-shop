@@ -63,3 +63,15 @@ class OrderUnavailable(AppError):  # noqa: N818
 
 class DeadlineExpired(AppError):  # noqa: N818
     pass
+
+
+class AlreadyRated(AppError):  # noqa: N818
+    pass
+
+
+class WalletNotSet(AppError):  # noqa: N818
+    pass
+
+
+class BelowMinimum(AppError):  # noqa: N818
+    """The available balance is smaller than the minimum withdrawal."""

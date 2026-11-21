@@ -42,3 +42,6 @@ class OrdersGateway(Protocol):
 
     async def hold_due_ids(self, now: datetime) -> list[int]:
         """Completed orders past their hold with an accrual that was not released yet."""
+
+    async def review_due_ids(self, now: datetime) -> list[int]:
+        """Completed orders whose rating request is due and was not sent yet."""

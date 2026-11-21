@@ -7,3 +7,7 @@ class ResultForm(StatesGroup):
 
 class ReviewForm(StatesGroup):
     comment = State()
+
+
+class WalletForm(StatesGroup):
+    address = State()
