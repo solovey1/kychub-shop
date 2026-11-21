@@ -66,13 +66,16 @@ class MessageHelperImpl(MessageHelper):
             can_be_edited = self.update.from_user.id == self.bot.id  # type: ignore
         elif isinstance(self.update, CallbackQuery):
             if self.update.message is None:
-                raise RuntimeError("Message is unavailable.")
-            if chat_id is None:
-                chat_id = self.update.message.chat.id
-            if message_id is None:
-                message_id = self.update.message.message_id
-            if isinstance(self.update.message, InaccessibleMessage):
+                # pressed under an inline-mode message: answer in the user's private chat
+                chat_id = chat_id or self.update.from_user.id
                 can_be_edited = False
+            else:
+                if chat_id is None:
+                    chat_id = self.update.message.chat.id
+                if message_id is None:
+                    message_id = self.update.message.message_id
+                if isinstance(self.update.message, InaccessibleMessage):
+                    can_be_edited = False
         if chat_id is None:
             raise RuntimeError("Chat is unavailable.")
         return chat_id, message_id, can_be_edited

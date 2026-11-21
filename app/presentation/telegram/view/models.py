@@ -12,6 +12,9 @@ class RenderMode(str, Enum):
     ANSWER = "answer"
     # helper.send_new_message(...) — гарантированно новое сообщение
     NEW = "new"
+    # helper.answer_current_message(...) — для ответов текстом: правит «живое» сообщение
+    # из FSM и удаляет сообщение пользователя
+    CURRENT = "current"
     # ничего не рендерить (например, обработали апдейт без ответа пользователю)
     NONE = "none"
 
