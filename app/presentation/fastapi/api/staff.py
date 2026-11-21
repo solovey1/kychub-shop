@@ -1,3 +1,4 @@
+from html import unescape
 from typing import Literal
 
 from dishka import FromDishka
@@ -40,7 +41,7 @@ async def tickets(
             id=ticket.id,
             status=ticket.status.value,
             order_id=ticket.order_id,
-            buyer_name=name,
+            buyer_name=unescape(name),
             mine=ticket.manager_id == user.id,
             conversation_id=conversation_id,
             created_at=ticket.created_at,

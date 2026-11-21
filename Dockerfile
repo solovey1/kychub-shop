@@ -1,3 +1,11 @@
+# Mini App
+FROM node:24-slim AS webapp
+WORKDIR /webapp
+COPY webapp/package.json webapp/package-lock.json ./
+RUN npm ci
+COPY webapp/ ./
+RUN npm run build
+
 # Builder image
 FROM python:3.12-slim AS builder
 
@@ -18,5 +26,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Final image
 FROM builder AS final
 COPY --from=builder --chown=app:app /app /app
+COPY --from=webapp /webapp/dist /app/webapp/dist
 ENV PATH="/app/.venv/bin:$PATH"
 RUN chmod +x scripts/*

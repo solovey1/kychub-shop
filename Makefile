@@ -65,6 +65,12 @@ app-destroy: ## Destroy docker containers
 app-logs: ## Show bot logs
 	@docker compose logs -f bot
 
+##@ Web app
+
+.PHONY: webapp
+webapp: ## Build the Mini App into webapp/dist
+	@cd webapp && npm ci && npm run build
+
 ##@ Other
 
 .PHONY: name

@@ -25,3 +25,7 @@ dist/
 site/
 *.egg-info/
 *.egg
+
+# Web app
+webapp/node_modules
+webapp/dist

@@ -11,6 +11,10 @@ venv/
 docker-compose.yml
 .tests
 
+# Web app
+webapp/node_modules
+webapp/dist
+
 # Cache
 __pycache__/
 *.py[cod]

@@ -1,3 +1,5 @@
+from html import unescape
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter
@@ -28,7 +30,7 @@ async def me(
             pass
     return MeOut(
         id=user.id,
-        name=user.name,
+        name=unescape(user.name),  # stored html-escaped for the bot's messages
         language=user.language,
         roles=[role.name.lower() for role in Role if user.roles & role and role.name],
         balance=usd(await balance.balance(user.id)),

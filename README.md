@@ -37,6 +37,12 @@ make migrate
 - `COMMON_TEST_PAYMENTS=True` turns on the test top-up gateway, keep it `False` in production.
 - Demo catalog: `uv run python -m scripts.seed_demo` (idempotent).
 
+### Mini App
+Source in `webapp/` (React + Vite). Build with `make webapp` (or `npm ci && npm run build` in `webapp/`);
+the bot serves `webapp/dist` at `SERVER_URL/app/`, the Docker image builds it itself.
+For development run `npm run dev` in `webapp/` (mock data outside Telegram), and to open it inside
+Telegram put an HTTPS tunnel in front of `SERVER_PORT`.
+
 ## 🚀 Used technologies:
 - [uv](https://docs.astral.sh/uv/) (an extremely fast Python package and project manager)
 - [Aiogram 3.x](https://github.com/aiogram/aiogram) (Telegram bot framework)
