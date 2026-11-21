@@ -1,6 +1,8 @@
 from dishka import Provider, Scope, provide, provide_all
 
+from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.users import UsersGateway
+from app.infrastructure.postgres.repositories.ledger import LedgerRepository
 from app.infrastructure.postgres.repositories.users import UsersRepository
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -13,4 +15,5 @@ class RepositoriesProvider(Provider):
         UoW,
         SqlRepositoryHelper,
         provide(UsersRepository, provides=UsersGateway),
+        provide(LedgerRepository, provides=LedgerGateway),
     )
