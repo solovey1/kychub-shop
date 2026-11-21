@@ -47,7 +47,7 @@ Redis, APScheduler, pytest + pytest-asyncio. Mini App: React + Vite + TypeScript
 | 2 | Модель данных, журнал денег, миграция | этот файл |
 | 3 | Бот покупателя: каталог, inline-поиск, карточка, анкета, покупка, выдача `stock`/`fixed`, заказы, баланс, промокоды, тестовый шлюз, ручное пополнение | phase3 |
 | 4 | Платежи: порт `PaymentGateway`, CryptoBot / Binance Pay / NOWPayments из `bybit_software_bot`, APScheduler-опрос | phase4 |
-| 5 | Исполнители: допуски, очередь/авто, сроки, переписка, «Готово», подтверждение, холд, выплаты через Crypto Pay `transfer`, оценки, чаевые, рейтинг | phase5 |
+| 5 | Исполнители: допуски, очередь/авто, сроки, переписка, «Готово», подтверждение, холд, свой кошелёк исполнителя + кнопка вывода-заглушка (заявка админу), оценки, чаевые, рейтинг | phase5 |
 | 6 | Поддержка: тикеты, закрепление, маршрутизация сообщений (§15) | phase6 |
 | 7 | API Mini App: initData-авторизация, REST, WebSocket | phase7 |
 | 8 | Mini App (React): покупатель, исполнитель, менеджер | phase8 |
@@ -315,7 +315,8 @@ def test_forbidden(a, b):
 **Interfaces:**
 - Produces: поля по spec §6 и §15a. Уточнения:
   - `ExecutorPermission` — PK `(executor_id, service_id, country_code)`.
-  - `ExecutorProfile.alias` unique.
+  - `ExecutorProfile.alias` unique. `ExecutorProfile.payout_wallet: str | None` — кошелёк для выплат,
+    исполнитель задаёт сам (выплата пока заглушка, см. spec §15b).
   - `Conversation.thread_id` nullable; `Message.tg_message_id` + `Message.tg_chat_id`, индекс по паре
     (для маршрутизации ответа по reply).
   - `PromoCode`: `code` unique (хранить UPPER), `discount_percent`, `discount_amount`, `bonus_amount` (бонус на баланс),
