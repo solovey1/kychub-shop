@@ -19,7 +19,7 @@ class SupportRepository(SupportGateway):
 
     async def lock_user(self, user_id: int) -> None:
         row = await self._helper.session.scalar(
-            select(User.id).where(User.id == user_id).with_for_update()
+            select(User.id).where(User.id == user_id).with_for_update(key_share=True)
         )
         if row is None:
             raise UserNotFound(user_id)

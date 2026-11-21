@@ -142,7 +142,7 @@ class BalanceFlow(BaseFlow):
         await self.helper.fsm.clear()
         await self.show(current=True, notice=self.presenter.redeem_done(bonus))
 
-    async def admin_topup(self, args: str | None) -> None:
+    async def admin_topup(self, args: str | None, token: str) -> None:
         parts = (args or "").split(maxsplit=2)
         try:
             user_id = int(parts[0])
@@ -151,7 +151,9 @@ class BalanceFlow(BaseFlow):
             return await self._reply("messages-admin-topup_usage")
         comment = parts[2] if len(parts) > 2 else ""
         try:
-            entry = await self.interactor.admin_topup(self.user.id, user_id, amount, comment)
+            entry = await self.interactor.admin_topup(
+                self.user.id, user_id, amount, comment, token
+            )
         except AppError:  # unknown user, would go negative, zero amount
             return await self._reply("messages-admin-topup_failed")
         await self._reply(

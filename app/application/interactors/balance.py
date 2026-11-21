@@ -71,16 +71,18 @@ class BalanceInteractor(BaseInteractor):
         return bonus
 
     async def admin_topup(
-        self, admin_id: int, user_id: int, amount: Decimal, comment: str
+        self, admin_id: int, user_id: int, amount: Decimal, comment: str, token: str
     ) -> LedgerEntry:
-        """Negative amount debits the balance."""
+        """Negative amount debits the balance. The same token posts once (re-delivered update)."""
         amount = money(amount)
         if amount == 0:
             raise InvalidAmount("0")
+        ref = f"admin:{token}"
+        main, kind = LedgerAccount.main, LedgerKind.admin_adjust
+        if prior := await self.ledger_gateway.get_by_ref(user_id, main, kind, ref):
+            return prior  # re-delivered command: no second post, no second audit row
         try:
-            entry = await self.ledger.post(
-                user_id, LedgerAccount.main, amount, LedgerKind.admin_adjust
-            )
+            entry = await self.ledger.post(user_id, main, amount, kind, ref=ref)
             await self.gateway.add_audit(
                 AuditLog(
                     actor_id=admin_id,

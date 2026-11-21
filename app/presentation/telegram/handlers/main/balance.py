@@ -22,8 +22,10 @@ async def balance_command(_: Message, state: FSMContext, flow: FromDishka[Balanc
 
 
 @router.message(Command("topup"), HasRole(Role.CAN_FINANCE))
-async def admin_topup(_: Message, command: CommandObject, flow: FromDishka[BalanceFlow]) -> Any:
-    return await flow.admin_topup(command.args)
+async def admin_topup(
+    message: Message, command: CommandObject, flow: FromDishka[BalanceFlow]
+) -> Any:
+    return await flow.admin_topup(command.args, f"{message.chat.id}:{message.message_id}")
 
 
 @router.callback_query(CDBalance.filter())

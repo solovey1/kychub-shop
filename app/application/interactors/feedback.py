@@ -7,6 +7,7 @@ from app.application.errors.shop import AlreadyRated, InvalidAmount, InvalidInpu
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.ports.repositories.executors import ExecutorsGateway
+from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
@@ -81,6 +82,7 @@ class TipInteractor(BaseInteractor):
     uow: UnitOfWork
     orders: OrdersGateway
     ledger: LedgerService
+    ledger_gateway: LedgerGateway
 
     async def tip(self, user_id: int, order_id: int, amount: Decimal, token: str) -> int:
         """Both legs in one transaction. Returns the executor id. The tip is available at once:
@@ -101,6 +103,8 @@ class TipInteractor(BaseInteractor):
                 or order.executor_id is None
             ):
                 raise OrderUnavailable(order_id)
+            for uid in sorted((user_id, order.executor_id)):  # fixed order: no deadlock on a swap
+                await self.ledger_gateway.lock_user(uid)
             ref = f"tip:{order_id}:{token}"
             await self.ledger.post(
                 user_id, LedgerAccount.main, -amount, LedgerKind.tip, order_id=order_id, ref=ref
