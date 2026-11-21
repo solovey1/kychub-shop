@@ -83,7 +83,12 @@ class SupportRepository(SupportGateway):
         return conversation
 
     async def message(self, message_id: int) -> Message | None:
-        message: Message | None = await self._helper.session.get(Message, message_id)
+        query = (
+            select(Message)
+            .where(Message.id == message_id)
+            .execution_options(populate_existing=True)  # server-set created_at
+        )
+        message: Message | None = await self._helper.session.scalar(query)
         return message
 
     async def message_by_copy(self, tg_chat_id: int, tg_message_id: int) -> Message | None:

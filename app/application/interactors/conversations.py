@@ -164,6 +164,46 @@ class ConversationInteractor(BaseInteractor):
         ctx = await self._load(conversation)
         return None if ctx is None else ctx[0]
 
+    async def reader_role(self, user_id: int, conversation: Conversation) -> ChatRole | None:
+        """The capacity in which the user may read here (a closed ticket stays readable):
+        the buyer, the counterpart, any admin, a manager for an order or an untaken ticket."""
+        ctx = await self._load(conversation)
+        if ctx is None:
+            return None
+        participants, ticket, order = ctx
+        if user_id == participants.buyer_id:
+            return ChatRole.buyer
+        if user_id == participants.counterpart_id:
+            return participants.counterpart_role
+        user = await self.users.get(user_id)
+        if user is None:
+            return None
+        if user.roles & Role.ADMIN:
+            return ChatRole.admin
+        if user.roles & Role.MANAGER and (order is not None or (ticket and not ticket.manager_id)):
+            return ChatRole.manager
+        return None
+
+    async def messages(
+        self, conversation_id: int, before_id: int | None, limit: int
+    ) -> tuple[list[Message], bool]:
+        """One page, oldest first, and whether older messages exist."""
+        page = await self.support.messages_page(conversation_id, before_id, limit + 1)
+        return page[-limit:], len(page) > limit
+
+    async def message(self, message_id: int) -> Message | None:
+        return await self.support.message(message_id)
+
+    async def readable_message(self, user_id: int, message_id: int) -> Message | None:
+        """The message, only for someone who may read its conversation."""
+        message = await self.support.message(message_id)
+        conversation = (
+            await self.support.conversation(message.conversation_id) if message else None
+        )
+        if message is None or conversation is None:
+            return None
+        return message if await self.reader_role(user_id, conversation) else None
+
     async def can_post(self, user_id: int, conversation: Conversation) -> ChatRole | None:
         """The capacity in which the user may write here now, or None."""
         ctx = await self._load(conversation)

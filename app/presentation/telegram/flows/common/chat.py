@@ -9,8 +9,7 @@ from app.application.ports.telegram.messages_helper import MessageHelper
 from app.application.storage.keys.impl import ActiveConversationKey
 from app.domain.enums.support import ChatRole
 from app.domain.user import User
-from app.infrastructure.telegram.notifier import Notifier
-from app.infrastructure.telegram.ticket_offers import TicketOffers
+from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.flows.common.relay import ACTIVE_TTL
@@ -29,8 +28,7 @@ class ChatFlow(BaseFlow):
     user: User
     chat: ConversationInteractor
     kv: KvStorage
-    notifier: Notifier
-    offers: TicketOffers
+    effects: Effects
     presenter: SupportPresenter
     renderer: Renderer
     helper: MessageHelper
@@ -99,7 +97,7 @@ class ChatFlow(BaseFlow):
             return await self._say("messages-ticket-take_failed", id=str(ticket_id))
         card = await self.chat.ticket_card(ticket_id)
         assert card is not None
-        _, name = card
+        ticket, name = card
         conversation = await self.chat.ticket_conversation(ticket_id)
         await self._activate(conversation.id)
         tr = self.presenter.i18n.get
@@ -110,15 +108,7 @@ class ChatFlow(BaseFlow):
             )
         )
         await self.renderer.apply(self.presenter.history(await self.chat.history(conversation.id)))
-        try:
-            await self.offers.close(
-                ticket_id,
-                "messages-ticket-taken_by",
-                except_chat=self.user.id,
-                name=self.user.name,
-            )
-        except Exception:
-            logger.exception("updating ticket %s notices failed", ticket_id)
+        await self.effects.ticket_taken(ticket, self.user.id, self.user.name)
 
     async def history(self, conversation_id: int) -> None:
         conversation = await self.chat.get_conversation(conversation_id)
@@ -133,11 +123,4 @@ class ChatFlow(BaseFlow):
         except TicketUnavailable:
             return await self._say("messages-ticket-unavailable", id=str(ticket_id))
         await self._say("messages-ticket-closed", id=str(ticket_id))
-        if ticket.user_id != self.user.id:
-            await self.notifier.send(
-                ticket.user_id, "messages-ticket-closed_buyer", id=str(ticket_id)
-            )
-        try:
-            await self.offers.close(ticket_id, "messages-ticket-closed")
-        except Exception:
-            logger.exception("updating ticket %s notices failed", ticket_id)
+        await self.effects.ticket_closed(ticket, self.user.id)

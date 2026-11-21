@@ -10,8 +10,7 @@ from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import ActiveConversationKey, ChatHintKey
 from app.domain.support import Conversation
 from app.domain.user import User
-from app.infrastructure.telegram.relay import Relay
-from app.infrastructure.telegram.ticket_offers import TicketOffers
+from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.support import SupportPresenter
 from app.presentation.telegram.view.renderer import Renderer
@@ -51,8 +50,7 @@ class RelayFlow(BaseFlow):
 
     user: User
     chat: ConversationInteractor
-    relay: Relay
-    offers: TicketOffers
+    effects: Effects
     kv: KvStorage
     presenter: SupportPresenter
     renderer: Renderer
@@ -69,8 +67,7 @@ class RelayFlow(BaseFlow):
         except ChatForbidden:
             return await self._say("messages-chat-forbidden")
         await self.kv.set(ActiveConversationKey(user_id=self.user.id), conversation.id, ACTIVE_TTL)
-        delivery = await self.relay.deliver(posted, message.message_id)
-        await self.offers.announce(posted)
+        delivery = await self.effects.message_posted(posted, message.message_id)
         if not posted.recipients:
             await self._say("messages-chat-saved")
         elif delivery.delivered == 0:

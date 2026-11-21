@@ -10,6 +10,7 @@ from app.application.models.config.env import (
     SQLAlchemyConfig,
     TelegramConfig,
 )
+from app.infrastructure.events import EventHub
 from app.infrastructure.telegram.lifespan import LifespanService
 
 
@@ -29,7 +30,7 @@ def create_app_config() -> AppConfig:
 class AppInfrastructureProvider(Provider):
     scope = Scope.APP
 
-    infrastructure = provide_all(staticmethod(create_app_config), LifespanService)
+    infrastructure = provide_all(staticmethod(create_app_config), LifespanService, EventHub)
 
     @provide
     def provide_assets(self) -> Assets:

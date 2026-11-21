@@ -7,6 +7,7 @@ from aiogram.exceptions import TelegramAPIError
 
 from app.application.interactors.conversations import ConversationInteractor, Posted, Recipient
 from app.domain.enums.support import ChatRole
+from app.infrastructure.events import EventHub, message_view
 from app.infrastructure.telegram.notifier import Notifier, Translate
 from app.presentation.telegram.keyboards.chat import copy_keyboard
 
@@ -44,9 +45,12 @@ class Relay:
     bot: Bot
     notifier: Notifier
     chat: ConversationInteractor
+    hub: EventHub
 
     async def deliver(self, posted: Posted, source_message_id: int | None) -> Delivery:
-        """`source_message_id`: the sender's own message (media is copied from it)."""
+        """`source_message_id`: the sender's own message (media is copied from it); None for a
+        text sent from the Mini App. Open Mini App sockets get the message first."""
+        await self._publish(posted)
         delivered = failed = 0
         for recipient in posted.recipients:
             try:
@@ -67,6 +71,23 @@ class Relay:
             except Exception:
                 logger.exception("recording delivery of message %s failed", posted.message_id)
         return Delivery(delivered, failed)
+
+    async def _publish(self, posted: Posted) -> None:
+        try:
+            message = await self.chat.message(posted.message_id)
+            if message is None:
+                return
+            users = [posted.sender_id, *(r.user_id for r in posted.recipients)]
+            await self.hub.publish_each(
+                users,
+                lambda uid: {
+                    "type": "message",
+                    "conversation_id": posted.conversation_id,
+                    "message": message_view(message, uid),
+                },
+            )
+        except Exception:
+            logger.exception("publishing message %s failed", posted.message_id)
 
     async def _send(
         self, posted: Posted, recipient: Recipient, source_message_id: int | None
