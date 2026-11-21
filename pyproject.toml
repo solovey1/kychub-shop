@@ -1,37 +1,35 @@
 [project]
-name = "aiogram_bot_template"
+name = "farmhub_shop"
 version = "1.0"
-description = "Aiogram 3.x bot template using PostgreSQL (asyncpg) with SQLAlchemy + alembic"
-authors = ["wakaree <nullmatawasoradesu@gmail.com>"]
+description = "Telegram shop for digital goods: aiogram 3, PostgreSQL, FastAPI"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "aiogram~=3.20.0",
+    "aiogram~=3.33.0",
     "aiogram-contrib>=1.1.4",
     "aiogram-i18n~=1.4",
-    "aiohttp~=3.11.18",
-    "alembic~=1.14.1",
-    "asyncpg~=0.30.0",
+    "aiohttp>=3.11.18",
+    "alembic>=1.14.1",
+    "asyncpg>=0.30.0",
     "dishka>=1.8.0",
     "fastapi>=0.115.12",
-    "fluent-runtime~=0.4.0",
+    "fluent-runtime>=0.4.0",
     "greenlet>=3.2.2",
-    "msgspec~=0.18.6",
-    "pydantic~=2.10.6",
-    "pydantic-settings[yaml]~=2.9.1",
-    "redis~=5.2.1",
+    "msgspec>=0.18.6",
+    "pydantic>=2.8",
+    "pydantic-settings[yaml]>=2.9.1",
+    "redis>=5.2.1",
     "sqlalchemy~=2.0.41",
     "uvicorn>=0.34.2",
 ]
-
-[project.urls]
-Repository = "https://github.com/wakaree/aiogram_bot_template.git"
 
 [tool.uv]
 dev-dependencies = [
     "ftl-extract>=0.8.0",
     "mypy>=1.14.1",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
     "ruff>=0.8.6",
 ]
 
@@ -40,7 +38,7 @@ line-length = 99
 exclude = "\\.?venv|\\.?tests"
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py312"
 line-length = 99
 lint.select = [
     "C",
@@ -62,6 +60,11 @@ exclude = [
     ".venv",
     ".idea",
 ]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["db: needs TEST_POSTGRES_DSN"]
+
 [tool.mypy]
 plugins = [
     "sqlalchemy.ext.mypy.plugin",

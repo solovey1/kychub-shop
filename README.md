@@ -1,5 +1,4 @@
-# aiogram_bot_template
-[![Author](https://img.shields.io/badge/Author-@wakaree-blue)](https://wakaree.dev)
+# farmhub_shop
 [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
 
 ## ⚙️ System dependencies
