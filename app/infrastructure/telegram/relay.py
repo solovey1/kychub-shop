@@ -112,7 +112,9 @@ class Relay:
                 return tr("messages-chat-from_user", name=posted.buyer_name, ref=ref)
             case ChatRole.executor:
                 return tr(
-                    "messages-chat-from_executor", alias=posted.executor_alias or "", ref=ref
+                    "messages-chat-from_executor",
+                    alias=html.quote(posted.executor_alias or ""),
+                    ref=ref,
                 )
             case _:
                 return tr("messages-chat-from_support", ref=ref)
