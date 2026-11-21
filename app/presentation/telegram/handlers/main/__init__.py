@@ -13,4 +13,5 @@ router.include_routers(
     orders.router,
     balance.router,
     executor.router,
+    executor.review_router,
 )

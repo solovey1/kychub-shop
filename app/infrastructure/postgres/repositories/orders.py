@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, exists, func, select
 
 from app.application.ports.repositories.orders import OrdersGateway
+from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
+from app.domain.ledger import LedgerEntry
 from app.domain.order import Order, OrderEvent
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -87,6 +89,40 @@ class OrdersRepository(OrdersGateway):
                 Order.status == OrderStatus.in_queue,
                 Order.executor_id.is_(None),
                 func.coalesce(last_dispatch, Order.updated_at) < cutoff,
+            )
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def list_for_executor(self, executor_id: int, offset: int, limit: int) -> list[Order]:
+        query = (
+            select(Order)
+            .where(Order.executor_id == executor_id)
+            .order_by(Order.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def count_for_executor(self, executor_id: int) -> int:
+        return await self._helper.count(Order.executor_id == executor_id)
+
+    async def hold_due_ids(self, now: datetime) -> list[int]:
+        def entry(kind: LedgerKind) -> ColumnElement[bool]:
+            return exists().where(
+                LedgerEntry.user_id == Order.executor_id,
+                LedgerEntry.account == LedgerAccount.executor_hold,
+                LedgerEntry.kind == kind,
+                LedgerEntry.ref == func.concat("order:", Order.id),
+            )
+
+        query = (
+            select(Order.id)
+            .where(
+                Order.status == OrderStatus.completed,
+                Order.hold_until <= now,
+                entry(LedgerKind.executor_earning),
+                ~entry(LedgerKind.hold_release),
             )
             .order_by(Order.id)
         )

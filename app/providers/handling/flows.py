@@ -8,6 +8,7 @@ from app.presentation.telegram.flows.common.purchase import PurchaseFlow
 from app.presentation.telegram.flows.executor.admin import ExecutorAdminFlow
 from app.presentation.telegram.flows.executor.cabinet import CabinetFlow
 from app.presentation.telegram.flows.executor.orders import ExecutorOrdersFlow
+from app.presentation.telegram.flows.executor.review import ReviewFlow
 from app.presentation.telegram.flows.extra.errors import ExtraErrorsFlow
 from app.presentation.telegram.flows.extra.pm import PMFlow
 
@@ -26,4 +27,5 @@ class FlowsProvider(Provider):
         ExecutorAdminFlow,
         CabinetFlow,
         ExecutorOrdersFlow,
+        ReviewFlow,
     )

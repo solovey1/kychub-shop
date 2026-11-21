@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
 from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.hold import HoldInteractor
 from app.infrastructure.telegram.offers import OfferService
 
 logger: Final = logging.getLogger(__name__)
@@ -28,6 +29,15 @@ async def requeue_stale(container: AsyncContainer) -> None:
             await offers.announce(result)
 
 
+async def release_holds(container: AsyncContainer) -> None:
+    """Earnings whose hold is over become available. Safe to run twice: the ledger refs are
+    unique and the order row is locked."""
+    async with container() as request:
+        released = await (await request.get(HoldInteractor)).release_due()
+    if released:
+        logger.info("hold released for orders %s", released)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -46,3 +56,4 @@ def _job(
 def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
     _job(scheduler, container, requeue_stale, "requeue_stale", 300)
+    _job(scheduler, container, release_holds, "release_holds", 600)

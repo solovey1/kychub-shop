@@ -3,9 +3,10 @@ from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
+from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.callbacks.menu import CDMenu
-from app.presentation.telegram.callbacks.orders import CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder, CDOrders
 from app.presentation.telegram.keyboards.common import button, markup, pager
 
 
@@ -28,3 +29,28 @@ def orders_keyboard(
 
 def order_back_keyboard(i18n: I18nContext, page: int) -> InlineKeyboardMarkup:
     return markup([[button(i18n.buttons.back(), CDOrders(page=page))]])
+
+
+def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboardMarkup:
+    rows = []
+    if order.status is OrderStatus.in_queue:  # nobody has taken it yet
+        rows.append(
+            [button(i18n.buttons.cancel_order(), CDCancel(id=order.id, page=page), style="danger")]
+        )
+    rows.append([button(i18n.buttons.back(), CDOrders(page=page))])
+    return markup(rows)
+
+
+def cancel_confirm_keyboard(i18n: I18nContext, order_id: int, page: int) -> InlineKeyboardMarkup:
+    return markup(
+        [
+            [
+                button(
+                    i18n.buttons.cancel_confirm(),
+                    CDCancel(id=order_id, page=page, ok=1),
+                    style="danger",
+                )
+            ],
+            [button(i18n.buttons.back(), CDOrder(id=order_id, page=page))],
+        ]
+    )

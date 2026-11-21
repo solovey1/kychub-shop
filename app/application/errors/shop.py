@@ -59,3 +59,7 @@ class UnknownCountry(AppError):  # noqa: N818
 
 class OrderUnavailable(AppError):  # noqa: N818
     """No such order for this actor, or it is not in a state the action needs."""
+
+
+class DeadlineExpired(AppError):  # noqa: N818
+    pass

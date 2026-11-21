@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from dishka import FromDishka
 
-from app.presentation.telegram.callbacks.orders import CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder, CDOrders
 from app.presentation.telegram.flows.common.orders import OrdersFlow
 
 router: Final[Router] = Router(name=__name__)
@@ -29,3 +29,8 @@ async def orders(
 @router.callback_query(CDOrder.filter())
 async def order(_: CallbackQuery, callback_data: CDOrder, flow: FromDishka[OrdersFlow]) -> Any:
     return await flow.show(callback_data.id, callback_data.page)
+
+
+@router.callback_query(CDCancel.filter())
+async def cancel(_: CallbackQuery, callback_data: CDCancel, flow: FromDishka[OrdersFlow]) -> Any:
+    return await flow.cancel(callback_data)

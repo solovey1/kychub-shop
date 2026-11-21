@@ -33,3 +33,12 @@ class OrdersGateway(Protocol):
 
     async def stale_ids(self, cutoff: datetime) -> list[int]:
         """Unassigned `in_queue` orders with no dispatch attempt since `cutoff`."""
+
+    async def list_for_executor(
+        self, executor_id: int, offset: int, limit: int
+    ) -> list[Order]: ...
+
+    async def count_for_executor(self, executor_id: int) -> int: ...
+
+    async def hold_due_ids(self, now: datetime) -> list[int]:
+        """Completed orders past their hold with an accrual that was not released yet."""

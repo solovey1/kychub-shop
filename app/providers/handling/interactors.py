@@ -8,7 +8,10 @@ from app.application.interactors.executors import (
     ExecutorAdminInteractor,
     ExecutorCabinetInteractor,
 )
+from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
+from app.application.interactors.hold import HoldInteractor
 from app.application.interactors.ledger import LedgerService
+from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.application.interactors.pm.user_status import PMInteractor
 from app.application.interactors.promo import PromoService
@@ -32,4 +35,7 @@ class InteractorsProvider(Provider):
         ExecutorCabinetInteractor,
         CardBuilder,
         DispatchInteractor,
+        FulfillmentWorkInteractor,
+        OrderReviewInteractor,
+        HoldInteractor,
     )

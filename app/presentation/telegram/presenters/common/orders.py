@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 from aiogram import html
 from aiogram_i18n import I18nContext
@@ -7,7 +8,12 @@ from app.application.i18n_text import country_flag, fmt_usd, pick_i18n
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.callbacks.orders import CDOrders
-from app.presentation.telegram.keyboards.orders import order_back_keyboard, orders_keyboard
+from app.presentation.telegram.keyboards.orders import (
+    cancel_confirm_keyboard,
+    order_back_keyboard,
+    order_keyboard,
+    orders_keyboard,
+)
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.presenters.common.purchase import result_view
 from app.presentation.telegram.view.models import View
@@ -53,4 +59,16 @@ class OrdersPresenter(BasePresenter):
         )
         if order.status is OrderStatus.completed and order.result:
             return result_view(i18n, text, str(order.result.get("text", "")), CDOrders(page=page))
-        return View(text=text, reply_markup=order_back_keyboard(i18n, page)), None
+        return View(text=text, reply_markup=order_keyboard(i18n, order, page)), None
+
+    def cancel_confirm(self, order_id: int, page: int) -> View:
+        return View(
+            text=self.i18n.messages.orders.cancel_confirm(id=str(order_id)),
+            reply_markup=cancel_confirm_keyboard(self.i18n, order_id, page),
+        )
+
+    def cancelled(self, order_id: int, amount: Decimal, page: int) -> View:
+        return View(
+            text=self.i18n.messages.orders.cancelled(id=str(order_id), amount=fmt_usd(amount)),
+            reply_markup=order_back_keyboard(self.i18n, page),
+        )

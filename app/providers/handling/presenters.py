@@ -6,6 +6,7 @@ from app.presentation.telegram.presenters.common.menu import CommonMenuPresenter
 from app.presentation.telegram.presenters.common.orders import OrdersPresenter
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
 from app.presentation.telegram.presenters.executor.cabinet import ExecutorPresenter
+from app.presentation.telegram.presenters.executor.review import ReviewPresenter
 from app.presentation.telegram.presenters.extra.errors import ExtraErrorsPresenter
 
 
@@ -20,4 +21,5 @@ class PresentersProvider(Provider):
         OrdersPresenter,
         BalancePresenter,
         ExecutorPresenter,
+        ReviewPresenter,
     )
