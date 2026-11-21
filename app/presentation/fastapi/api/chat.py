@@ -31,6 +31,10 @@ router: APIRouter = APIRouter(tags=["chat"])
 PING_EVERY: Final = 30
 UNAUTHORIZED_CLOSE: Final = 4401
 PAGE_MAX: Final = 100
+AUTH_WAIT: Final = 10
+INLINE_TYPES: Final = frozenset(
+    {"image/jpeg", "image/png", "image/webp", "video/mp4", "audio/ogg", "audio/mpeg"}
+)
 
 
 async def _readable(
@@ -120,26 +124,49 @@ async def file(
         raise HTTPException(404, "File unavailable") from None
     if not info.file_path:
         raise HTTPException(404, "File unavailable")
-    kind = message.media.get("type")
-    media_type = "image/jpeg" if kind == "photo" else mimetypes.guess_type(info.file_path)[0]
+    # same origin as the Mini App: only a short list of types may be shown inline, the type
+    # never comes from the (sender-controlled) file name alone
+    guessed = "image/jpeg" if message.media.get("type") == "photo" else None
+    guessed = guessed or mimetypes.guess_type(info.file_path)[0]
+    inline = guessed in INLINE_TYPES
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox; default-src 'none'",
+    }
+    if not inline:
+        headers["Content-Disposition"] = "attachment"
     stream = bot.session.stream_content(bot.session.api.file_url(bot.token, info.file_path))
-    return StreamingResponse(stream, media_type=media_type or "application/octet-stream")
+    return StreamingResponse(
+        stream, media_type=guessed if inline else "application/octet-stream", headers=headers
+    )
 
 
 @router.websocket("/ws")
-async def ws(websocket: WebSocket, auth: str = "") -> None:
-    """`?auth=<urlencoded initData>`. Events: message, order, queue, ticket."""
+async def ws(websocket: WebSocket) -> None:
+    """The first frame must be {"type": "auth", "init_data": "..."} within 10 seconds (the
+    credentials never go into the URL). Events: message, order, queue, ticket."""
     container = websocket.state.dishka_container
-    async with container() as request:  # the socket itself holds no database session
-        user = await authenticate(
-            auth, await request.get(AppConfig), await request.get(UsersGateway)
-        )
     await websocket.accept()
+    init_data = ""
+    try:
+        frame = await asyncio.wait_for(websocket.receive_json(), AUTH_WAIT)
+        if isinstance(frame, dict) and frame.get("type") == "auth":
+            init_data = str(frame.get("init_data", ""))
+    except (asyncio.TimeoutError, ValueError, KeyError):
+        pass
+    except WebSocketDisconnect:
+        return
+    user = None
+    if init_data:
+        async with container() as request:  # the socket itself holds no database session
+            user = await authenticate(
+                init_data, await request.get(AppConfig), await request.get(UsersGateway)
+            )
     if user is None:
         await websocket.close(UNAUTHORIZED_CLOSE)
         return
     hub = await container.get(EventHub)
-    hub.connect(user.id, websocket)
+    await hub.connect(user.id, websocket)
     try:
         while True:
             try:  # nothing is expected from the client; silence for 30 seconds is pinged

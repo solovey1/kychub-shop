@@ -7,10 +7,9 @@ from aiogram.types import Message
 from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.ports.telegram.messages_helper import MessageHelper
-from app.domain.enums.order import OrderStatus
 from app.domain.user import User
+from app.infrastructure.telegram.effects import Effects
 from app.infrastructure.telegram.notices import OrderNotices
-from app.infrastructure.telegram.offers import OfferService
 from app.presentation.telegram.callbacks.executor import CDReview
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.executor.review import ReviewPresenter
@@ -26,7 +25,7 @@ class ReviewFlow(BaseFlow):
     interactor: OrderReviewInteractor
     presenter: ReviewPresenter
     notices: OrderNotices
-    offers: OfferService
+    effects: Effects
     renderer: Renderer
     helper: MessageHelper
 
@@ -59,8 +58,7 @@ class ReviewFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-review-unavailable", order_id)
         await self.open(order_id, "messages-review-confirmed")
-        await self._safe(self.notices.deliver(order), order_id)
-        await self._safe(self.notices.confirmed(order), order_id)
+        await self.effects.order_confirmed(order)
 
     async def send_back(self, message: Message) -> None:
         data = await self.helper.fsm.get_data()
@@ -74,7 +72,7 @@ class ReviewFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-review-unavailable", order_id, current=True)
         await self._say("messages-review-sent_back", order_id, current=True)
-        await self._safe(self.notices.sent_back(order, comment[:1000]), order_id)
+        await self.effects.order_sent_back(order, comment[:1000])
 
     async def fail(self, order_id: int) -> None:
         try:
@@ -82,11 +80,7 @@ class ReviewFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-review-unavailable", order_id)
         await self._say("messages-review-failed", order_id)
-        if refund.was is OrderStatus.in_queue:
-            await self._safe(
-                self.offers.close(order_id, "messages-executor-offer_cancelled"), order_id
-            )
-        await self._safe(self.notices.refunded(refund), order_id)
+        await self.effects.order_failed(refund)
 
     async def _say(self, key: str, order_id: int, *, current: bool = False) -> None:
         await self.renderer.apply(self.presenter.text(key, order_id, current=current))

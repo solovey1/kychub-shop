@@ -12,3 +12,4 @@ buttons-search = Пошук
 buttons-orders = Мої замовлення
 buttons-balance = Баланс: { $amount }
 buttons-language = Мова
+buttons-app = Відкрити магазин

@@ -7,6 +7,7 @@ from app.domain.enums.locale import Locale
 TIMEZONE: Final[timezone] = timezone.utc
 DEFAULT_LOCALE: Final[str] = Locale.RU
 ROOT_DIR: Final[Path] = Path(__file__).parent.parent
+WEBAPP_PATH: Final[str] = "/app"
 ENV_FILE: Final[Path] = ROOT_DIR / ".env"
 ASSETS_SOURCE_DIR: Final[Path] = ROOT_DIR / "assets"
 MESSAGES_SOURCE_DIR: Final[Path] = ASSETS_SOURCE_DIR / "messages"

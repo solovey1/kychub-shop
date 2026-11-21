@@ -1,0 +1,207 @@
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
+from fastapi import APIRouter, HTTPException, Query
+
+from app.application.errors.shop import ExecutorNotFound, OrderUnavailable
+from app.application.i18n_text import pick_i18n
+from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.executor_wallet import ExecutorWalletInteractor
+from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
+from app.application.interactors.stats import ExecutorStats
+from app.application.models.form_schema import FormSchema
+from app.domain.enums.order import OrderStatus
+from app.infrastructure.telegram.effects import Effects
+from app.presentation.fastapi.api.auth import ExecutorUser
+from app.presentation.fastapi.api.schemas import (
+    ExecutorOrderBrief,
+    ExecutorOrderListItem,
+    ExecutorOrderListOut,
+    ExecutorOrderOut,
+    LedgerEntryOut,
+    ResultFieldOut,
+    ResultIn,
+    StatsOut,
+    WalletDetailOut,
+    WalletIn,
+    WithdrawalOut,
+    card_brief,
+    card_fields,
+    usd,
+)
+
+router: APIRouter = APIRouter(prefix="/executor", tags=["executor"])
+
+
+def _form(form: FormSchema, locale: str) -> list[ResultFieldOut]:
+    return [
+        ResultFieldOut(
+            key=f.key,
+            label=pick_i18n(f.label, locale),
+            type=f.type.value,
+            required=f.required,
+            options=f.options,
+            max_length=f.max_length,
+        )
+        for f in form.fields
+    ]
+
+
+async def _order(
+    order_id: int, user_id: int, locale: str, work: FulfillmentWorkInteractor
+) -> ExecutorOrderOut:
+    view = await work.get(user_id, order_id)
+    if view is None:  # not his order looks like a missing one
+        raise HTTPException(404, "Not found")
+    form = None
+    if view.order.status is OrderStatus.assigned:
+        form = _form(await work.result_form(user_id, order_id), locale)
+    result = view.order.result
+    return ExecutorOrderOut(
+        **card_brief(view.card, view.order.status, locale),
+        deadline_at=view.order.deadline_at,
+        fields=card_fields(view.card, locale),
+        result_form=form,
+        result=dict(result.get("fields", {})) if result else None,
+    )
+
+
+@router.get("/queue")
+@inject
+async def queue(
+    user: ExecutorUser, dispatcher: FromDishka[DispatchInteractor]
+) -> list[ExecutorOrderBrief]:
+    """Only what he may take now: no permission means an empty list."""
+    return [
+        ExecutorOrderBrief(**card_brief(card, OrderStatus.in_queue, user.language))
+        for card in await dispatcher.queue_for(user.id)
+    ]
+
+
+@router.post("/orders/{order_id}/take")
+@inject
+async def take(
+    order_id: int,
+    user: ExecutorUser,
+    dispatcher: FromDishka[DispatchInteractor],
+    work: FromDishka[FulfillmentWorkInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    if not await dispatcher.take(user.id, order_id):  # gone, taken, not permitted, at the limit
+        raise HTTPException(409, "Order is not available")
+    await effects.order_taken(order_id, user.id)
+    return await _order(order_id, user.id, user.language, work)
+
+
+@router.get("/orders")
+@inject
+async def my_orders(
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    page: int = Query(0, ge=0),
+) -> ExecutorOrderListOut:
+    orders, total, page = await work.my_orders(user.id, page)
+    items = []
+    for order in orders:
+        variant = order.snapshot.get("variant") or {}
+        items.append(
+            ExecutorOrderListItem(
+                id=order.id,
+                status=order.status,
+                product=pick_i18n(order.snapshot.get("product"), user.language),
+                variant=pick_i18n(variant.get("title"), user.language),
+                country=variant.get("country"),
+                deadline_at=order.deadline_at,
+            )
+        )
+    return ExecutorOrderListOut(items=items, total=total, page=page, page_size=PAGE_SIZE)
+
+
+@router.get("/orders/{order_id}")
+@inject
+async def get_order(
+    order_id: int, user: ExecutorUser, work: FromDishka[FulfillmentWorkInteractor]
+) -> ExecutorOrderOut:
+    return await _order(order_id, user.id, user.language, work)
+
+
+@router.post("/orders/{order_id}/refuse")
+@inject
+async def refuse(
+    order_id: int,
+    user: ExecutorUser,
+    dispatcher: FromDishka[DispatchInteractor],
+    effects: FromDishka[Effects],
+) -> dict[str, bool]:
+    try:
+        result = await dispatcher.refuse(user.id, order_id)
+    except OrderUnavailable:
+        raise HTTPException(404, "Not found") from None
+    await effects.order_refused(result)
+    return {"ok": True}
+
+
+@router.post("/orders/{order_id}/result")
+@inject
+async def submit_result(
+    order_id: int,
+    body: ResultIn,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """Text fields only: a file field of the result form cannot be filled from the Mini App."""
+    order = await work.submit(user.id, order_id, body.fields)  # OrderUnavailable -> 404
+    await effects.result_submitted(order)
+    return await _order(order_id, user.id, user.language, work)
+
+
+@router.get("/stats")
+@inject
+async def stats(user: ExecutorUser, interactor: FromDishka[ExecutorStats]) -> StatsOut:
+    return StatsOut(**vars(await interactor.stats(user.id)))
+
+
+async def _wallet(user_id: int, wallet: ExecutorWalletInteractor) -> WalletDetailOut:
+    try:
+        summary = await wallet.summary(user_id)
+    except ExecutorNotFound:
+        raise HTTPException(404, "Not found") from None
+    return WalletDetailOut(
+        hold=usd(summary.hold),
+        available=usd(summary.available),
+        wallet=summary.wallet,
+        minimum=usd(summary.minimum),
+        entries=[LedgerEntryOut.of(e) for e in summary.entries],
+    )
+
+
+@router.get("/balance")
+@inject
+async def balance(
+    user: ExecutorUser, wallet: FromDishka[ExecutorWalletInteractor]
+) -> WalletDetailOut:
+    return await _wallet(user.id, wallet)
+
+
+@router.put("/wallet")
+@inject
+async def set_wallet(
+    body: WalletIn, user: ExecutorUser, wallet: FromDishka[ExecutorWalletInteractor]
+) -> WalletDetailOut:
+    await wallet.set_wallet(user.id, body.address)  # InvalidInput -> 422
+    return await _wallet(user.id, wallet)
+
+
+@router.post("/withdraw")
+@inject
+async def withdraw(
+    user: ExecutorUser,
+    wallet: FromDishka[ExecutorWalletInteractor],
+    effects: FromDishka[Effects],
+) -> WithdrawalOut:
+    withdrawal = await wallet.withdraw(user.id)  # WalletNotSet / BelowMinimum -> 400
+    await effects.withdrawal_created(user, withdrawal)
+    return WithdrawalOut(
+        id=withdrawal.id, amount=usd(withdrawal.amount), address=withdrawal.address
+    )

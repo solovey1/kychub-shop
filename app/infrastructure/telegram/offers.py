@@ -11,6 +11,7 @@ from app.application.interactors.dispatch import DispatchResult
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import OrderOfferKey
+from app.infrastructure.events import EventHub
 from app.infrastructure.telegram.notifier import Notifier, Translate
 from app.presentation.telegram.callbacks.executor import CDOrderAct
 from app.presentation.telegram.keyboards.common import button, markup
@@ -59,12 +60,36 @@ class OfferService:
     kv: KvStorage
     orders: OrdersGateway
     cards: CardBuilder
+    hub: EventHub
 
     async def announce(self, result: DispatchResult) -> None:
         try:
             await self._announce(result)
         except Exception:
             logger.exception("announcing dispatch of order %s failed", result.order_id)
+        await self._publish(result)
+
+    async def _publish(self, result: DispatchResult) -> None:
+        """Open Mini Apps: the executors who may take the order, the people whose order moved."""
+        try:
+            if result.kind == "skipped":
+                return
+            order = await self.orders.get(result.order_id)
+            if order is None:
+                return
+            users = {order.user_id}
+            if result.released_executor_id is not None:
+                users.add(result.released_executor_id)
+            if result.kind == "assigned":
+                users.update(result.executor_ids)
+            await self.hub.publish(
+                users,
+                {"type": "order", "order_id": order.id, "status": order.status.value},
+            )
+            if result.kind == "offer":
+                await self.hub.publish(result.executor_ids, {"type": "queue"})
+        except Exception:
+            logger.exception("publishing dispatch of order %s failed", result.order_id)
 
     async def _announce(self, result: DispatchResult) -> None:
         order_id = result.order_id

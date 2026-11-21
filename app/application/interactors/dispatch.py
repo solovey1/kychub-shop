@@ -3,10 +3,11 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Final, Literal
 
+from app.application.cards import OrderCard
 from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
-from app.application.interactors.cards import OrderContext, load_context
+from app.application.interactors.cards import CardBuilder, OrderContext, load_context
 from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.executors import Candidate, ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
@@ -19,6 +20,8 @@ from app.utils.time import datetime_now
 logger: Final = logging.getLogger(__name__)
 
 STALE_AFTER: Final = timedelta(minutes=10)
+QUEUE_LIMIT: Final = 50
+QUEUE_SCAN: Final = 200
 
 
 @dataclass(frozen=True)
@@ -43,6 +46,20 @@ class DispatchInteractor(BaseInteractor):
     orders: OrdersGateway
     executors: ExecutorsGateway
     catalog: CatalogGateway
+    cards: CardBuilder
+
+    async def queue_for(self, executor_id: int) -> list[OrderCard]:
+        """The waiting orders this executor may take now (permission, limit, not refused).
+        ponytail: scans the oldest 200 queued orders, one check each; index it when the queue
+        grows past that."""
+        found: list[OrderCard] = []
+        for order in await self.orders.queue(QUEUE_SCAN):
+            ctx = await load_context(self.catalog, order)
+            if await self._candidates(order, ctx, only=executor_id):
+                found.append(await self.cards.build(order, executor_id))
+                if len(found) == QUEUE_LIMIT:
+                    break
+        return found
 
     async def eligible(self, order_id: int) -> list[int]:
         order = await self.orders.get(order_id)

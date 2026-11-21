@@ -93,6 +93,22 @@ class ConversationInteractor(BaseInteractor):
     async def get_conversation(self, conversation_id: int) -> Conversation | None:
         return await self.support.conversation(conversation_id)
 
+    async def list_tickets(
+        self, actor_id: int, scope: str, limit: int = 50
+    ) -> list[tuple[Ticket, str, int]]:
+        """(ticket, buyer name, conversation id) for staff. scope: open (nobody took it),
+        mine (taken by the actor), all (admins only, anything else is empty)."""
+        if scope == "all" and not await self._is_admin(actor_id):
+            return []
+        status = {"open": TicketStatus.open, "mine": TicketStatus.taken}.get(scope)
+        manager = actor_id if scope == "mine" else None
+        rows: list[tuple[Ticket, str, int]] = []
+        for ticket in await self.support.tickets(status, manager, limit):
+            user = await self.users.get(ticket.user_id)
+            conversation = await self.ticket_conversation(ticket.id)
+            rows.append((ticket, user.name if user else "", conversation.id))
+        return rows
+
     async def ticket_card(self, ticket_id: int) -> tuple[Ticket, str] | None:
         """The ticket and its owner's name, for the manager."""
         ticket = await self.support.ticket(ticket_id)

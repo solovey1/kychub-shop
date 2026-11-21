@@ -12,3 +12,4 @@ buttons-search = Search
 buttons-orders = My orders
 buttons-balance = Balance: { $amount }
 buttons-language = Language
+buttons-app = Open the shop

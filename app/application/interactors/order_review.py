@@ -69,6 +69,9 @@ class OrderReviewInteractor(BaseInteractor):
         result = order.result or {}
         return ReviewView(order, card, str(result.get("text", "")), list(result.get("files", [])))
 
+    async def list_by_status(self, status: OrderStatus, limit: int) -> list[Order]:
+        return await self.orders.list_by_status(status, limit)
+
     async def confirm(self, actor_id: int, order_id: int) -> Order:
         """ready -> completed; the executor share goes to the hold."""
         try:

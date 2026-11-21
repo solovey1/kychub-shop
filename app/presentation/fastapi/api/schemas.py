@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from pydantic import Field
 
+from app.application.cards import OrderCard
 from app.application.i18n_text import pick_i18n
 from app.application.models.base import PydanticModel
 from app.domain.enums.order import OrderStatus
@@ -138,3 +139,131 @@ class MessagesOut(PydanticModel):
     items: list[MessageOut]  # oldest first
     has_more: bool
     can_post: bool
+
+
+class CardFieldOut(PydanticModel):
+    label: str
+    value: str | None  # None for a file: files are not served to the Mini App
+    is_file: bool = False
+
+
+class ResultFieldOut(PydanticModel):
+    key: str
+    label: str
+    type: str
+    required: bool
+    options: list[str] | None
+    max_length: int
+
+
+class ExecutorOrderBrief(PydanticModel):
+    """No buyer data and no price the buyer paid: the executor sees his earning."""
+
+    id: int
+    status: OrderStatus
+    product: str
+    country: str | None
+    earning: str
+    deadline_minutes: int
+
+
+class ExecutorOrderOut(ExecutorOrderBrief):
+    deadline_at: datetime | None = None
+    fields: list[CardFieldOut]
+    result_form: list[ResultFieldOut] | None = None  # while the order waits for a result
+    result: dict[str, str] | None = None  # what the executor handed in
+
+
+class ExecutorOrderListItem(PydanticModel):
+    id: int
+    status: OrderStatus
+    product: str
+    variant: str
+    country: str | None
+    deadline_at: datetime | None
+
+
+class ExecutorOrderListOut(PydanticModel):
+    items: list[ExecutorOrderListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class ResultIn(PydanticModel):
+    fields: dict[str, str]
+
+
+class StatsOut(PydanticModel):
+    completed: int
+    failed: int
+    overdue: int
+    refused: int
+    avg_minutes: float | None
+    avg_score: float | None
+
+
+class WalletDetailOut(PydanticModel):
+    hold: str
+    available: str
+    wallet: str | None
+    minimum: str
+    entries: list[LedgerEntryOut]
+
+
+class WalletIn(PydanticModel):
+    address: str = Field(min_length=1, max_length=128)
+
+
+class WithdrawalOut(PydanticModel):
+    id: int
+    amount: str
+    address: str
+
+
+class TicketOut(PydanticModel):
+    id: int
+    status: str
+    order_id: int | None
+    buyer_name: str  # staff only
+    mine: bool
+    conversation_id: int
+    created_at: datetime
+
+
+class SendBackIn(PydanticModel):
+    comment: str = Field(min_length=1, max_length=1000)
+
+
+class StaffOrderBrief(OrderBrief):
+    executor_id: int | None
+    ready_at: datetime | None
+
+
+class StaffOrderOut(StaffOrderBrief):
+    earning: str
+    fields: list[CardFieldOut]  # includes the fields hidden from executors
+    result: str
+    result_files: int
+
+
+def card_fields(card: OrderCard, locale: str) -> list[CardFieldOut]:
+    return [
+        CardFieldOut(
+            label=pick_i18n(f.label, locale),
+            value=None if f.is_file else f.value,
+            is_file=f.is_file,
+        )
+        for f in card.fields
+    ]
+
+
+def card_brief(card: OrderCard, status: OrderStatus, locale: str) -> dict[str, object]:
+    return {
+        "id": card.order_id,
+        "status": status,
+        "product": pick_i18n(card.product, locale),
+        "country": card.country_code,
+        "earning": usd(card.earning),
+        "deadline_minutes": card.deadline_minutes,
+    }

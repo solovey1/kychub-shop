@@ -2,17 +2,15 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Final
 
-from aiogram import html
 from aiogram.types import Message
 
 from app.application.errors.shop import BelowMinimum, InvalidInput, WalletNotSet
-from app.application.i18n_text import fmt_usd
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import ExecutorCabinetInteractor
 from app.application.interactors.stats import ExecutorStats
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
-from app.infrastructure.telegram.notifier import Notifier
+from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.executor import CDCabinet
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.executor.cabinet import ExecutorPresenter
@@ -31,7 +29,7 @@ class CabinetFlow(BaseFlow):
     presenter: ExecutorPresenter
     renderer: Renderer
     helper: MessageHelper
-    notifier: Notifier
+    effects: Effects
 
     async def section(self, cd: CDCabinet) -> Any:
         await self.helper.fsm.clear()
@@ -90,13 +88,4 @@ class CabinetFlow(BaseFlow):
                 self.presenter.balance(summary, self.presenter.below_minimum(summary.minimum))
             )
         await self.balance(self.presenter.withdrawal_created(withdrawal.amount))
-        try:
-            await self.notifier.staff(
-                "messages-withdrawal-new",
-                id=str(withdrawal.id),
-                user=self.user.mention,
-                amount=fmt_usd(withdrawal.amount),
-                address=html.quote(withdrawal.address),
-            )
-        except Exception:
-            logger.exception("notifying staff about withdrawal %s failed", withdrawal.id)
+        await self.effects.withdrawal_created(self.user, withdrawal)

@@ -10,8 +10,7 @@ from app.application.interactors.fulfillment_work import FulfillmentWorkInteract
 from app.application.models.form_schema import FieldType, FormSchema
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
-from app.infrastructure.telegram.notices import OrderNotices
-from app.infrastructure.telegram.offers import OfferService
+from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.executor import CDOrderAct, CDXResult
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
@@ -28,8 +27,7 @@ class ExecutorOrdersFlow(BaseFlow):
     user: User
     dispatcher: DispatchInteractor
     work: FulfillmentWorkInteractor
-    offers: OfferService
-    notices: OrderNotices
+    effects: Effects
     presenter: ExecutorPresenter
     purchase_presenter: PurchasePresenter
     renderer: Renderer
@@ -46,9 +44,7 @@ class ExecutorOrdersFlow(BaseFlow):
         if not await self.dispatcher.take(self.user.id, order_id):
             return await self._say("messages-executor-take_failed", order_id)
         await self.renderer.apply(self.presenter.taken(order_id))
-        await self.offers.close(
-            order_id, "messages-executor-offer_taken", except_chat=self.user.id
-        )
+        await self.effects.order_taken(order_id, self.user.id)
 
     async def refuse(self, order_id: int) -> None:
         await self.helper.fsm.clear()
@@ -57,7 +53,7 @@ class ExecutorOrdersFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-executor-refuse_failed", order_id)
         await self._say("messages-executor-refused", order_id)
-        await self.offers.announce(result)
+        await self.effects.order_refused(result)
 
     async def _say(self, key: str, order_id: int) -> None:
         await self.renderer.apply(self.presenter.text(key, id=str(order_id)))
@@ -186,7 +182,4 @@ class ExecutorOrdersFlow(BaseFlow):
         view = self.presenter.note("messages-executor-submitted", order_id)
         view.mode = RenderMode.ANSWER
         await self.renderer.apply(view)
-        try:
-            await self.notices.ready_for_review(order)
-        except Exception:
-            logger.exception("notifying reviewers about order %s failed", order_id)
+        await self.effects.result_submitted(order)

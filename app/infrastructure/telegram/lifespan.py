@@ -8,10 +8,13 @@ from typing import Final
 
 from aiogram import Bot, Dispatcher, loggers
 from aiogram.methods import SetWebhook
+from aiogram.types import MenuButtonWebApp, WebAppInfo
+from aiogram_i18n.cores import FluentRuntimeCore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.application.models.config import AppConfig, Assets
 from app.application.ports.storages.key_value import KvStorage
+from app.const import DEFAULT_LOCALE, WEBAPP_PATH
 from app.utils import mjson
 
 logger: Final[logging.Logger] = logging.getLogger(name=__name__)
@@ -24,6 +27,7 @@ class LifespanService:
     kv_storage: KvStorage
     bot: Bot
     scheduler: AsyncIOScheduler
+    core: FluentRuntimeCore
 
     async def setup_polling(self, dispatcher: Dispatcher) -> None:
         await self.bot.delete_webhook(
@@ -64,6 +68,20 @@ class LifespanService:
 
         await self.kv_storage.set_commands_lock(bot_id=self.bot.id, commands_hash=commands_hash)
         logger.info("Bot commands successfully set")
+
+    async def setup_menu_button(self) -> None:
+        """The chat menu button opens the Mini App (Telegram accepts only https URLs)."""
+        url = self.config.server.build_url(path=WEBAPP_PATH + "/")
+        if not url.startswith("https://"):
+            logger.info("Skipping the menu button, the server url is not https")
+            return
+        await self.bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text=self.core.get("buttons-app", DEFAULT_LOCALE),
+                web_app=WebAppInfo(url=url),
+            )
+        )
+        logger.info("Menu button set to %s", url)
 
     async def setup_webhooks(self, dispatcher: Dispatcher) -> None:
         url: str = self.config.server.build_url(path=self.config.telegram.webhook_path)
