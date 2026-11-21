@@ -27,8 +27,12 @@ OWNER_ROLES = (
 
 
 async def _ensure_owner(user: User, config: AppConfig, users_gateway: UsersGateway) -> User:
-    if user.id in config.common.owner_id_set and not user.roles & Role.OWNER:
+    is_owner = user.id in config.common.owner_id_set
+    if is_owner and not user.roles & Role.OWNER:
         user.roles |= OWNER_ROLES
+        await users_gateway.save(user)
+    elif not is_owner and user.roles & Role.OWNER:
+        user.roles &= ~OWNER_ROLES
         await users_gateway.save(user)
     return user
 
