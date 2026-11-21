@@ -1,9 +1,10 @@
 from typing import Final
 
-from aiogram import F
+from app.domain.enums.roles import Role
 
 from .magic_data import MagicData
+from .roles import HasRole
 
-ADMIN_FILTER: Final[MagicData] = MagicData(F.event_chat.id == F.config.common.admin_chat_id)
+ADMIN_FILTER: Final[HasRole] = HasRole(Role.ADMIN)
 
-__all__ = ["ADMIN_FILTER", "MagicData"]
+__all__ = ["ADMIN_FILTER", "HasRole", "MagicData"]

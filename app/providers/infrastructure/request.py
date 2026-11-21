@@ -7,12 +7,30 @@ from aiogram_i18n.cores import FluentRuntimeCore
 from dishka import FromDishka, Provider, Scope, provide, provide_all
 from dishka.integrations.aiogram import AiogramMiddlewareData, AiogramProvider
 
+from app.application.models.config import AppConfig
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.const import DEFAULT_LOCALE
+from app.domain.enums.roles import Role
 from app.domain.user import User
 from app.presentation.telegram.helpers.messages import MessageHelperImpl
 from app.presentation.telegram.view.renderer import Renderer
+
+OWNER_ROLES = (
+    Role.OWNER
+    | Role.ADMIN
+    | Role.CAN_CATALOG
+    | Role.CAN_FINANCE
+    | Role.CAN_USERS
+    | Role.CAN_BROADCAST
+)
+
+
+async def _ensure_owner(user: User, config: AppConfig, users_gateway: UsersGateway) -> User:
+    if user.id in config.common.owner_id_set and not user.roles & Role.OWNER:
+        user.roles |= OWNER_ROLES
+        await users_gateway.save(user)
+    return user
 
 
 class UserProvider(AiogramProvider):
@@ -22,6 +40,7 @@ class UserProvider(AiogramProvider):
         middleware_data: AiogramMiddlewareData,
         users_gateway: FromDishka[UsersGateway],
         core: FromDishka[FluentRuntimeCore],
+        config: FromDishka[AppConfig],
     ) -> User:
         aiogram_user: AiogramUser | None = middleware_data.get("event_from_user")
         if aiogram_user is None or aiogram_user.is_bot:
@@ -29,19 +48,20 @@ class UserProvider(AiogramProvider):
 
         user: User | None = await users_gateway.get(user_id=aiogram_user.id)
         if user is not None:
-            return user
+            return await _ensure_owner(user, config, users_gateway)
 
         language: str = (
             aiogram_user.language_code
             if aiogram_user.language_code and aiogram_user.language_code in core.available_locales
             else DEFAULT_LOCALE
         )
-        return await users_gateway.create(
+        user = await users_gateway.create(
             user_id=aiogram_user.id,
             name=html.quote(aiogram_user.full_name),
             language=language,
             language_code=aiogram_user.language_code,
         )
+        return await _ensure_owner(user, config, users_gateway)
 
 
 class MessageHelperProvider(AiogramProvider):
