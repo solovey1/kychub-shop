@@ -21,7 +21,9 @@ class Order(Base, TimestampMixin):
     snapshot: Mapped[DictStrAny] = mapped_column()
     price: Mapped[Money] = mapped_column()
     discount: Mapped[Money] = mapped_column(default=Decimal(0), server_default="0")
-    promo_code_id: Mapped[Optional[int]] = mapped_column()
+    promo_code_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("promo_codes.id", ondelete="SET NULL")
+    )
     input_data: Mapped[DictStrAny] = mapped_column(default=dict, server_default="{}")
     status: Mapped[OrderStatus] = mapped_column(default=OrderStatus.awaiting_input)
     executor_id: Mapped[Optional[Int64]] = mapped_column(
