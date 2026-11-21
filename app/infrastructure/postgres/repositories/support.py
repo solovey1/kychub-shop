@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 
+from app.application.errors.base import UserNotFound
 from app.application.ports.repositories.support import SupportGateway
 from app.domain.enums.support import ConversationKind, TicketStatus
 from app.domain.support import Conversation, Message, Ticket
@@ -17,9 +18,11 @@ class SupportRepository(SupportGateway):
     _helper: SqlRepositoryHelper[Ticket]
 
     async def lock_user(self, user_id: int) -> None:
-        await self._helper.session.execute(
+        row = await self._helper.session.scalar(
             select(User.id).where(User.id == user_id).with_for_update()
         )
+        if row is None:
+            raise UserNotFound(user_id)
 
     async def add_ticket(self, ticket: Ticket) -> None:
         await self._uow.flush(ticket)

@@ -2,6 +2,7 @@ from dishka import Provider, Scope, provide_all
 
 from app.presentation.telegram.flows.common.balance import BalanceFlow
 from app.presentation.telegram.flows.common.catalog import CatalogFlow
+from app.presentation.telegram.flows.common.chat import ChatFlow
 from app.presentation.telegram.flows.common.feedback import FeedbackFlow
 from app.presentation.telegram.flows.common.managers import ManagerAdminFlow
 from app.presentation.telegram.flows.common.menu import CommonMenuFlow
@@ -34,4 +35,5 @@ class FlowsProvider(Provider):
         FeedbackFlow,
         ManagerAdminFlow,
         RelayFlow,
+        ChatFlow,
     )

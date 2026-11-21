@@ -6,6 +6,7 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
+from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.executor import (
     CDCabinet,
     CDOrderAct,
@@ -78,6 +79,7 @@ def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboard
                 )
             ]
         )
+    rows.append([button(i18n.buttons.chat_buyer(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.back(), CDXOrders(page=page))])
     return markup(rows)
 

@@ -93,8 +93,13 @@ class ConversationInteractor(BaseInteractor):
     async def get_conversation(self, conversation_id: int) -> Conversation | None:
         return await self.support.conversation(conversation_id)
 
-    async def get_ticket(self, ticket_id: int) -> Ticket | None:
-        return await self.support.ticket(ticket_id)
+    async def ticket_card(self, ticket_id: int) -> tuple[Ticket, str] | None:
+        """The ticket and its owner's name, for the manager."""
+        ticket = await self.support.ticket(ticket_id)
+        if ticket is None:
+            return None
+        user = await self.users.get(ticket.user_id)
+        return ticket, user.name if user else ""
 
     async def take_ticket(self, manager_id: int, ticket_id: int) -> bool:
         """The first manager wins; False for everyone else (or for a non-manager)."""
@@ -134,9 +139,14 @@ class ConversationInteractor(BaseInteractor):
             await self.uow.rollback()
             raise
 
-    async def order_conversation(self, order_id: int) -> Conversation:
+    async def order_conversation(self, actor_id: int, order_id: int) -> Conversation:
+        """Only for the buyer, the current executor, a manager or an admin."""
         try:
-            if await self.orders.get(order_id) is None:
+            order = await self.orders.get(order_id)
+            if order is None or (
+                actor_id not in (order.user_id, order.executor_id)
+                and not await self._is_staff(actor_id)
+            ):
                 raise OrderUnavailable(order_id)
             conversation = await self.support.order_conversation(order_id)
             await self.uow.commit()
@@ -144,6 +154,11 @@ class ConversationInteractor(BaseInteractor):
         except BaseException:
             await self.uow.rollback()
             raise
+
+    async def ticket_conversation(self, ticket_id: int) -> Conversation:
+        conversation = await self.support.ticket_conversation(ticket_id)
+        assert conversation is not None  # made together with the ticket
+        return conversation
 
     async def participants(self, conversation: Conversation) -> Participants | None:
         ctx = await self._load(conversation)
@@ -235,6 +250,10 @@ class ConversationInteractor(BaseInteractor):
 
     async def history(self, conversation_id: int, limit: int = HISTORY_LIMIT) -> list[Message]:
         return await self.support.history(conversation_id, limit)
+
+    async def _is_staff(self, user_id: int) -> bool:
+        user = await self.users.get(user_id)
+        return user is not None and bool(user.roles & (Role.ADMIN | Role.MANAGER))
 
     async def _is_admin(self, user_id: int) -> bool:
         user = await self.users.get(user_id)

@@ -18,3 +18,42 @@ messages-chat-undelivered = Не вдалося доставити повідо�
 buttons-chat_reply = Відповісти
 buttons-chat_history = Історія
 buttons-chat_close = Закрити тікет
+
+buttons-support = Підтримка
+buttons-chat_support = Звернутися в підтримку
+buttons-chat_executor = Написати виконавцю
+buttons-chat_buyer = Написати покупцю
+
+messages-chat-order_missing = Замовлення не знайдено.
+messages-chat-support_new = Тікет № { $id } створено. Напишіть ваше питання, можна з фото або файлом.
+messages-chat-support_again = У вас уже є відкритий тікет № { $id }. Пишіть сюди.
+messages-chat-no_executor = Виконавця ще не призначено.
+messages-chat-order_buyer = Усе, що ви напишете зараз, отримає виконавець замовлення № { $id }. Він не побачить ваше ім'я.
+messages-chat-order_executor = Усе, що ви напишете зараз, отримає покупець замовлення № { $id }.
+messages-chat-reply_open = Пишіть: повідомлення піде в це листування.
+messages-chat-media_photo = [фото]
+messages-chat-media_document = [файл]
+messages-chat-media_video = [відео]
+messages-chat-media_voice = [голосове]
+messages-chat-media_audio = [аудіо]
+messages-chat-media_animation = [анімація]
+messages-chat-media_sticker = [стікер]
+messages-chat-media_video_note = [кружечок]
+messages-chat-history_title = <b>Історія листування</b>
+messages-chat-history_empty = Повідомлень поки немає.
+messages-chat-history_line = { $time } · { $who }: { $text }
+messages-chat-who_buyer = Користувач
+messages-chat-who_support = Підтримка
+
+messages-ticket-order = Замовлення: № { $id }
+messages-ticket-new =
+    <b>Новий тікет № { $id }</b>
+    Користувач: { $name }{ $order }
+
+    { $text }
+messages-ticket-take_failed = Тікет № { $id } уже взяв інший менеджер або він закритий.
+messages-ticket-taken = Тікет № { $id } закріплено за вами. Користувач: { $name }.
+messages-ticket-taken_by = Тікет № { $id }: взяв { $name }.
+messages-ticket-closed = Тікет № { $id } закрито.
+messages-ticket-closed_buyer = Тікет № { $id } закрито. Якщо питання лишилося, натисніть «Підтримка» в меню.
+messages-ticket-unavailable = Тікет № { $id } недоступний.

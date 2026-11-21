@@ -17,6 +17,7 @@ from app.infrastructure.telegram.notices import OrderNotices
 from app.infrastructure.telegram.notifier import Notifier
 from app.infrastructure.telegram.offers import OfferService
 from app.infrastructure.telegram.relay import Relay
+from app.infrastructure.telegram.ticket_offers import TicketOffers
 from app.presentation.telegram.helpers.messages import MessageHelperImpl
 from app.presentation.telegram.view.renderer import Renderer
 
@@ -100,4 +101,6 @@ class MessageHelperProvider(AiogramProvider):
 class RequestInfrastructureProvider(Provider):
     scope = Scope.REQUEST
 
-    infrastructure = provide_all(Renderer, Notifier, OfferService, OrderNotices, Relay)
+    infrastructure = provide_all(
+        Renderer, Notifier, OfferService, OrderNotices, Relay, TicketOffers
+    )

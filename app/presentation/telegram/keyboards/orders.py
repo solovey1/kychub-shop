@@ -5,6 +5,7 @@ from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
+from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.callbacks.orders import CDCancel, CDMyExecutors, CDOrder, CDOrders
 from app.presentation.telegram.keyboards.common import button, markup, pager
@@ -38,6 +39,9 @@ def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboard
         rows.append(
             [button(i18n.buttons.cancel_order(), CDCancel(id=order.id, page=page), style="danger")]
         )
+    rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
+    if order.executor_id is not None:
+        rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.back(), CDOrders(page=page))])
     return markup(rows)
 

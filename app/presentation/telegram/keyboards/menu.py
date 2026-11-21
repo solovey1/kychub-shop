@@ -6,6 +6,7 @@ from aiogram_i18n import I18nContext
 from app.application.i18n_text import fmt_usd
 from app.presentation.telegram.callbacks.balance import CDBalance
 from app.presentation.telegram.callbacks.catalog import CDCategory
+from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.executor import CDCabinet
 from app.presentation.telegram.callbacks.menu import CDLang, CDMenu
 from app.presentation.telegram.callbacks.orders import CDOrders
@@ -28,6 +29,7 @@ def main_menu_keyboard(
             [button(i18n.buttons.orders(), CDOrders())],
             [button(i18n.buttons.balance(amount=fmt_usd(balance)), CDBalance())],
             [button(i18n.buttons.cabinet(), CDCabinet())] if is_executor else [],
+            [button(i18n.buttons.support(), CDChat(action="support"))],
             [button(i18n.buttons.language(), CDLang())],
         ]
     )

@@ -18,3 +18,42 @@ messages-chat-undelivered = Не удалось доставить сообще�
 buttons-chat_reply = Ответить
 buttons-chat_history = История
 buttons-chat_close = Закрыть тикет
+
+buttons-support = Поддержка
+buttons-chat_support = Связаться с поддержкой
+buttons-chat_executor = Написать исполнителю
+buttons-chat_buyer = Написать покупателю
+
+messages-chat-order_missing = Заказ не найден.
+messages-chat-support_new = Тикет № { $id } создан. Напишите ваш вопрос, можно с фото или файлом.
+messages-chat-support_again = У вас уже есть открытый тикет № { $id }. Пишите сюда.
+messages-chat-no_executor = Исполнитель ещё не назначен.
+messages-chat-order_buyer = Всё, что вы напишете сейчас, получит исполнитель заказа № { $id }. Он не увидит ваше имя.
+messages-chat-order_executor = Всё, что вы напишете сейчас, получит покупатель заказа № { $id }.
+messages-chat-reply_open = Пишите: сообщение уйдёт в эту переписку.
+messages-chat-media_photo = [фото]
+messages-chat-media_document = [файл]
+messages-chat-media_video = [видео]
+messages-chat-media_voice = [голосовое]
+messages-chat-media_audio = [аудио]
+messages-chat-media_animation = [анимация]
+messages-chat-media_sticker = [стикер]
+messages-chat-media_video_note = [кружок]
+messages-chat-history_title = <b>История переписки</b>
+messages-chat-history_empty = Сообщений пока нет.
+messages-chat-history_line = { $time } · { $who }: { $text }
+messages-chat-who_buyer = Пользователь
+messages-chat-who_support = Поддержка
+
+messages-ticket-order = Заказ: № { $id }
+messages-ticket-new =
+    <b>Новый тикет № { $id }</b>
+    Пользователь: { $name }{ $order }
+
+    { $text }
+messages-ticket-take_failed = Тикет № { $id } уже взят другим менеджером или закрыт.
+messages-ticket-taken = Тикет № { $id } закреплён за вами. Пользователь: { $name }.
+messages-ticket-taken_by = Тикет № { $id }: взял { $name }.
+messages-ticket-closed = Тикет № { $id } закрыт.
+messages-ticket-closed_buyer = Тикет № { $id } закрыт. Если вопрос остался, нажмите «Поддержка» в меню.
+messages-ticket-unavailable = Тикет № { $id } недоступен.
