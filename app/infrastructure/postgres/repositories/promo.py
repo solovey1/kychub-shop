@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from sqlalchemy import select
 
 from app.application.ports.repositories.promo import PromoGateway
-from app.domain.enums.ledger import LedgerKind
-from app.domain.ledger import LedgerEntry
+from app.domain.enums.order import OrderStatus
+from app.domain.order import Order
 from app.domain.promo import PromoCode, PromoCodeUsage
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -29,8 +29,9 @@ class PromoRepository(PromoGateway):
         return await self._helper.session.scalar(query.limit(1)) is not None
 
     async def has_purchases(self, user_id: int) -> bool:
-        query = select(LedgerEntry.id).where(
-            LedgerEntry.user_id == user_id, LedgerEntry.kind == LedgerKind.purchase
+        # orders, not ledger rows: a 100%-discount order posts no ledger entry
+        query = select(Order.id).where(
+            Order.user_id == user_id, Order.status.not_in([OrderStatus.cancelled])
         )
         return await self._helper.session.scalar(query.limit(1)) is not None
 
