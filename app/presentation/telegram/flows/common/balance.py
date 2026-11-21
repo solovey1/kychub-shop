@@ -5,27 +5,38 @@ from typing import Any, Final
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.application.errors.base import AppError
-from app.application.errors.shop import InvalidAmount, PromoError, TopupDisabled
+from app.application.errors.shop import (
+    GatewayUnavailable,
+    InvalidAmount,
+    PromoError,
+    TopupDisabled,
+)
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.balance import BalanceInteractor, parse_money
+from app.application.interactors.topup import TopupInteractor
 from app.application.ports.telegram.messages_helper import MessageHelper
+from app.domain.enums.ledger import PaymentStatus
 from app.domain.user import User
-from app.presentation.telegram.callbacks.balance import CDBalance
+from app.presentation.telegram.callbacks.balance import CDBalance, CDCheck, CDPay
 from app.presentation.telegram.flows.base import BaseFlow
+from app.presentation.telegram.keyboards.balance import TOPUP_AMOUNTS
 from app.presentation.telegram.presenters.common.balance import BalancePresenter
 from app.presentation.telegram.states.balance import BalanceForm
 from app.presentation.telegram.view.renderer import Renderer
 
 logger: Final[logging.Logger] = logging.getLogger(__name__)
 
+TEST_PROVIDER: Final = "test"
+
 
 @dataclass(frozen=True)
 class BalanceFlow(BaseFlow):
     user: User
     interactor: BalanceInteractor
+    topup_interactor: TopupInteractor
     presenter: BalancePresenter
     renderer: Renderer
     helper: MessageHelper
@@ -42,11 +53,9 @@ class BalanceFlow(BaseFlow):
         await fsm.clear()
         match cd.action:
             case "topup":
-                await self.renderer.apply(
-                    self.presenter.topup(self.interactor.test_payments_enabled)
-                )
+                await self._topup_screen()
             case "custom":
-                if self.interactor.test_payments_enabled:
+                if self.topup_interactor.providers:
                     await self._ask(BalanceForm.amount, "messages-topup-custom_ask")
             case "promo":
                 await self._ask(BalanceForm.promo, "messages-redeem-ask")
@@ -62,29 +71,66 @@ class BalanceFlow(BaseFlow):
             await fsm.update_data(message_id=self.helper.find_message_id())
         await self.renderer.apply(self.presenter.ask(key, error=error, current=current))
 
+    async def _topup_screen(self) -> None:
+        low, high = self.topup_interactor.limits
+        amounts = [a for a in TOPUP_AMOUNTS if low <= a <= high]
+        await self.renderer.apply(
+            self.presenter.topup(bool(self.topup_interactor.providers), amounts)
+        )
+
+    async def _methods(self, amount: Decimal, *, current: bool = False) -> None:
+        providers = self.topup_interactor.providers
+        if not providers:
+            return await self._topup_screen()
+        await self.renderer.apply(self.presenter.methods(amount, providers, current=current))
+
     async def topup(self, amount: int) -> Any:
         try:
-            payment = await self.interactor.test_topup(self.user.id, Decimal(amount))
-        except (TopupDisabled, InvalidAmount):
-            return await self.renderer.apply(self.presenter.topup(False))
-        await self.show(notice=self.presenter.topup_done(payment.amount))
+            await self._methods(self.topup_interactor.validate(Decimal(amount)))
+        except InvalidAmount:
+            await self._topup_screen()
 
     async def custom_amount(self, message: Message) -> Any:
         try:
-            amount = parse_money(message.text or "")
-            payment = await self.interactor.test_topup(self.user.id, amount)
+            amount = self.topup_interactor.validate(parse_money(message.text or ""))
         except InvalidAmount:
+            low, high = self.topup_interactor.limits
             return await self._ask(
                 BalanceForm.amount,
                 "messages-topup-custom_ask",
-                self.presenter.invalid_amount(),
+                self.presenter.invalid_amount(low, high),
                 current=True,
             )
-        except TopupDisabled:
-            await self.helper.fsm.clear()
-            return await self.renderer.apply(self.presenter.topup(False))
         await self.helper.fsm.clear()
-        await self.show(current=True, notice=self.presenter.topup_done(payment.amount))
+        await self._methods(amount, current=True)
+
+    async def pay(self, cd: CDPay) -> Any:
+        try:
+            payment, created = await self.topup_interactor.create(
+                self.user.id, Decimal(cd.cents) / 100, cd.provider
+            )
+        except (InvalidAmount, TopupDisabled):
+            return await self._topup_screen()
+        except GatewayUnavailable:
+            return await self.renderer.apply(self.presenter.gateway_error())
+        if cd.provider == TEST_PROVIDER:
+            return await self.check(CDCheck(id=payment.id))
+        pay_id = self.topup_interactor.binance_pay_id if created.url is None else None
+        await self.renderer.apply(self.presenter.invoice(payment, created.url, pay_id))
+
+    async def check(self, cd: CDCheck) -> Any:
+        try:
+            payment = await self.topup_interactor.get(cd.id)
+        except AppError:
+            return await self.show()
+        if payment.user_id != self.user.id:
+            return await self.show()
+        payment, _ = await self.topup_interactor.sync(payment.id)
+        if payment.status is PaymentStatus.success:
+            return await self.show(notice=self.presenter.topup_done(payment.amount))
+        update = self.helper.update
+        if isinstance(update, CallbackQuery):
+            await update.answer(self.presenter.check_result(payment.status), show_alert=True)
 
     async def redeem(self, message: Message) -> None:
         try:

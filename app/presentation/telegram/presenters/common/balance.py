@@ -4,10 +4,12 @@ from decimal import Decimal
 from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import fmt_usd
-from app.domain.ledger import LedgerEntry
+from app.domain.ledger import LedgerEntry, Payment
 from app.presentation.telegram.keyboards.balance import (
     back_to_balance,
     balance_keyboard,
+    invoice_keyboard,
+    methods_keyboard,
     topup_keyboard,
 )
 from app.presentation.telegram.presenters.base import BasePresenter
@@ -47,11 +49,39 @@ class BalancePresenter(BasePresenter):
             text = f"{notice}\n\n{text}"
         return View(text=text, reply_markup=balance_keyboard(i18n), mode=self._mode(current))
 
-    def topup(self, enabled: bool) -> View:
+    def topup(self, enabled: bool, amounts: list[int]) -> View:
         text = (
             self.i18n.messages.topup.choose() if enabled else self.i18n.messages.topup.disabled()
         )
-        return View(text=text, reply_markup=topup_keyboard(self.i18n, enabled))
+        return View(text=text, reply_markup=topup_keyboard(self.i18n, enabled, amounts))
+
+    def methods(self, amount: Decimal, providers: list[str], *, current: bool = False) -> View:
+        return View(
+            text=self.i18n.messages.topup.method(amount=fmt_usd(amount)),
+            reply_markup=methods_keyboard(self.i18n, providers, int(amount * 100)),
+            mode=self._mode(current),
+        )
+
+    def invoice(self, payment: Payment, url: str | None, pay_id: str | None) -> View:
+        """`pay_id` set: Binance Pay instructions (no link); otherwise a link to the invoice."""
+        i18n = self.i18n
+        amount = fmt_usd(payment.amount)
+        if pay_id is None:
+            text = i18n.messages.topup.invoice(amount=amount)
+            copy: list[tuple[str, str]] = []
+        else:
+            note = payment.external_id
+            text = i18n.messages.topup.binance(amount=amount, pay_id=pay_id, note=note)
+            copy = [(i18n.buttons.copy_pay_id(), pay_id), (i18n.buttons.copy_note(), note)]
+        return View(text=text, reply_markup=invoice_keyboard(i18n, payment.id, url, copy))
+
+    def check_result(self, status: str) -> str:
+        return self.i18n.get(f"messages-topup-status_{status}")
+
+    def gateway_error(self) -> View:
+        return View(
+            text=self.i18n.messages.topup.gateway_error(), reply_markup=back_to_balance(self.i18n)
+        )
 
     def ask(self, key: str, *, error: str | None = None, current: bool = False) -> View:
         text = self.i18n.get(key)
@@ -69,8 +99,8 @@ class BalancePresenter(BasePresenter):
         reason = self.i18n.get(f"messages-promo-reason_{code}")
         return self.i18n.messages.redeem.error(reason=reason)
 
-    def invalid_amount(self) -> str:
-        return self.i18n.messages.topup.invalid()
+    def invalid_amount(self, low: Decimal, high: Decimal) -> str:
+        return self.i18n.messages.topup.invalid(min=fmt_usd(low), max=fmt_usd(high))
 
     def text(self, key: str, **kwargs: str) -> View:
         return View(text=self.i18n.get(key, **kwargs))

@@ -6,4 +6,13 @@ class CDBalance(CallbackData, prefix="bal"):
 
 
 class CDTopup(CallbackData, prefix="top"):
-    amount: int
+    amount: int  # whole dollars from the quick buttons
+
+
+class CDPay(CallbackData, prefix="pay"):
+    provider: str
+    cents: int
+
+
+class CDCheck(CallbackData, prefix="chk"):
+    id: int

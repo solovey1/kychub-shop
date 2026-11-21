@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from dishka import FromDishka
 
 from app.domain.enums.roles import Role
-from app.presentation.telegram.callbacks.balance import CDBalance, CDTopup
+from app.presentation.telegram.callbacks.balance import CDBalance, CDCheck, CDPay, CDTopup
 from app.presentation.telegram.filters import HasRole
 from app.presentation.telegram.flows.common.balance import BalanceFlow
 from app.presentation.telegram.states.balance import BalanceForm
@@ -39,6 +39,16 @@ async def topup(
 ) -> Any:
     await state.clear()
     return await flow.topup(callback_data.amount)
+
+
+@router.callback_query(CDPay.filter())
+async def pay(_: CallbackQuery, callback_data: CDPay, flow: FromDishka[BalanceFlow]) -> Any:
+    return await flow.pay(callback_data)
+
+
+@router.callback_query(CDCheck.filter())
+async def check(_: CallbackQuery, callback_data: CDCheck, flow: FromDishka[BalanceFlow]) -> Any:
+    return await flow.check(callback_data)
 
 
 @router.message(BalanceForm.amount, F.text)

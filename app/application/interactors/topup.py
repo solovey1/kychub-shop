@@ -52,12 +52,8 @@ class TopupInteractor(BaseInteractor):
     def binance_pay_id(self) -> str | None:
         return self.config.payments.binance_pay_id
 
-    async def create(
-        self, user_id: int, amount: Decimal, provider: str
-    ) -> tuple[Payment, CreatedPayment]:
-        gateway = self.gateways.get(provider)
-        if gateway is None:
-            raise TopupDisabled(provider)
+    def validate(self, amount: Decimal) -> Decimal:
+        """Two decimal places at most and within the configured limits, else InvalidAmount."""
         try:
             amount = money(amount)
         except (ValueError, TypeError) as e:
@@ -65,6 +61,15 @@ class TopupInteractor(BaseInteractor):
         low, high = self.limits
         if not low <= amount <= high:
             raise InvalidAmount(str(amount))
+        return amount
+
+    async def create(
+        self, user_id: int, amount: Decimal, provider: str
+    ) -> tuple[Payment, CreatedPayment]:
+        gateway = self.gateways.get(provider)
+        if gateway is None:
+            raise TopupDisabled(provider)
+        amount = self.validate(amount)
         payment_id = uuid4().hex
         try:
             created = await gateway.create_payment(amount, payment_id, f"Top-up {amount} USDT")

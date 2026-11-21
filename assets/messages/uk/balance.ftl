@@ -11,8 +11,22 @@ messages-balance-debited = З вашого балансу списано { $amou
 messages-topup-choose = Оберіть суму поповнення.
 messages-topup-disabled = Поповнення скоро буде доступне.
 messages-topup-custom_ask = Введіть суму в доларах, наприклад 12.50.
-messages-topup-invalid = Не вдалося розпізнати суму. Потрібне число більше нуля, не більше 1000.
+messages-topup-invalid = Не вдалося розпізнати суму. Введіть число від { $min } до { $max } не більше ніж із двома знаками після крапки.
 messages-topup-done = Баланс поповнено на { $amount }.
+messages-topup-method = Поповнення на { $amount }. Оберіть спосіб оплати.
+messages-topup-invoice = Сплатіть { $amount } кнопкою нижче. Рахунок діє 1 годину. Баланс поповниться автоматично, або натисніть «Перевірити оплату».
+messages-topup-binance =
+    Надішліть { $amount } в USDT через Binance Pay протягом 1 години.
+
+    Pay ID: <code>{ $pay_id }</code>
+    Примітка: <code>{ $note }</code>
+
+    Примітка має збігатися точно, інакше платіж не буде знайдено. Потім натисніть «Перевірити оплату».
+messages-topup-status_created = Оплата ще не надійшла. Якщо ви вже сплатили, зачекайте хвилину й перевірте знову.
+messages-topup-status_pending = Платіж підтверджується. Зазвичай це займає кілька хвилин.
+messages-topup-status_partially_paid = Отримано суму меншу за запитану, тому баланс не поповнено. Зверніться до підтримки.
+messages-topup-status_canceled = Рахунок закінчився або скасований. Створіть новий.
+messages-topup-gateway_error = Платіжний сервіс не відповідає. Спробуйте пізніше.
 messages-redeem-ask = Введіть промокод одним повідомленням.
 messages-redeem-done = Промокод активовано, нараховано { $amount }.
 messages-redeem-error = Промокод не активовано: { $reason }
@@ -34,3 +48,11 @@ ledger-kind-admin_adjust = Коригування
 
 buttons-redeem = Активувати промокод
 buttons-topup_custom = Інша сума
+buttons-pay_invoice = Сплатити
+buttons-check_payment = Перевірити оплату
+buttons-copy_pay_id = Копіювати Pay ID
+buttons-copy_note = Копіювати примітку
+buttons-provider_cryptobot = CryptoBot
+buttons-provider_binance = Binance Pay
+buttons-provider_nowpayments = NOWPayments
+buttons-provider_test = Тестовий платіж

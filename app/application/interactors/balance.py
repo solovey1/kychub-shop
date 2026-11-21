@@ -1,26 +1,23 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from uuid import uuid4
 
-from app.application.errors.shop import InvalidAmount, TopupDisabled
+from app.application.errors.shop import InvalidAmount
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.promo import PromoService
-from app.application.models.config import AppConfig
 from app.application.ports.repositories.balance import BalanceGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.promo import PromoGateway
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.audit import AuditLog
-from app.domain.enums.ledger import LedgerAccount, LedgerKind, PaymentStatus
-from app.domain.ledger import LedgerEntry, Payment
+from app.domain.enums.ledger import LedgerAccount, LedgerKind
+from app.domain.ledger import LedgerEntry
 from app.domain.money import money
 from app.domain.promo import PromoCodeUsage
 from app.domain.user import User
 
 HISTORY_LIMIT = 10
-MAX_TOPUP = Decimal("1000.00")
 
 
 def parse_money(text: str) -> Decimal:
@@ -40,11 +37,6 @@ class BalanceInteractor(BaseInteractor):
     users: UsersGateway
     promo: PromoService
     promo_gateway: PromoGateway
-    config: AppConfig
-
-    @property
-    def test_payments_enabled(self) -> bool:
-        return self.config.common.test_payments
 
     async def balance(self, user_id: int) -> Decimal:
         return await self.ledger_gateway.balance(user_id, LedgerAccount.main)
@@ -54,35 +46,6 @@ class BalanceInteractor(BaseInteractor):
 
     async def get_user(self, user_id: int) -> User | None:
         return await self.users.get(user_id)
-
-    async def test_topup(self, user_id: int, amount: Decimal) -> Payment:
-        if not self.test_payments_enabled:
-            raise TopupDisabled()
-        amount = money(amount)
-        if not 0 < amount <= MAX_TOPUP:
-            raise InvalidAmount(str(amount))
-        try:
-            await self.ledger_gateway.lock_user(user_id)
-            payment = Payment(
-                user_id=user_id,
-                provider="test",
-                external_id=uuid4().hex,
-                amount=amount,
-                status=PaymentStatus.success,
-            )
-            await self.gateway.add_payment(payment)
-            await self.ledger.post(
-                user_id,
-                LedgerAccount.main,
-                amount,
-                LedgerKind.topup,
-                ref=f"payment:{payment.id}",
-            )
-            await self.uow.commit()
-        except BaseException:
-            await self.uow.rollback()
-            raise
-        return payment
 
     async def redeem_bonus(self, user_id: int, code: str) -> Decimal:
         try:

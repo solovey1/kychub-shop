@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.application.ports.repositories.balance import BalanceGateway
 from app.domain.audit import AuditLog
 from app.domain.enums.ledger import LedgerAccount
-from app.domain.ledger import LedgerEntry, Payment
+from app.domain.ledger import LedgerEntry
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
 
@@ -23,9 +23,6 @@ class BalanceRepository(BalanceGateway):
             .limit(limit)
         )
         return list(await self._helper.session.scalars(query))
-
-    async def add_payment(self, payment: Payment) -> None:
-        await self._uow.flush(payment)
 
     async def add_audit(self, record: AuditLog) -> None:
         await self._uow.flush(record)
