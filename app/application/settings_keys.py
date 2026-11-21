@@ -1,0 +1,10 @@
+from decimal import Decimal
+from typing import Final
+
+HOLD_DAYS: Final = "hold_days"
+REVIEW_DELAY_HOURS: Final = "review_delay_hours"
+MIN_WITHDRAWAL: Final = "min_withdrawal"
+
+DEFAULT_HOLD_DAYS: Final = 3
+DEFAULT_REVIEW_DELAY_HOURS: Final = 2
+DEFAULT_MIN_WITHDRAWAL: Final = Decimal("10.00")

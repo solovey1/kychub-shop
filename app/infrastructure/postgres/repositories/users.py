@@ -36,3 +36,6 @@ class UsersRepository(UsersGateway):
 
     async def count(self) -> int:
         return await self._helper.count()
+
+    async def add(self, user: User) -> None:
+        await self._uow.flush(user)

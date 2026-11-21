@@ -35,3 +35,23 @@ class PaymentNotFound(AppError):  # noqa: N818
 
 class GatewayUnavailable(AppError):  # noqa: N818
     """The payment provider failed or timed out while creating an invoice."""
+
+
+class AliasTaken(AppError):  # noqa: N818
+    pass
+
+
+class ExecutorExists(AppError):  # noqa: N818
+    pass
+
+
+class ExecutorNotFound(AppError):  # noqa: N818
+    pass
+
+
+class UnknownService(AppError):  # noqa: N818
+    pass
+
+
+class UnknownCountry(AppError):  # noqa: N818
+    pass

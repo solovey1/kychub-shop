@@ -13,6 +13,7 @@ from app.application.ports.telegram.messages_helper import MessageHelper
 from app.const import DEFAULT_LOCALE
 from app.domain.enums.roles import Role
 from app.domain.user import User
+from app.infrastructure.telegram.notifier import Notifier
 from app.presentation.telegram.helpers.messages import MessageHelperImpl
 from app.presentation.telegram.view.renderer import Renderer
 
@@ -52,6 +53,12 @@ class UserProvider(AiogramProvider):
 
         user: User | None = await users_gateway.get(user_id=aiogram_user.id)
         if user is not None:
+            if not user.name:  # placeholder made by an admin (executor registration)
+                user.name = html.quote(aiogram_user.full_name)
+                user.language_code = aiogram_user.language_code
+                if aiogram_user.language_code in core.available_locales:
+                    user.language = aiogram_user.language_code
+                await users_gateway.save(user)
             return await _ensure_owner(user, config, users_gateway)
 
         language: str = (
@@ -90,4 +97,4 @@ class MessageHelperProvider(AiogramProvider):
 class RequestInfrastructureProvider(Provider):
     scope = Scope.REQUEST
 
-    infrastructure = provide_all(Renderer)
+    infrastructure = provide_all(Renderer, Notifier)

@@ -2,17 +2,13 @@ import logging
 from datetime import timedelta
 from typing import Final
 
-from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
-from aiogram_i18n.cores import FluentRuntimeCore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.topup import TopupInteractor
-from app.application.ports.repositories.users import UsersGateway
-from app.const import DEFAULT_LOCALE
 from app.domain.ledger import Payment
+from app.infrastructure.telegram.notifier import Notifier
 
 logger: Final = logging.getLogger(__name__)
 
@@ -23,17 +19,9 @@ async def _notify(container: AsyncContainer, payment: Payment) -> None:
     """Tell the user in their language. A failed send never fails the job."""
     try:
         async with container() as request:
-            user = await (await request.get(UsersGateway)).get(payment.user_id)
-            core = await request.get(FluentRuntimeCore)
-            bot = await request.get(Bot)
-            text = core.get(
-                "messages-topup-done",
-                user.language if user else DEFAULT_LOCALE,
-                amount=fmt_usd(payment.amount),
+            await (await request.get(Notifier)).send(
+                payment.user_id, "messages-topup-done", amount=fmt_usd(payment.amount)
             )
-            await bot.send_message(payment.user_id, text)
-    except TelegramAPIError:
-        logger.info("could not notify user %s about payment %s", payment.user_id, payment.id)
     except Exception:
         logger.exception("notification about payment %s failed", payment.id)
 

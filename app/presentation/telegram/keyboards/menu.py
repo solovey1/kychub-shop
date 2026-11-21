@@ -6,6 +6,7 @@ from aiogram_i18n import I18nContext
 from app.application.i18n_text import fmt_usd
 from app.presentation.telegram.callbacks.balance import CDBalance
 from app.presentation.telegram.callbacks.catalog import CDCategory
+from app.presentation.telegram.callbacks.executor import CDCabinet
 from app.presentation.telegram.callbacks.menu import CDLang, CDMenu
 from app.presentation.telegram.callbacks.orders import CDOrders
 from app.presentation.telegram.keyboards.common import button, markup
@@ -13,7 +14,9 @@ from app.presentation.telegram.keyboards.common import button, markup
 LANGUAGES = (("ru", "Русский"), ("en", "English"), ("uk", "Українська"))
 
 
-def main_menu_keyboard(i18n: I18nContext, balance: Decimal) -> InlineKeyboardMarkup:
+def main_menu_keyboard(
+    i18n: I18nContext, balance: Decimal, is_executor: bool = False
+) -> InlineKeyboardMarkup:
     return markup(
         [
             [button(i18n.buttons.catalog(), CDCategory(), style="primary")],
@@ -24,6 +27,7 @@ def main_menu_keyboard(i18n: I18nContext, balance: Decimal) -> InlineKeyboardMar
             ],
             [button(i18n.buttons.orders(), CDOrders())],
             [button(i18n.buttons.balance(amount=fmt_usd(balance)), CDBalance())],
+            [button(i18n.buttons.cabinet(), CDCabinet())] if is_executor else [],
             [button(i18n.buttons.language(), CDLang())],
         ]
     )

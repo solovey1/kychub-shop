@@ -17,3 +17,6 @@ class UsersGateway(Protocol):
     async def save(self, user: User) -> None: ...
 
     async def count(self) -> int: ...
+
+    async def add(self, user: User) -> None:
+        """Insert and flush; the caller owns the transaction."""

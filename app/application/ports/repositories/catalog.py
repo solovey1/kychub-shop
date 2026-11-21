@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Protocol
 
-from app.domain.catalog import Category, Country, Product, ProductVariant
+from app.domain.catalog import Category, Country, Product, ProductVariant, Service
 
 
 class CatalogGateway(Protocol):
@@ -18,6 +18,10 @@ class CatalogGateway(Protocol):
     async def variants(self, product_id: int) -> list[ProductVariant]: ...
 
     async def variant(self, variant_id: int) -> ProductVariant | None: ...
+
+    async def service(self, service_id: int) -> Service | None: ...
+
+    async def service_by_code(self, code: str) -> Service | None: ...
 
     async def available_stock(self, variant_ids: list[int]) -> dict[int, int]: ...
 

@@ -5,7 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.repositories.catalog import CatalogGateway
-from app.domain.catalog import Category, Country, Product, ProductVariant, StockUnit
+from app.domain.catalog import Category, Country, Product, ProductVariant, Service, StockUnit
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 
 
@@ -62,6 +62,15 @@ class CatalogRepository(CatalogGateway):
 
     async def variant(self, variant_id: int) -> ProductVariant | None:
         return await self._session.get(ProductVariant, variant_id)
+
+    async def service(self, service_id: int) -> Service | None:
+        return await self._session.get(Service, service_id)
+
+    async def service_by_code(self, code: str) -> Service | None:
+        service: Service | None = await self._session.scalar(
+            select(Service).where(Service.code == code)
+        )
+        return service
 
     async def available_stock(self, variant_ids: list[int]) -> dict[int, int]:
         if not variant_ids:
