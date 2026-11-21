@@ -32,7 +32,7 @@ class LedgerService(BaseInteractor):
         if ref is not None and (
             existing := await self.gateway.get_by_ref(user_id, account, kind, ref)
         ):
-            if existing.amount != amount:
+            if existing.amount != amount or existing.order_id != order_id:
                 raise LedgerConflict(f"ref {ref!r}: got {amount}, stored {existing.amount}")
             return existing  # idempotent replay
         balance_after = await self.gateway.balance(user_id, account) + amount

@@ -101,7 +101,7 @@ class TipInteractor(BaseInteractor):
                 or order.executor_id is None
             ):
                 raise OrderUnavailable(order_id)
-            ref = f"tip:{token}"
+            ref = f"tip:{order_id}:{token}"
             await self.ledger.post(
                 user_id, LedgerAccount.main, -amount, LedgerKind.tip, order_id=order_id, ref=ref
             )
