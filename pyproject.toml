@@ -100,3 +100,7 @@ module = ["app.telegram.handlers.*"]
 strict_optional = false
 warn_return_any = false
 disable_error_code = ["union-attr"]
+
+[[tool.mypy.overrides]]
+module = ["aiocryptopay", "aiocryptopay.*", "apscheduler.*"]
+ignore_missing_imports = true

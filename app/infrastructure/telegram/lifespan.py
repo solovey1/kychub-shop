@@ -8,6 +8,7 @@ from typing import Final
 
 from aiogram import Bot, Dispatcher, loggers
 from aiogram.methods import SetWebhook
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.application.models.config import AppConfig, Assets
 from app.application.ports.storages.key_value import KvStorage
@@ -22,6 +23,7 @@ class LifespanService:
     assets: Assets
     kv_storage: KvStorage
     bot: Bot
+    scheduler: AsyncIOScheduler
 
     async def setup_polling(self, dispatcher: Dispatcher) -> None:
         await self.bot.delete_webhook(
@@ -36,6 +38,15 @@ class LifespanService:
         if dispatcher._running_lock.locked():
             await dispatcher.stop_polling()
             loggers.dispatcher.info("Polling stopped successfully")
+
+    def start_scheduler(self) -> None:
+        self.scheduler.start()
+        logger.info("Scheduler started")
+
+    def stop_scheduler(self) -> None:
+        if self.scheduler.running:
+            self.scheduler.shutdown(wait=False)
+            logger.info("Scheduler stopped")
 
     async def setup_commands(self) -> None:
         commands_data = {

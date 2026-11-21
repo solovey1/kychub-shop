@@ -27,3 +27,11 @@ class PromoError(AppError):
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
+
+
+class PaymentNotFound(AppError):  # noqa: N818
+    pass
+
+
+class GatewayUnavailable(AppError):  # noqa: N818
+    """The payment provider failed or timed out while creating an invoice."""

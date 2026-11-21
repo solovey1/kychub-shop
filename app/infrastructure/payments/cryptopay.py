@@ -2,8 +2,8 @@ import logging
 from decimal import Decimal
 from typing import ClassVar
 
-from aiocryptopay import AioCryptoPay, Networks  # type: ignore[import-untyped]
-from aiocryptopay.const import InvoiceStatus  # type: ignore[import-untyped]
+from aiocryptopay import AioCryptoPay, Networks
+from aiocryptopay.const import InvoiceStatus
 
 from app.application.ports.payments import CreatedPayment
 from app.domain.enums.ledger import PaymentStatus

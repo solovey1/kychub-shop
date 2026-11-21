@@ -18,6 +18,8 @@ async def polling_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await lifespan.setup_polling(dispatcher=dispatcher)
     await lifespan.setup_commands()
+    lifespan.start_scheduler()
     yield
+    lifespan.stop_scheduler()
     await lifespan.stop_polling(dispatcher=dispatcher)
     await container.close()

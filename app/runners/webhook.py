@@ -18,6 +18,8 @@ async def webhook_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await lifespan.setup_webhooks(dispatcher=dispatcher)
     await lifespan.setup_commands()
+    lifespan.start_scheduler()
     yield
+    lifespan.stop_scheduler()
     await lifespan.reset_webhooks()
     await container.close()

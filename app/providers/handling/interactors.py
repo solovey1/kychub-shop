@@ -7,6 +7,7 @@ from app.application.interactors.orders import OrdersInteractor
 from app.application.interactors.pm.user_status import PMInteractor
 from app.application.interactors.promo import PromoService
 from app.application.interactors.purchase import PurchaseInteractor
+from app.application.interactors.topup import TopupInteractor
 
 
 class InteractorsProvider(Provider):
@@ -20,4 +21,5 @@ class InteractorsProvider(Provider):
         PurchaseInteractor,
         OrdersInteractor,
         BalanceInteractor,
+        TopupInteractor,
     )

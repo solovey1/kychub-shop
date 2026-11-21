@@ -18,6 +18,7 @@ from app.providers.infrastructure.request import (
     RequestInfrastructureProvider,
     UserProvider,
 )
+from app.providers.infrastructure.scheduler import SchedulerProvider
 from app.providers.telegram.bot import BotProvider
 
 
@@ -30,6 +31,7 @@ def create_container(
         BotProvider(),
         PostgresProvider(),
         PaymentsProvider(),
+        SchedulerProvider(),
         RedisProvider(),
         RepositoriesProvider(),
         UserProvider(),
