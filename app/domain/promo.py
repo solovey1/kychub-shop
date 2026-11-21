@@ -35,6 +35,10 @@ class PromoCode(Base, TimestampMixin):
             "num_nonnulls(discount_percent, discount_amount, bonus_amount) = 1",
             name="promo_exactly_one_kind",
         ),
+        CheckConstraint(
+            "usage_limit IS NULL OR times_used <= usage_limit", name="promo_usage_within_limit"
+        ),
+        CheckConstraint("times_used >= 0", name="promo_times_used_non_negative"),
     )
 
 

@@ -2,7 +2,7 @@ import re
 from enum import StrEnum
 from typing import Optional, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, PrivateAttr, model_validator
 
 
 class FieldType(StrEnum):
@@ -14,9 +14,11 @@ class FieldType(StrEnum):
     file = "file"
 
 
-_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-_NUMBER_RE = re.compile(r"^-?\d+([.,]\d+)?$")
+_KEY_RE = re.compile(r"[a-z][a-z0-9_]{0,31}")
+_EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+_NUMBER_RE = re.compile(r"-?[0-9]+(\.[0-9]+)?", re.ASCII)
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_MAX_REGEX_LEN = 256
 
 
 class FormField(BaseModel):
@@ -27,35 +29,53 @@ class FormField(BaseModel):
     regex: Optional[str] = None
     options: Optional[list[str]] = None
     hidden_from_executor: bool = False
+    max_length: int = 512
+    _compiled: Optional[re.Pattern[str]] = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def _check(self) -> Self:
-        if not _KEY_RE.match(self.key):
+        if not _KEY_RE.fullmatch(self.key):
             raise ValueError(f"bad field key: {self.key!r}")
         if "ru" not in self.label:
             raise ValueError("label must contain 'ru'")
+        if not 1 <= self.max_length <= 4096:
+            raise ValueError("max_length must be 1..4096")
         if self.regex is not None:
+            if len(self.regex) > _MAX_REGEX_LEN:
+                raise ValueError(f"regex longer than {_MAX_REGEX_LEN}")
             try:
-                re.compile(self.regex)
+                self._compiled = re.compile(self.regex)
             except re.error as e:
                 raise ValueError(f"bad regex: {e}") from e
         if self.type is FieldType.choice and not self.options:
             raise ValueError("choice field requires options")
         return self
 
+    def _check_type(self, value: str) -> str:
+        if self.type is FieldType.email and not _EMAIL_RE.fullmatch(value):
+            raise ValueError("invalid email")
+        if self.type is FieldType.number:
+            value = value.replace(",", ".", 1)
+            if not _NUMBER_RE.fullmatch(value):
+                raise ValueError("invalid number")
+        if self.type is FieldType.choice and value not in (self.options or []):
+            raise ValueError("value is not among options")
+        return value
+
     def validate_value(self, raw: str) -> str:
+        if len(raw) > self.max_length + 64:  # cheap bound before any further work
+            raise ValueError("value is too long")
+        if _CONTROL_RE.search(raw):
+            raise ValueError("control characters are not allowed")
         value = raw.strip()
+        if len(value) > self.max_length:
+            raise ValueError("value is too long")
         if not value:
             if self.required:
                 raise ValueError("value is required")
             return value
-        if self.type is FieldType.email and not _EMAIL_RE.match(value):
-            raise ValueError("invalid email")
-        if self.type is FieldType.number and not _NUMBER_RE.match(value):
-            raise ValueError("invalid number")
-        if self.type is FieldType.choice and value not in (self.options or []):
-            raise ValueError("value is not among options")
-        if self.regex is not None and not re.fullmatch(self.regex, value):
+        value = self._check_type(value)
+        if self._compiled is not None and not self._compiled.fullmatch(value):
             raise ValueError("value does not match the required format")
         return value
 

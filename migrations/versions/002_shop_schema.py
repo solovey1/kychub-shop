@@ -359,6 +359,11 @@ def upgrade() -> None:
             "num_nonnulls(discount_percent, discount_amount, bonus_amount) = 1",
             name="promo_exactly_one_kind",
         ),
+        sa.CheckConstraint(
+            "usage_limit IS NULL OR times_used <= usage_limit",
+            name="promo_usage_within_limit",
+        ),
+        sa.CheckConstraint("times_used >= 0", name="promo_times_used_non_negative"),
         sa.ForeignKeyConstraint(["product_id"], ["products.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("code"),
@@ -418,6 +423,8 @@ def upgrade() -> None:
             server_default=sa.text("timezone('UTC', now())"),
             nullable=False,
         ),
+        sa.CheckConstraint("discount >= 0 AND discount <= price", name="order_discount_le_price"),
+        sa.CheckConstraint("price >= 0", name="order_price_non_negative"),
         sa.ForeignKeyConstraint(["executor_id"], ["users.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["promo_code_id"], ["promo_codes.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
@@ -479,6 +486,13 @@ def upgrade() -> None:
     )
     op.create_index(
         "ix_ledger_user_account_id", "ledger_entries", ["user_id", "account", "id"], unique=False
+    )
+    op.create_index(
+        "uq_ledger_kind_ref",
+        "ledger_entries",
+        ["kind", "ref"],
+        unique=True,
+        postgresql_where=sa.text("ref IS NOT NULL"),
     )
     op.create_table(
         "order_events",
@@ -557,7 +571,7 @@ def upgrade() -> None:
         sa.Column("payload", sa.String(), nullable=False),
         sa.Column("is_unlimited", sa.Boolean(), server_default="false", nullable=False),
         sa.Column("sold_order_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["sold_order_id"], ["orders.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["sold_order_id"], ["orders.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["variant_id"], ["product_variants.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -664,6 +678,11 @@ def downgrade() -> None:
     op.drop_table("order_reviews")
     op.drop_index(op.f("ix_order_events_order_id"), table_name="order_events")
     op.drop_table("order_events")
+    op.drop_index(
+        "uq_ledger_kind_ref",
+        table_name="ledger_entries",
+        postgresql_where=sa.text("ref IS NOT NULL"),
+    )
     op.drop_index("ix_ledger_user_account_id", table_name="ledger_entries")
     op.drop_table("ledger_entries")
     op.drop_index("ix_orders_user_id", table_name="orders")

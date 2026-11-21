@@ -29,6 +29,8 @@ class LedgerService(BaseInteractor):
         """Append under a user row lock. Does NOT commit: the caller owns the transaction."""
         amount = money(amount)
         await self.gateway.lock_user(user_id)
+        if ref is not None and (existing := await self.gateway.get_by_ref(kind, ref)):
+            return existing  # idempotent replay
         balance_after = await self.gateway.balance(user_id, account) + amount
         if account in _NON_NEGATIVE and balance_after < 0:
             raise InsufficientFunds(f"user {user_id}: {account} balance would be {balance_after}")

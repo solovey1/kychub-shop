@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import CheckConstraint, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.order import OrderStatus
@@ -38,6 +38,8 @@ class Order(Base, TimestampMixin):
     result: Mapped[Optional[DictStrAny]] = mapped_column()
 
     __table_args__ = (
+        CheckConstraint("price >= 0", name="order_price_non_negative"),
+        CheckConstraint("discount >= 0 AND discount <= price", name="order_discount_le_price"),
         Index("ix_orders_status", "status"),
         Index("ix_orders_executor_status", "executor_id", "status"),
         Index("ix_orders_user_id", "user_id"),

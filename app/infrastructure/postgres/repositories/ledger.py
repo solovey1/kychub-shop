@@ -3,8 +3,9 @@ from decimal import Decimal
 
 from sqlalchemy import func, select
 
+from app.application.errors.base import UserNotFound
 from app.application.ports.repositories.ledger import LedgerGateway
-from app.domain.enums.ledger import LedgerAccount
+from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.ledger import LedgerEntry
 from app.domain.user import User
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
@@ -15,9 +16,14 @@ class LedgerRepository(LedgerGateway):
     _helper: SqlRepositoryHelper[LedgerEntry]
 
     async def lock_user(self, user_id: int) -> None:
-        await self._helper.session.execute(
+        row = await self._helper.session.scalar(
             select(User.id).where(User.id == user_id).with_for_update()
         )
+        if row is None:
+            raise UserNotFound(user_id)
+
+    async def get_by_ref(self, kind: LedgerKind, ref: str) -> LedgerEntry | None:
+        return await self._helper.get_one(LedgerEntry.kind == kind, LedgerEntry.ref == ref)
 
     async def balance(self, user_id: int, account: LedgerAccount) -> Decimal:
         query = select(func.coalesce(func.sum(LedgerEntry.amount), 0)).where(

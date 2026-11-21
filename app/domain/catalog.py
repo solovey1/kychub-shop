@@ -90,7 +90,7 @@ class StockUnit(Base):
     payload: Mapped[str] = mapped_column()
     is_unlimited: Mapped[bool] = mapped_column(default=False, server_default="false")
     sold_order_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("orders.id", ondelete="SET NULL")
+        ForeignKey("orders.id", ondelete="RESTRICT")
     )
 
     __table_args__ = (Index("ix_stock_units_variant_sold", "variant_id", "sold_order_id"),)

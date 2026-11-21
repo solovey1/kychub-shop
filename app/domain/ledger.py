@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.ledger import LedgerAccount, LedgerKind, PaymentStatus, WithdrawalStatus
@@ -29,6 +29,13 @@ class LedgerEntry(Base):
     __table_args__ = (
         CheckConstraint("amount <> 0", name="ledger_amount_non_zero"),
         Index("ix_ledger_user_account_id", "user_id", "account", "id"),
+        Index(
+            "uq_ledger_kind_ref",
+            "kind",
+            "ref",
+            unique=True,
+            postgresql_where=text("ref IS NOT NULL"),
+        ),
     )
 
 
