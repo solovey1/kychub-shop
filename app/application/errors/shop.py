@@ -55,3 +55,7 @@ class UnknownService(AppError):  # noqa: N818
 
 class UnknownCountry(AppError):  # noqa: N818
     pass
+
+
+class OrderUnavailable(AppError):  # noqa: N818
+    """No such order for this actor, or it is not in a state the action needs."""

@@ -1,12 +1,21 @@
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from app.domain.audit import AuditLog
 from app.domain.catalog import Service
 from app.domain.executor import ExecutorProfile
 
 
+class Candidate(NamedTuple):
+    user_id: int
+    load: int  # assigned + ready orders
+    completed: int
+
+
 class ExecutorsGateway(Protocol):
     async def get_profile(self, user_id: int) -> ExecutorProfile | None: ...
+
+    async def get_profile_for_update(self, user_id: int) -> ExecutorProfile | None:
+        """Serialises everything that changes this executor's load."""
 
     async def get_by_alias(self, alias: str) -> ExecutorProfile | None: ...
 
@@ -25,3 +34,13 @@ class ExecutorsGateway(Protocol):
 
     async def staff_ids(self) -> list[int]:
         """Users with the admin or manager role."""
+
+    async def candidates(
+        self,
+        service_id: int,
+        country_code: str | None,
+        exclude: set[int],
+        only: int | None = None,
+    ) -> list[Candidate]:
+        """Active executors permitted for the service and country (any country when None)
+        with load below their limit, least loaded first, then most completed orders."""

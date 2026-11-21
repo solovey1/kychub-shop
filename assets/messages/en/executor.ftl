@@ -26,3 +26,35 @@ messages-executor-err_not_found = Executor not found.
 messages-executor-err_service = No service with this code.
 messages-executor-err_country = One of the countries is not in the directory.
 messages-executor-err_input = Invalid value. Alias: 2-32 characters without spaces, percent 0-100.
+
+units-hours = { $n } h
+units-minutes = { $n } min
+
+messages-card =
+    <b>Order #{ $id }</b>
+    { $product }
+    { $place }
+    Executor pay: { $earning } · deadline: { $deadline }
+
+    { $fields }
+messages-card-file = (file)
+
+buttons-take = Take
+buttons-refuse = Refuse
+
+messages-executor-offer =
+    <b>New order</b>
+
+    { $card }
+messages-executor-assigned =
+    <b>An order is assigned to you</b>
+
+    { $card }
+messages-executor-taken = Order #{ $id } is yours. If you cannot make it, refuse: it goes back to the queue.
+messages-executor-take_failed = Order #{ $id } is no longer available: another executor took it, or you have no permission or free slot.
+messages-executor-refused = You refused order #{ $id }.
+messages-executor-refuse_failed = Order #{ $id } can no longer be returned to the queue.
+messages-executor-offer_taken = Order #{ $id } was taken by another executor.
+messages-executor-offer_cancelled = Order #{ $id } was cancelled by the buyer.
+messages-executor-overdue = The deadline of order #{ $id } has passed, it went back to the queue.
+messages-executor-no_executor = No suitable executor for order #{ $id }.

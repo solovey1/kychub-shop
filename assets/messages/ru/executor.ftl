@@ -26,3 +26,35 @@ messages-executor-err_not_found = Исполнитель не найден.
 messages-executor-err_service = Сервис с таким кодом не найден.
 messages-executor-err_country = Одной из стран нет в справочнике.
 messages-executor-err_input = Недопустимое значение. Псевдоним: 2-32 символа без пробелов, процент 0-100.
+
+units-hours = { $n } ч
+units-minutes = { $n } мин
+
+messages-card =
+    <b>Заказ № { $id }</b>
+    { $product }
+    { $place }
+    Выплата исполнителю: { $earning } · срок: { $deadline }
+
+    { $fields }
+messages-card-file = (файл)
+
+buttons-take = Взять
+buttons-refuse = Отказаться
+
+messages-executor-offer =
+    <b>Новый заказ</b>
+
+    { $card }
+messages-executor-assigned =
+    <b>Вам назначен заказ</b>
+
+    { $card }
+messages-executor-taken = Заказ № { $id } взят. Если не успеваете, откажитесь: он вернётся в очередь.
+messages-executor-take_failed = Заказ № { $id } уже недоступен: его взял другой исполнитель, либо нет допуска или свободного места.
+messages-executor-refused = Вы отказались от заказа № { $id }.
+messages-executor-refuse_failed = Заказ № { $id } уже нельзя вернуть в очередь.
+messages-executor-offer_taken = Заказ № { $id } взят другим исполнителем.
+messages-executor-offer_cancelled = Заказ № { $id } отменён покупателем.
+messages-executor-overdue = Срок заказа № { $id } истёк, заказ вернулся в очередь.
+messages-executor-no_executor = Для заказа № { $id } нет подходящего исполнителя.

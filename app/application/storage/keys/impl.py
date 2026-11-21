@@ -15,3 +15,10 @@ class CommandsLockKey(StorageKey[str], prefix="commands_lock", type=str):
     """Значение — хэш текущего набора команд бота для этого bot_id."""
 
     bot_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class OrderOfferKey(StorageKey[list[list[int]]], prefix="order_offer", type=list[list[int]]):
+    """Значение — пары [chat_id, message_id] отправленных исполнителям предложений заказа."""
+
+    order_id: int

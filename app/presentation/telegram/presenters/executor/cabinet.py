@@ -4,7 +4,7 @@ from html import escape
 from aiogram_i18n import I18nContext
 
 from app.application.interactors.executors import CabinetOverview
-from app.presentation.telegram.keyboards.executor import cabinet_keyboard
+from app.presentation.telegram.keyboards.executor import cabinet_keyboard, refuse_keyboard
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.view.models import View
 
@@ -38,3 +38,9 @@ class ExecutorPresenter(BasePresenter):
 
     def text(self, key: str, **kwargs: str) -> View:
         return View(text=self.i18n.get(key, **kwargs))
+
+    def taken(self, order_id: int) -> View:
+        return View(
+            text=self.i18n.messages.executor.taken(id=str(order_id)),
+            reply_markup=refuse_keyboard(self.i18n, order_id),
+        )

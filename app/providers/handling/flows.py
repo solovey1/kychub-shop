@@ -7,6 +7,7 @@ from app.presentation.telegram.flows.common.orders import OrdersFlow
 from app.presentation.telegram.flows.common.purchase import PurchaseFlow
 from app.presentation.telegram.flows.executor.admin import ExecutorAdminFlow
 from app.presentation.telegram.flows.executor.cabinet import CabinetFlow
+from app.presentation.telegram.flows.executor.orders import ExecutorOrdersFlow
 from app.presentation.telegram.flows.extra.errors import ExtraErrorsFlow
 from app.presentation.telegram.flows.extra.pm import PMFlow
 
@@ -24,4 +25,5 @@ class FlowsProvider(Provider):
         BalanceFlow,
         ExecutorAdminFlow,
         CabinetFlow,
+        ExecutorOrdersFlow,
     )

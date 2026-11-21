@@ -26,3 +26,35 @@ messages-executor-err_not_found = Виконавця не знайдено.
 messages-executor-err_service = Сервіс з таким кодом не знайдено.
 messages-executor-err_country = Однієї з країн немає в довіднику.
 messages-executor-err_input = Недопустиме значення. Псевдонім: 2-32 символи без пробілів, відсоток 0-100.
+
+units-hours = { $n } год
+units-minutes = { $n } хв
+
+messages-card =
+    <b>Замовлення № { $id }</b>
+    { $product }
+    { $place }
+    Виплата виконавцю: { $earning } · термін: { $deadline }
+
+    { $fields }
+messages-card-file = (файл)
+
+buttons-take = Взяти
+buttons-refuse = Відмовитися
+
+messages-executor-offer =
+    <b>Нове замовлення</b>
+
+    { $card }
+messages-executor-assigned =
+    <b>Вам призначено замовлення</b>
+
+    { $card }
+messages-executor-taken = Замовлення № { $id } за вами. Якщо не встигаєте, відмовтеся: воно повернеться в чергу.
+messages-executor-take_failed = Замовлення № { $id } уже недоступне: його взяв інший виконавець, або немає допуску чи вільного місця.
+messages-executor-refused = Ви відмовилися від замовлення № { $id }.
+messages-executor-refuse_failed = Замовлення № { $id } уже не можна повернути в чергу.
+messages-executor-offer_taken = Замовлення № { $id } узяв інший виконавець.
+messages-executor-offer_cancelled = Замовлення № { $id } скасовано покупцем.
+messages-executor-overdue = Термін замовлення № { $id } минув, воно повернулося в чергу.
+messages-executor-no_executor = Для замовлення № { $id } немає відповідного виконавця.

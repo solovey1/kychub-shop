@@ -19,7 +19,9 @@ class FulfillmentHandler(Protocol):
 FulfillmentRegistry = NewType("FulfillmentRegistry", dict[str, FulfillmentHandler])
 
 
-async def move(orders: OrdersGateway, order: Order, new: OrderStatus) -> None:
+async def move(
+    orders: OrdersGateway, order: Order, new: OrderStatus, actor_id: int | None = None
+) -> None:
     """Status change with a validated transition and an OrderEvent."""
     ensure_transition(order.status, new)
     old = order.status
@@ -27,7 +29,7 @@ async def move(orders: OrdersGateway, order: Order, new: OrderStatus) -> None:
     await orders.add_event(
         OrderEvent(
             order_id=order.id,
-            actor_id=None,
+            actor_id=actor_id,
             type="status",
             payload={"from": str(old), "to": str(new)},
         )

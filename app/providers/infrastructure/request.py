@@ -14,6 +14,7 @@ from app.const import DEFAULT_LOCALE
 from app.domain.enums.roles import Role
 from app.domain.user import User
 from app.infrastructure.telegram.notifier import Notifier
+from app.infrastructure.telegram.offers import OfferService
 from app.presentation.telegram.helpers.messages import MessageHelperImpl
 from app.presentation.telegram.view.renderer import Renderer
 
@@ -97,4 +98,4 @@ class MessageHelperProvider(AiogramProvider):
 class RequestInfrastructureProvider(Provider):
     scope = Scope.REQUEST
 
-    infrastructure = provide_all(Renderer, Notifier)
+    infrastructure = provide_all(Renderer, Notifier, OfferService)

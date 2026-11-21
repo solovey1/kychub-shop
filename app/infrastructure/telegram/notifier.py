@@ -14,8 +14,8 @@ from app.const import DEFAULT_LOCALE
 logger: Final = logging.getLogger(__name__)
 
 Translate = Callable[..., str]
-# a ftl key, or a function that renders the whole text for a locale
-Text = str | Callable[[str], str]
+# a ftl key, or a function that renders the whole text from a translator and a locale
+Text = str | Callable[[Translate, str], str]
 # a ready keyboard, or a function that builds one with the recipient's translator
 Markup = InlineKeyboardMarkup | Callable[[Translate], InlineKeyboardMarkup]
 
@@ -33,13 +33,16 @@ class Notifier:
         user = await self.users.get(user_id)
         return user.language if user else DEFAULT_LOCALE
 
+    def _tr(self, locale: str) -> Translate:
+        return lambda key, **kw: self.core.get(key, locale, **kw)
+
     def _render(self, locale: str, key: Text, kwargs: dict[str, Any]) -> str:
-        return key(locale) if callable(key) else self.core.get(key, locale, **kwargs)
+        if callable(key):
+            return key(self._tr(locale), locale)
+        return self.core.get(key, locale, **kwargs)
 
     def _markup(self, locale: str, markup: Markup | None) -> InlineKeyboardMarkup | None:
-        if callable(markup):
-            return markup(lambda key, **kw: self.core.get(key, locale, **kw))
-        return markup
+        return markup(self._tr(locale)) if callable(markup) else markup
 
     async def send(
         self, user_id: int, key: Text, reply_markup: Markup | None = None, **kwargs: Any

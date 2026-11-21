@@ -10,12 +10,15 @@ from aiogram.types import Message
 from app.application.errors.base import InsufficientFunds
 from app.application.errors.shop import InvalidInput, OutOfStock, ProductUnavailable, PromoError
 from app.application.i18n_text import pick_i18n
+from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.purchase import Prepared, PurchaseInteractor
 from app.application.models.config import AppConfig
 from app.application.models.form_schema import FieldType
 from app.application.ports.telegram.messages_helper import MessageHelper
+from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.domain.user import User
+from app.infrastructure.telegram.offers import OfferService
 from app.presentation.telegram.callbacks.purchase import CDPurchase
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
@@ -35,6 +38,8 @@ class PurchaseFlow(BaseFlow):
     helper: MessageHelper
     bot: Bot
     config: AppConfig
+    dispatcher: DispatchInteractor
+    offers: OfferService
 
     async def _render(self, view: View) -> None:
         result = await self.renderer.apply(view)
@@ -214,6 +219,7 @@ class PurchaseFlow(BaseFlow):
             return await self._confirm(prep, current=False, promo_error=e.code)
         await self.helper.fsm.clear()
         await self._deliver(order)
+        await self._dispatch(order)
 
     async def _deliver(self, order: Order) -> None:
         view, file = self.presenter.delivered(order)
@@ -227,3 +233,12 @@ class PurchaseFlow(BaseFlow):
                 await self.bot.send_message(self.config.common.admin_chat_id, text)
             except TelegramAPIError:
                 logger.exception("could not notify admins about order %s", order.id)
+
+    async def _dispatch(self, order: Order) -> None:
+        """Offer a queued order to executors. The buyer already has their confirmation."""
+        if order.status is not OrderStatus.in_queue:
+            return
+        try:
+            await self.offers.announce(await self.dispatcher.dispatch(order.id))
+        except Exception:
+            logger.exception("dispatching order %s failed", order.id)

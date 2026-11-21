@@ -1,7 +1,9 @@
 from dishka import Provider, Scope, provide_all
 
 from app.application.interactors.balance import BalanceInteractor
+from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
+from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.executors import (
     ExecutorAdminInteractor,
     ExecutorCabinetInteractor,
@@ -28,4 +30,6 @@ class InteractorsProvider(Provider):
         TopupInteractor,
         ExecutorAdminInteractor,
         ExecutorCabinetInteractor,
+        CardBuilder,
+        DispatchInteractor,
     )
