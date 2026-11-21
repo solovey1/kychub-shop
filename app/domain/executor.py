@@ -23,6 +23,7 @@ class ExecutorProfile(Base, TimestampMixin):
     payout_wallet: Mapped[Optional[str]] = mapped_column()
 
     __table_args__ = (
+        CheckConstraint("max_parallel_orders >= 1", name="executor_parallel_positive"),
         CheckConstraint(
             "percent_override IS NULL OR percent_override BETWEEN 0 AND 100",
             name="executor_percent_range",

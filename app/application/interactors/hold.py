@@ -70,5 +70,6 @@ class HoldInteractor(BaseInteractor):
                 order_id=order.id,
                 ref=ref,
             )
+        order.hold_until = None  # out of the partial index once released
         await self.uow.commit()
         return True

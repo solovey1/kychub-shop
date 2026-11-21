@@ -191,7 +191,7 @@ class ConversationInteractor(BaseInteractor):
             message = Message(
                 conversation_id=conversation.id,
                 sender_id=sender_id,
-                sender_role=role.value,
+                sender_role=role,
                 text=text,
                 media=media,
             )

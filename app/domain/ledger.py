@@ -21,13 +21,16 @@ class LedgerEntry(Base):
     account: Mapped[LedgerAccount] = mapped_column()
     amount: Mapped[Money] = mapped_column()
     kind: Mapped[LedgerKind] = mapped_column()
-    order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"))
+    order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"))
     ref: Mapped[Optional[str]] = mapped_column()
     balance_after: Mapped[Money] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=NowFunc)
 
     __table_args__ = (
         CheckConstraint("amount <> 0", name="ledger_amount_non_zero"),
+        CheckConstraint(
+            "account = 'executor_hold' OR balance_after >= 0", name="ledger_balance_non_negative"
+        ),
         Index("ix_ledger_user_account_id", "user_id", "account", "id"),
         Index(
             "uq_ledger_idempotency",
@@ -52,7 +55,10 @@ class Payment(Base, TimestampMixin):
     status: Mapped[PaymentStatus] = mapped_column(default=PaymentStatus.created)
     raw: Mapped[DictStrAny] = mapped_column(default=dict, server_default="{}")
 
-    __table_args__ = (UniqueConstraint("provider", "external_id", name="uq_payment_provider_ext"),)
+    __table_args__ = (
+        UniqueConstraint("provider", "external_id", name="uq_payment_provider_ext"),
+        CheckConstraint("amount > 0", name="payment_amount_positive"),
+    )
 
 
 class Withdrawal(Base, TimestampMixin):

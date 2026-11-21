@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.enums.broadcast import BroadcastStatus
 from app.utils.custom_types import DictStrAny, Int64
 
 from .base import Base
@@ -19,7 +20,9 @@ class Broadcast(Base):
     )
     text: Mapped[str] = mapped_column()
     media: Mapped[Optional[DictStrAny]] = mapped_column()
-    status: Mapped[str] = mapped_column(default="draft", server_default="draft")
+    status: Mapped[BroadcastStatus] = mapped_column(
+        default=BroadcastStatus.draft, server_default=BroadcastStatus.draft.value
+    )
     sent_count: Mapped[int] = mapped_column(default=0, server_default="0")
     failed_count: Mapped[int] = mapped_column(default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(server_default=NowFunc)

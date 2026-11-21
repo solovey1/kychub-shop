@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.domain.enums.support import ConversationKind, TicketStatus
+from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
 from app.utils.custom_types import DictStrAny, Int64
 
 from .base import Base
@@ -25,7 +25,18 @@ class Ticket(Base):
     taken_at: Mapped[Optional[datetime]] = mapped_column()
     closed_at: Mapped[Optional[datetime]] = mapped_column()
 
-    __table_args__ = (Index("ix_tickets_status", "status"),)
+    __table_args__ = (
+        Index("ix_tickets_status", "status"),
+        # one live ticket per (user, order); order_id NULL = the general ticket (PG15+)
+        Index(
+            "uq_tickets_open",
+            "user_id",
+            "order_id",
+            unique=True,
+            postgresql_where=text("status IN ('open', 'taken')"),
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 
 class Conversation(Base):
@@ -33,15 +44,18 @@ class Conversation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[ConversationKind] = mapped_column()
-    ticket_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("tickets.id", ondelete="CASCADE"), index=True
-    )
+    ticket_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"))
     order_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("orders.id", ondelete="CASCADE"), index=True
     )
     thread_id: Mapped[Optional[int]] = mapped_column(index=True)
 
     __table_args__ = (
+        CheckConstraint(
+            "(kind = 'order' AND order_id IS NOT NULL AND ticket_id IS NULL)"
+            " OR (kind = 'ticket' AND ticket_id IS NOT NULL AND order_id IS NULL)",
+            name="conversation_kind_target",
+        ),
         Index(
             "uq_conversations_order",
             "order_id",
@@ -60,7 +74,7 @@ class Message(Base):
         ForeignKey("conversations.id", ondelete="CASCADE"), index=True
     )
     sender_id: Mapped[Int64] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
-    sender_role: Mapped[str] = mapped_column()
+    sender_role: Mapped[ChatRole] = mapped_column()
     text: Mapped[Optional[str]] = mapped_column()
     media: Mapped[Optional[DictStrAny]] = mapped_column()
     tg_message_id: Mapped[Optional[Int64]] = mapped_column()

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, true
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.catalog import AssignMode
@@ -93,4 +93,21 @@ class StockUnit(Base):
         ForeignKey("orders.id", ondelete="RESTRICT")
     )
 
-    __table_args__ = (Index("ix_stock_units_variant_sold", "variant_id", "sold_order_id"),)
+    __table_args__ = (
+        CheckConstraint(
+            "NOT is_unlimited OR sold_order_id IS NULL", name="stock_unlimited_never_sold"
+        ),
+        Index("ix_stock_units_variant_sold", "variant_id", "sold_order_id"),
+        Index(
+            "uq_stock_sold_order",
+            "sold_order_id",
+            unique=True,
+            postgresql_where=text("sold_order_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_stock_units_free",
+            "variant_id",
+            "id",
+            postgresql_where=text("sold_order_id IS NULL AND NOT is_unlimited"),
+        ),
+    )

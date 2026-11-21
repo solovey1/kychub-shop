@@ -15,7 +15,7 @@ from .mixins.timestamp import TimestampMixin
 class User(Base, TimestampMixin):
     __tablename__ = "users"
 
-    id: Mapped[Int64] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[Int64] = mapped_column(primary_key=True, autoincrement=False)  # Telegram id
     name: Mapped[str] = mapped_column()
     language: Mapped[str] = mapped_column(String(length=2))
     language_code: Mapped[Optional[str]] = mapped_column()

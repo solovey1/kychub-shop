@@ -22,7 +22,7 @@ class PromoCode(Base, TimestampMixin):
     times_used: Mapped[int] = mapped_column(default=0, server_default="0")
     expires_at: Mapped[Optional[datetime]] = mapped_column()
     product_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("products.id", ondelete="CASCADE")
+        ForeignKey("products.id", ondelete="RESTRICT")
     )
     min_amount: Mapped[Optional[Money]] = mapped_column()
     new_users_only: Mapped[bool] = mapped_column(default=False, server_default=false())
@@ -39,6 +39,12 @@ class PromoCode(Base, TimestampMixin):
             "usage_limit IS NULL OR times_used <= usage_limit", name="promo_usage_within_limit"
         ),
         CheckConstraint("times_used >= 0", name="promo_times_used_non_negative"),
+        CheckConstraint("discount_percent BETWEEN 1 AND 100", name="promo_discount_percent_range"),
+        CheckConstraint("discount_amount > 0", name="promo_discount_amount_positive"),
+        CheckConstraint("bonus_amount > 0", name="promo_bonus_amount_positive"),
+        CheckConstraint("min_amount >= 0", name="promo_min_amount_non_negative"),
+        CheckConstraint("usage_limit > 0", name="promo_usage_limit_positive"),
+        CheckConstraint("code = upper(code)", name="promo_code_upper"),
     )
 
 
@@ -47,7 +53,7 @@ class PromoCodeUsage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     promo_code_id: Mapped[int] = mapped_column(
-        ForeignKey("promo_codes.id", ondelete="CASCADE"), index=True
+        ForeignKey("promo_codes.id", ondelete="RESTRICT"), index=True
     )
     user_id: Mapped[Int64] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"))

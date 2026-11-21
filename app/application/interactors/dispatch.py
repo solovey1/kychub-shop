@@ -175,8 +175,8 @@ class DispatchInteractor(BaseInteractor):
     ) -> None:
         assert ctx.service is not None
         now = datetime_now()
+        order.executor_id = executor_id  # first: move() flushes and the CHECK needs the executor
         await move(self.orders, order, OrderStatus.assigned, executor_id)
-        order.executor_id = executor_id
         order.assigned_at = now
         order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
         await self.orders.add_event(

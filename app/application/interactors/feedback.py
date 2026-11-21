@@ -44,6 +44,7 @@ class ReviewInteractor(BaseInteractor):
                     await self.uow.rollback()
                     continue
                 await self.orders.add_event(OrderEvent(order_id=order_id, type="review_requested"))
+                order.review_due_at = None  # out of the partial index once asked
                 await self.uow.commit()
                 sent.append(order)
             except Exception:

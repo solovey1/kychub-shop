@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index
+from sqlalchemy import CheckConstraint, ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.order import OrderStatus
@@ -22,7 +22,7 @@ class Order(Base, TimestampMixin):
     price: Mapped[Money] = mapped_column()
     discount: Mapped[Money] = mapped_column(default=Decimal(0), server_default="0")
     promo_code_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("promo_codes.id", ondelete="SET NULL")
+        ForeignKey("promo_codes.id", ondelete="RESTRICT")
     )
     input_data: Mapped[DictStrAny] = mapped_column(default=dict, server_default="{}")
     status: Mapped[OrderStatus] = mapped_column(default=OrderStatus.awaiting_input)
@@ -40,7 +40,21 @@ class Order(Base, TimestampMixin):
     __table_args__ = (
         CheckConstraint("price >= 0", name="order_price_non_negative"),
         CheckConstraint("discount >= 0 AND discount <= price", name="order_discount_le_price"),
+        CheckConstraint(
+            "status NOT IN ('assigned', 'ready') OR executor_id IS NOT NULL",
+            name="order_assigned_has_executor",
+        ),
         Index("ix_orders_status", "status"),
+        Index(
+            "ix_orders_hold_due",
+            "hold_until",
+            postgresql_where=text("status = 'completed' AND hold_until IS NOT NULL"),
+        ),
+        Index(
+            "ix_orders_review_due",
+            "review_due_at",
+            postgresql_where=text("status = 'completed' AND review_due_at IS NOT NULL"),
+        ),
         Index("ix_orders_executor_status", "executor_id", "status"),
         Index("ix_orders_user_id", "user_id"),
     )
@@ -55,3 +69,7 @@ class OrderEvent(Base):
     type: Mapped[str] = mapped_column()
     payload: Mapped[DictStrAny] = mapped_column(default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(server_default=NowFunc)
+
+    __table_args__ = (
+        Index("ix_order_events_type_executor", "type", text("(payload->>'executor_id')")),
+    )
