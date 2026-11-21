@@ -33,7 +33,7 @@ class LedgerService(BaseInteractor):
             existing := await self.gateway.get_by_ref(user_id, account, kind, ref)
         ):
             if existing.amount != amount:
-                raise LedgerConflict(f"ref {ref!r} replayed with {amount}, stored {existing.amount}")
+                raise LedgerConflict(f"ref {ref!r}: got {amount}, stored {existing.amount}")
             return existing  # idempotent replay
         balance_after = await self.gateway.balance(user_id, account) + amount
         if account in _NON_NEGATIVE and balance_after < 0:
