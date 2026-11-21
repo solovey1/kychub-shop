@@ -43,3 +43,18 @@ class TicketOfferKey(StorageKey[list[list[int]]], prefix="ticket_offer", type=li
     """Значение — пары [chat_id, message_id] уведомлений менеджерам о новом тикете."""
 
     ticket_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class TicketNoticeKey(StorageKey[int], prefix="ticket_notice", type=int):
+    """Значение — id последнего уведомления о тикете у этого пользователя (его заменяет новое)."""
+
+    user_id: int
+    conversation_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class TicketTipKey(StorageKey[int], prefix="ticket_tip", type=int):
+    """Флаг: подсказка «отвечать удобнее в приложении» уже показана покупателю недавно."""
+
+    user_id: int

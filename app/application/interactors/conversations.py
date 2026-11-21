@@ -20,7 +20,6 @@ from app.domain.order import Order
 from app.domain.support import Conversation, Message, Ticket
 from app.utils.time import datetime_now
 
-HISTORY_LIMIT = 20
 CHAT_STATUSES = frozenset({OrderStatus.assigned, OrderStatus.ready})
 
 
@@ -305,9 +304,6 @@ class ConversationInteractor(BaseInteractor):
         if message is None:
             return None
         return await self.support.conversation(message.conversation_id)
-
-    async def history(self, conversation_id: int, limit: int = HISTORY_LIMIT) -> list[Message]:
-        return await self.support.history(conversation_id, limit)
 
     async def _is_staff(self, user_id: int) -> bool:
         user = await self.users.get(user_id)

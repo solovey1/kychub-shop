@@ -4,6 +4,7 @@ from typing import Final
 
 from app.application.errors.shop import OrderUnavailable, TicketUnavailable
 from app.application.interactors.conversations import ConversationInteractor
+from app.application.models.config import AppConfig
 from app.application.ports.storages.key_value import KvStorage
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.application.storage.keys.impl import ActiveConversationKey
@@ -13,9 +14,8 @@ from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.flows.common.relay import ACTIVE_TTL
-from app.presentation.telegram.keyboards.chat import copy_keyboard
+from app.presentation.telegram.keyboards.chat import ticket_keyboard
 from app.presentation.telegram.presenters.common.support import SupportPresenter
-from app.presentation.telegram.view.models import View
 from app.presentation.telegram.view.renderer import Renderer
 
 logger: Final = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ class ChatFlow(BaseFlow):
     presenter: SupportPresenter
     renderer: Renderer
     helper: MessageHelper
+    config: AppConfig
 
     async def action(self, cd: CDChat) -> None:
         match cd.action:
@@ -43,8 +44,6 @@ class ChatFlow(BaseFlow):
                 await self.reply(cd.id)
             case "take":
                 await self.take(cd.id)
-            case "history":
-                await self.history(cd.id)
             case "close":
                 await self.close(cd.id)
 
@@ -61,8 +60,16 @@ class ChatFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-chat-order_missing")
         await self._activate(conversation.id)
+        tr = self.presenter.i18n.get
+        markup = (
+            None
+            if created
+            else ticket_keyboard(
+                tr, self.config.server.url, conversation.id, ticket.id, staff=False
+            )
+        )
         key = "messages-chat-support_new" if created else "messages-chat-support_again"
-        await self._say(key, id=str(ticket.id))
+        await self.renderer.apply(self.presenter.note(key, markup, id=str(ticket.id)))
 
     async def order_chat(self, order_id: int) -> None:
         await self.helper.fsm.clear()
@@ -97,25 +104,8 @@ class ChatFlow(BaseFlow):
             return await self._say("messages-ticket-take_failed", id=str(ticket_id))
         card = await self.chat.ticket_card(ticket_id)
         assert card is not None
-        ticket, name = card
         conversation = await self.chat.ticket_conversation(ticket_id)
-        await self._activate(conversation.id)
-        tr = self.presenter.i18n.get
-        await self.renderer.apply(
-            View(
-                text=tr("messages-ticket-taken", id=str(ticket_id), name=name),
-                reply_markup=copy_keyboard(tr, conversation.id, ticket_id, staff=True),
-            )
-        )
-        await self.renderer.apply(self.presenter.history(await self.chat.history(conversation.id)))
-        await self.effects.ticket_taken(ticket, self.user.id, self.user.name)
-
-    async def history(self, conversation_id: int) -> None:
-        conversation = await self.chat.get_conversation(conversation_id)
-        role = await self.chat.can_post(self.user.id, conversation) if conversation else None
-        if role not in (ChatRole.manager, ChatRole.admin):
-            return await self._say("messages-chat-forbidden")
-        await self.renderer.apply(self.presenter.history(await self.chat.history(conversation_id)))
+        await self.effects.ticket_taken(card[0], conversation.id, self.user.id, self.user.name)
 
     async def close(self, ticket_id: int) -> None:
         try:

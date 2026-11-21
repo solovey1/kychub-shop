@@ -9,6 +9,7 @@ from app.application.i18n_text import fmt_usd
 from app.application.interactors.conversations import Posted
 from app.application.interactors.dispatch import DispatchInteractor, DispatchResult
 from app.application.interactors.payouts import Refunded
+from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import TicketStatus
@@ -22,6 +23,7 @@ from app.infrastructure.telegram.notifier import Notifier
 from app.infrastructure.telegram.offers import OfferService
 from app.infrastructure.telegram.relay import Delivery, Relay
 from app.infrastructure.telegram.ticket_offers import TicketOffers
+from app.presentation.telegram.keyboards.chat import ticket_keyboard
 
 logger: Final = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ class Effects:
     notices: OrderNotices
     orders: OrdersGateway
     dispatcher: DispatchInteractor
+    config: AppConfig
 
     async def order_cancelled(self, order_id: int) -> None:
         await _safe(
@@ -115,13 +118,29 @@ class Effects:
             await self._ticket_event(posted.ticket_id, TicketStatus.open, users)
         return delivery
 
-    async def ticket_taken(self, ticket: Ticket, manager_id: int, manager_name: str) -> None:
+    async def ticket_taken(
+        self, ticket: Ticket, conversation_id: int, manager_id: int, manager_name: str
+    ) -> None:
+        """The others lose the «Take» button; the manager gets the chat, the buyer a hello."""
+        url = self.config.server.url
         await _safe(
             f"updating ticket {ticket.id} notices",
             self.ticket_offers.close(
                 ticket.id, "messages-ticket-taken_by", except_chat=manager_id, name=manager_name
             ),
         )
+        await self.notifier.send(
+            manager_id,
+            "messages-ticket-taken",
+            lambda tr: ticket_keyboard(tr, url, conversation_id, ticket.id, staff=True),
+            id=str(ticket.id),
+        )
+        if ticket.user_id != manager_id:
+            await self.notifier.send(
+                ticket.user_id,
+                "messages-ticket-joined",
+                lambda tr: ticket_keyboard(tr, url, conversation_id, ticket.id, staff=False),
+            )
         await self._ticket_event(ticket.id, TicketStatus.taken, [ticket.user_id])
 
     async def ticket_closed(self, ticket: Ticket, actor_id: int) -> None:

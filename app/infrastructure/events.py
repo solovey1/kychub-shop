@@ -57,6 +57,9 @@ class EventHub:
             (uid, sink, build(uid)) for uid in set(user_ids) for sink in self._of(uid)
         )
 
+    def online(self, user_id: int) -> bool:
+        return bool(self._sinks.get(user_id))
+
     def _of(self, user_id: int) -> list[Sink]:
         return list(self._sinks.get(user_id, ()))
 

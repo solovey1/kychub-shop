@@ -1,15 +1,20 @@
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Final
 
 from aiogram import Bot, html
 from aiogram.exceptions import TelegramAPIError
 
 from app.application.interactors.conversations import ConversationInteractor, Posted, Recipient
+from app.application.models.config import AppConfig
+from app.application.ports.storages.key_value import KvStorage
+from app.application.storage.keys.impl import TicketNoticeKey
 from app.domain.enums.support import ChatRole
 from app.infrastructure.events import EventHub, message_view
 from app.infrastructure.telegram.notifier import Notifier, Translate
-from app.presentation.telegram.keyboards.chat import copy_keyboard
+from app.presentation.telegram.keyboards.chat import copy_keyboard, ticket_keyboard
+from app.presentation.telegram.presenters.common.support import preview
 
 logger: Final = logging.getLogger(__name__)
 
@@ -17,6 +22,8 @@ TEXT_LIMIT: Final = 4096
 CAPTION_LIMIT: Final = 1024
 # stickers and round videos cannot carry a caption: the header goes in its own message
 NO_CAPTION: Final = frozenset({"sticker", "video_note"})
+NOTICE_TTL: Final = timedelta(days=7)
+NOTICE_CHARS: Final = 200
 
 
 @dataclass(frozen=True)
@@ -39,13 +46,17 @@ def _fit(raw: str, room: int) -> str:
 @dataclass(frozen=True)
 class Relay:
     """Copies of a stored message to the other side of a conversation, each with a header that
-    shows only what that side may know (never the buyer's name to an executor).
+    shows only what that side may know (never the buyer's name to an executor). A ticket has its
+    chat in the Mini App: there the other side gets a short notice instead of a copy (none while
+    its socket is open). Without https there is no Mini App and a ticket is copied like an order.
     Call after the commit that stored the message; a failed send is logged and counted."""
 
     bot: Bot
     notifier: Notifier
     chat: ConversationInteractor
     hub: EventHub
+    kv: KvStorage
+    config: AppConfig
 
     async def deliver(self, posted: Posted, source_message_id: int | None) -> Delivery:
         """`source_message_id`: the sender's own message (media is copied from it); None for a
@@ -66,6 +77,8 @@ class Relay:
                 failed += 1
                 continue
             delivered += 1
+            if sent is None:  # a notice: a reply to it is not routed
+                continue
             try:
                 await self.chat.record_delivery(posted.message_id, recipient.user_id, sent)
             except Exception:
@@ -91,7 +104,10 @@ class Relay:
 
     async def _send(
         self, posted: Posted, recipient: Recipient, source_message_id: int | None
-    ) -> int:
+    ) -> int | None:
+        if posted.ticket_id is not None and self.config.server.url.startswith("https://"):
+            await self._notice(posted, posted.ticket_id, recipient)
+            return None
         tr = await self.notifier.translator(recipient.user_id)
         header = self._header(tr, posted, recipient)
         staff = recipient.role in (ChatRole.manager, ChatRole.admin)
@@ -118,6 +134,30 @@ class Relay:
             reply_markup=markup,
         )
         return copy.message_id
+
+    async def _notice(self, posted: Posted, ticket_id: int, recipient: Recipient) -> None:
+        """«New message in the ticket» with a button to the chat; replaces the previous notice."""
+        if self.hub.online(recipient.user_id):
+            return
+        tr = await self.notifier.translator(recipient.user_id)
+        staff = recipient.role in (ChatRole.manager, ChatRole.admin)
+        text = tr(
+            "messages-ticket-notice",
+            id=str(ticket_id),
+            text=preview(tr, posted.text, posted.media, NOTICE_CHARS),
+        )
+        markup = ticket_keyboard(
+            tr, self.config.server.url, posted.conversation_id, ticket_id, staff=staff
+        )
+        sent = await self.bot.send_message(recipient.user_id, text, reply_markup=markup)
+        key = TicketNoticeKey(user_id=recipient.user_id, conversation_id=posted.conversation_id)
+        previous = await self.kv.get(key)
+        await self.kv.set(key, sent.message_id, NOTICE_TTL)
+        if previous is not None:
+            try:
+                await self.bot.delete_message(recipient.user_id, previous)
+            except TelegramAPIError:
+                logger.info("could not delete the old notice of %s", recipient.user_id)
 
     @staticmethod
     def _header(tr: Translate, posted: Posted, recipient: Recipient) -> str:

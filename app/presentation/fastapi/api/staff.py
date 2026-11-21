@@ -62,8 +62,9 @@ async def take_ticket(
         raise HTTPException(409, "Ticket is not available")
     card = await chat.ticket_card(ticket_id)
     assert card is not None
-    await effects.ticket_taken(card[0], user.id, user.name)
-    return {"conversation_id": (await chat.ticket_conversation(ticket_id)).id}
+    conversation = await chat.ticket_conversation(ticket_id)
+    await effects.ticket_taken(card[0], conversation.id, user.id, user.name)
+    return {"conversation_id": conversation.id}
 
 
 @router.post("/tickets/{ticket_id}/close")

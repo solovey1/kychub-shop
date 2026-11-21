@@ -35,9 +35,6 @@ class SupportGateway(Protocol):
 
     async def message_by_copy(self, tg_chat_id: int, tg_message_id: int) -> Message | None: ...
 
-    async def history(self, conversation_id: int, limit: int) -> list[Message]:
-        """The latest `limit` messages, oldest first."""
-
     async def messages_page(
         self, conversation_id: int, before_id: int | None, limit: int
     ) -> list[Message]:

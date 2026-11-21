@@ -1,10 +1,17 @@
 from typing import Callable, Optional
+from urllib.parse import quote
 
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import DisabledButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (
+    DisabledButton,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    WebAppInfo,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram_i18n import I18nContext
 
+from app.const import WEBAPP_PATH
 from app.presentation.telegram.callbacks.menu import CDMenu
 
 
@@ -16,6 +23,14 @@ def back_keyboard(i18n: I18nContext, data: CallbackData = CDMenu()) -> InlineKey
 
 def button(text: str, data: CallbackData, style: Optional[str] = None) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=data.pack(), style=style)
+
+
+def app_button(text: str, server_url: str, path: str) -> InlineKeyboardButton | None:
+    """Opens the Mini App on `path`. None without https: Telegram accepts no other web app url."""
+    if not server_url.startswith("https://"):
+        return None
+    url = f"{server_url}{WEBAPP_PATH}/?to={quote(path)}"
+    return InlineKeyboardButton(text=text, web_app=WebAppInfo(url=url))
 
 
 def pager(

@@ -18,13 +18,21 @@ import { Chat } from "./ui/Chat";
 import { Failure, Hint, Loading } from "./ui/kit";
 import { Tabs } from "./ui/Tabs";
 
+const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$/;
 const TOP = /^\/(orders|balance|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
 
 function Shell({ me }: { me: Me }) {
-  const [path] = useLocation();
+  const [path, go] = useLocation();
   const top = TOP.test(path);
   useBackButton(!top, () => history.back());
   useEffect(startLive, []);
+  useEffect(() => {
+    // a bot button opens the app as /app/?to=/chat/5: go there once and drop the parameter
+    const to = new URLSearchParams(location.search).get("to");
+    if (to === null) return;
+    if (LINK.test(to)) go(to, { replace: true });
+    history.replaceState(null, "", location.pathname + location.hash);
+  }, []);
 
   const tabs = [
     { to: "/orders", key: "orders" },

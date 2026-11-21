@@ -17,7 +17,7 @@ Translate = Callable[..., str]
 # a ftl key, or a function that renders the whole text from a translator and a locale
 Text = str | Callable[[Translate, str], str]
 # a ready keyboard, or a function that builds one with the recipient's translator
-Markup = InlineKeyboardMarkup | Callable[[Translate], InlineKeyboardMarkup]
+Markup = InlineKeyboardMarkup | Callable[[Translate], InlineKeyboardMarkup | None]
 
 
 @dataclass(frozen=True)

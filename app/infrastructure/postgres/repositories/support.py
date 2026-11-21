@@ -98,15 +98,6 @@ class SupportRepository(SupportGateway):
         message: Message | None = await self._helper.session.scalar(query)
         return message
 
-    async def history(self, conversation_id: int, limit: int) -> list[Message]:
-        query = (
-            select(Message)
-            .where(Message.conversation_id == conversation_id)
-            .order_by(Message.id.desc())
-            .limit(limit)
-        )
-        return list(reversed(list(await self._helper.session.scalars(query))))
-
     async def messages_page(
         self, conversation_id: int, before_id: int | None, limit: int
     ) -> list[Message]:

@@ -17,8 +17,8 @@ messages-chat-saved = Повідомлення збережено. Відпов�
 messages-chat-undelivered = Не вдалося доставити повідомлення: отримувач недоступний. Воно збережене в історії.
 
 buttons-chat_reply = Відповісти
-buttons-chat_history = Історія
 buttons-chat_close = Закрити тікет
+buttons-chat_open = Відкрити чат
 
 buttons-support = Підтримка
 buttons-chat_support = Звернутися в підтримку
@@ -26,7 +26,7 @@ buttons-chat_executor = Написати виконавцю
 buttons-chat_buyer = Написати покупцю
 
 messages-chat-order_missing = Замовлення не знайдено.
-messages-chat-support_new = Тікет № { $id } створено. Напишіть ваше питання, можна з фото або файлом.
+messages-chat-support_new = Тікет № { $id } створено. Напишіть питання одним повідомленням, можна з фото або файлом.
 messages-chat-support_again = У вас уже є відкритий тікет № { $id }. Пишіть сюди.
 messages-chat-no_executor = Виконавця ще не призначено.
 messages-chat-order_buyer = Усе, що ви напишете зараз, отримає виконавець замовлення № { $id }. Він не побачить ваше ім'я.
@@ -40,11 +40,6 @@ messages-chat-media_audio = [аудіо]
 messages-chat-media_animation = [анімація]
 messages-chat-media_sticker = [стікер]
 messages-chat-media_video_note = [кружечок]
-messages-chat-history_title = <b>Історія листування</b>
-messages-chat-history_empty = Повідомлень поки немає.
-messages-chat-history_line = { $time } · { $who }: { $text }
-messages-chat-who_buyer = Користувач
-messages-chat-who_support = Підтримка
 
 messages-ticket-order = Замовлення: № { $id }
 messages-ticket-new =
@@ -53,8 +48,15 @@ messages-ticket-new =
 
     { $text }
 messages-ticket-take_failed = Тікет № { $id } уже взяв інший менеджер або він закритий.
-messages-ticket-taken = Тікет № { $id } закріплено за вами. Користувач: { $name }.
+messages-ticket-taken = Тікет № { $id } ваш.
 messages-ticket-taken_by = Тікет № { $id }: взяв { $name }.
 messages-ticket-closed = Тікет № { $id } закрито.
 messages-ticket-closed_buyer = Тікет № { $id } закрито. Якщо питання лишилося, натисніть «Підтримка» в меню.
 messages-ticket-unavailable = Тікет № { $id } недоступний.
+messages-ticket-notice =
+    💬 <b>Підтримка, тікет № { $id }</b>
+
+    { $text }
+messages-ticket-joined = 🎧 Підтримка підключилася
+messages-chat-tip = ✅ Надіслано. Відповідати зручніше в застосунку.
+messages-chat-use_app = Відповідайте в застосунку: повідомлення з бота в тікет не піде.
