@@ -6,8 +6,9 @@ from sqlalchemy import URL, MetaData
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from app.models.config.env import PostgresConfig
-from app.models.sql.base import Base
+import app.domain  # noqa: F401  (registers all models on Base.metadata)
+from app.application.models.config.env import PostgresConfig
+from app.domain.base import Base
 from app.utils.logging import setup_logger
 
 # this is the Alembic Config object, which provides
