@@ -41,8 +41,10 @@ class BalanceInteractor(BaseInteractor):
     async def balance(self, user_id: int) -> Decimal:
         return await self.ledger_gateway.balance(user_id, LedgerAccount.main)
 
-    async def summary(self, user_id: int) -> tuple[Decimal, list[LedgerEntry]]:
-        return await self.balance(user_id), await self.gateway.history(user_id, HISTORY_LIMIT)
+    async def summary(
+        self, user_id: int, limit: int = HISTORY_LIMIT
+    ) -> tuple[Decimal, list[LedgerEntry]]:
+        return await self.balance(user_id), await self.gateway.history(user_id, limit)
 
     async def get_user(self, user_id: int) -> User | None:
         return await self.users.get(user_id)

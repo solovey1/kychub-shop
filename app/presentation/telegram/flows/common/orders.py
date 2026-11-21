@@ -5,7 +5,7 @@ from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.orders import OrdersInteractor
 from app.application.interactors.stats import ExecutorStats
 from app.domain.user import User
-from app.infrastructure.telegram.offers import OfferService
+from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.orders import CDCancel
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.orders import OrdersPresenter
@@ -18,7 +18,7 @@ class OrdersFlow(BaseFlow):
     interactor: OrdersInteractor
     presenter: OrdersPresenter
     renderer: Renderer
-    offers: OfferService
+    effects: Effects
     stats: ExecutorStats
 
     async def list(self, page: int) -> Any:
@@ -43,7 +43,7 @@ class OrdersFlow(BaseFlow):
         except OrderUnavailable:  # taken meanwhile, or not the buyer order
             return await self.show(cd.id, cd.page)
         await self.renderer.apply(self.presenter.cancelled(cd.id, refund.amount, cd.page))
-        await self.offers.close(cd.id, "messages-executor-offer_cancelled")
+        await self.effects.order_cancelled(cd.id)
 
     async def executors(self) -> Any:
         rows = await self.stats.for_buyer(self.user.id)

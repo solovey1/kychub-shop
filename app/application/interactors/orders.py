@@ -6,6 +6,7 @@ from app.application.interactors.base import BaseInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import Refunded, refund_buyer
+from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.enums.order import OrderStatus
@@ -17,6 +18,7 @@ class OrdersInteractor(BaseInteractor):
     gateway: OrdersGateway
     uow: UnitOfWork
     ledger: LedgerService
+    executors: ExecutorsGateway
 
     async def list_orders(self, user_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
@@ -27,6 +29,13 @@ class OrdersInteractor(BaseInteractor):
 
     async def get(self, user_id: int, order_id: int) -> Order | None:
         return await self.gateway.get_for_user(user_id, order_id)
+
+    async def executor_alias(self, order: Order) -> str | None:
+        """The only thing a buyer may know about the executor."""
+        if order.executor_id is None:
+            return None
+        profile = await self.executors.get_profile(order.executor_id)
+        return profile.alias if profile else None
 
     async def cancel(self, user_id: int, order_id: int) -> Refunded:
         """Only an order nobody has taken yet; the buyer gets everything back."""

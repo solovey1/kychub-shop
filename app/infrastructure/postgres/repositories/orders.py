@@ -143,3 +143,16 @@ class OrdersRepository(OrdersGateway):
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))
+
+    async def queue(self, limit: int) -> list[Order]:
+        query = (
+            select(Order)
+            .where(Order.status == OrderStatus.in_queue, Order.executor_id.is_(None))
+            .order_by(Order.id)
+            .limit(limit)
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def list_by_status(self, status: OrderStatus, limit: int) -> list[Order]:
+        query = select(Order).where(Order.status == status).order_by(Order.id.desc()).limit(limit)
+        return list(await self._helper.session.scalars(query))

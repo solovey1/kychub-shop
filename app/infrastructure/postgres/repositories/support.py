@@ -101,3 +101,23 @@ class SupportRepository(SupportGateway):
             .limit(limit)
         )
         return list(reversed(list(await self._helper.session.scalars(query))))
+
+    async def messages_page(
+        self, conversation_id: int, before_id: int | None, limit: int
+    ) -> list[Message]:
+        query = select(Message).where(Message.conversation_id == conversation_id)
+        if before_id is not None:
+            query = query.where(Message.id < before_id)
+        query = query.order_by(Message.id.desc()).limit(limit)
+        return list(reversed(list(await self._helper.session.scalars(query))))
+
+    async def tickets(
+        self, status: TicketStatus | None, manager_id: int | None, limit: int
+    ) -> list[Ticket]:
+        query = select(Ticket)
+        if status is not None:
+            query = query.where(Ticket.status == status)
+        if manager_id is not None:
+            query = query.where(Ticket.manager_id == manager_id)
+        query = query.order_by(Ticket.id.desc()).limit(limit)
+        return list(await self._helper.session.scalars(query))

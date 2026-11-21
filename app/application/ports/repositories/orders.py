@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Protocol
 
+from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
 
 
@@ -45,3 +46,9 @@ class OrdersGateway(Protocol):
 
     async def review_due_ids(self, now: datetime) -> list[int]:
         """Completed orders whose rating request is due and was not sent yet."""
+
+    async def queue(self, limit: int) -> list[Order]:
+        """Unassigned `in_queue` orders, oldest first."""
+
+    async def list_by_status(self, status: OrderStatus, limit: int) -> list[Order]:
+        """Newest first."""

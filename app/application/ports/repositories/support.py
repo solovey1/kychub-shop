@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from app.domain.enums.support import TicketStatus
 from app.domain.support import Conversation, Message, Ticket
 
 
@@ -36,3 +37,13 @@ class SupportGateway(Protocol):
 
     async def history(self, conversation_id: int, limit: int) -> list[Message]:
         """The latest `limit` messages, oldest first."""
+
+    async def messages_page(
+        self, conversation_id: int, before_id: int | None, limit: int
+    ) -> list[Message]:
+        """The `limit` messages before `before_id` (the newest ones when None), oldest first."""
+
+    async def tickets(
+        self, status: TicketStatus | None, manager_id: int | None, limit: int
+    ) -> list[Ticket]:
+        """Newest first; each filter applies only when given."""
