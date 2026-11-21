@@ -88,7 +88,7 @@ export function OrderScreen({ id }: { id: number }) {
         </Section>
       )}
       <Section>
-        {o.executor_alias && (
+        {(o.status === "assigned" || o.status === "ready") && (
           <Row
             title={t("order.writeExecutor")}
             chevron

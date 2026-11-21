@@ -8,6 +8,7 @@ from app.application.errors.shop import ChatForbidden
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import ActiveConversationKey, ChatHintKey
+from app.domain.enums.support import ConversationKind
 from app.domain.support import Conversation
 from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
@@ -82,19 +83,30 @@ class RelayFlow(BaseFlow):
             )
             if found is not None:
                 if await self.chat.can_post(uid, found) is None:
-                    await self._say("messages-chat-forbidden")
+                    await self._say(self._closed_key(found))
                     return None
                 return found
         current = await self.kv.get(ActiveConversationKey(user_id=uid))
         if current is not None:
             conversation = await self.chat.get_conversation(current)
-            if conversation is not None and await self.chat.can_post(uid, conversation):
-                return conversation
+            if conversation is not None:
+                if await self.chat.can_post(uid, conversation):
+                    return conversation
+                if conversation.kind is ConversationKind.order:  # tell once, then forget it
+                    await self.kv.delete(ActiveConversationKey(user_id=uid))
+                    await self._say("messages-chat-order_closed")
+                    return None
         hint = ChatHintKey(user_id=uid)
         if not await self.kv.exists(hint):
             await self.kv.set(hint, 1, HINT_TTL)
             await self._say("messages-chat-hint")
         return None
+
+    @staticmethod
+    def _closed_key(conversation: Conversation) -> str:
+        if conversation.kind is ConversationKind.order:
+            return "messages-chat-order_closed"
+        return "messages-chat-forbidden"
 
     async def _say(self, key: str) -> None:
         await self.renderer.apply(self.presenter.note(key))

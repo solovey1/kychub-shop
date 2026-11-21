@@ -3,7 +3,6 @@ from typing import Any
 
 from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.orders import OrdersInteractor
-from app.application.interactors.stats import ExecutorStats
 from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.orders import CDCancel
@@ -19,7 +18,6 @@ class OrdersFlow(BaseFlow):
     presenter: OrdersPresenter
     renderer: Renderer
     effects: Effects
-    stats: ExecutorStats
 
     async def list(self, page: int) -> Any:
         orders, total, page = await self.interactor.list_orders(self.user.id, page)
@@ -44,7 +42,3 @@ class OrdersFlow(BaseFlow):
             return await self.show(cd.id, cd.page)
         await self.renderer.apply(self.presenter.cancelled(cd.id, refund.amount, cd.page))
         await self.effects.order_cancelled(cd.id)
-
-    async def executors(self) -> Any:
-        rows = await self.stats.for_buyer(self.user.id)
-        return await self.renderer.apply(self.presenter.executors(rows))

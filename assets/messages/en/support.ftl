@@ -12,6 +12,7 @@ messages-chat-from_support = <b>Support · { $ref }</b>
 messages-chat-hint = To write about an order or to support, open the order or tap "Support" in the menu.
 messages-chat-unsupported = This type of message is not supported.
 messages-chat-forbidden = You can no longer write here: the conversation is closed or the order was passed to another executor.
+messages-chat-order_closed = This order is no longer in work, so its chat is closed. For help, use "Support" in the menu.
 messages-chat-saved = Message saved. The reply will arrive in this chat.
 messages-chat-undelivered = The message could not be delivered: the recipient is unavailable. It is saved in the history.
 

@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
-import { send, useFetch, usePaged, type BuyerExecutor, type OrderBrief } from "../../api";
+import { send, usePaged, type OrderBrief } from "../../api";
 import { named, t } from "../../i18n";
-import { Empty, Failure, Loading, Money, Row, Section, Segments, list } from "../../ui/kit";
+import { Empty, Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
 
-type Seg = "orders" | "executors";
 const ENDED = ["cancelled", "failed", "refunded"];
 
 export function openSupport(orderId: number | null) {
@@ -13,23 +11,6 @@ export function openSupport(orderId: number | null) {
 }
 
 export function Orders() {
-  const [seg, setSeg] = useState<Seg>("orders");
-  return (
-    <div className="screen">
-      <Segments
-        value={seg}
-        onChange={setSeg}
-        items={[
-          ["orders", t("orders.title")],
-          ["executors", t("executors.title")],
-        ]}
-      />
-      {seg === "orders" ? <OrderList /> : <MyExecutors />}
-    </div>
-  );
-}
-
-function OrderList() {
   const [, go] = useLocation();
   const { items, total, error, more } = usePaged<OrderBrief>("/orders", ["order"]);
   const { run } = useBusy();
@@ -42,7 +23,7 @@ function OrderList() {
       }
     });
   return (
-    <>
+    <div className="screen">
       <Section>
         <Row title={t("support.contact")} chevron onClick={support} tone="link" />
       </Section>
@@ -73,20 +54,6 @@ function OrderList() {
           {t("more")}
         </button>
       )}
-    </>
-  );
-}
-
-function MyExecutors() {
-  const { data, error, reload } = useFetch<BuyerExecutor[]>("/executors/mine", ["order"]);
-  if (error && !data) return <Failure error={error} retry={reload} />;
-  if (!data) return <Loading />;
-  if (!data.length) return <Empty text={t("executors.empty")} />;
-  return (
-    <Section footer={t("executors.hint")}>
-      {data.map((e) => (
-        <Row key={e.alias} title={e.alias} right={t("executors.done", { n: e.completed })} />
-      ))}
-    </Section>
+    </div>
   );
 }

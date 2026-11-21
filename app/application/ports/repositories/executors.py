@@ -63,9 +63,6 @@ class ExecutorsGateway(Protocol):
 
     async def stats(self, executor_id: int) -> StatsRow: ...
 
-    async def buyer_executors(self, user_id: int) -> list[tuple[str, int]]:
-        """(alias, completed orders for this buyer), the busiest first."""
-
     async def add_withdrawal(self, withdrawal: Withdrawal) -> None:
         """Insert and flush, so `withdrawal.id` is available."""
 

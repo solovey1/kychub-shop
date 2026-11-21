@@ -151,7 +151,9 @@ export function ExecOrder({ id }: { id: number }) {
         </Section>
       )}
       <Section>
-        <Row title={t("exec.writeBuyer")} chevron onClick={chat} />
+        {(o.status === "assigned" || o.status === "ready") && (
+          <Row title={t("exec.writeBuyer")} chevron onClick={chat} />
+        )}
         {o.status === "assigned" && <Row title={t("exec.refuse")} tone="bad" onClick={refuse} />}
       </Section>
     </div>

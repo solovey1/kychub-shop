@@ -3,11 +3,12 @@ from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.conversations import CHAT_STATUSES
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
-from app.presentation.telegram.callbacks.orders import CDCancel, CDMyExecutors, CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder, CDOrders
 from app.presentation.telegram.keyboards.common import button, markup, pager
 
 
@@ -24,7 +25,6 @@ def orders_keyboard(
         rows.append([button(label, CDOrder(id=order.id, page=page))])
     pages = max(1, -(-total // PAGE_SIZE))
     rows.append(pager(page, pages, lambda n: CDOrders(page=n)))
-    rows.append([button(i18n.buttons.my_executors(), CDMyExecutors())])
     rows.append([button(i18n.buttons.back(), CDMenu())])
     return markup(rows)
 
@@ -40,7 +40,7 @@ def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboard
             [button(i18n.buttons.cancel_order(), CDCancel(id=order.id, page=page), style="danger")]
         )
     rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
-    if order.executor_id is not None:
+    if order.status in CHAT_STATUSES:
         rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.back(), CDOrders(page=page))])
     return markup(rows)
@@ -59,7 +59,3 @@ def cancel_confirm_keyboard(i18n: I18nContext, order_id: int, page: int) -> Inli
             [button(i18n.buttons.back(), CDOrder(id=order_id, page=page))],
         ]
     )
-
-
-def executors_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
-    return markup([[button(i18n.buttons.back(), CDOrders())]])

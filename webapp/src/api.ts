@@ -47,7 +47,6 @@ export type Entry = {
   created_at: string;
 };
 export type Balance = { balance: string; entries: Entry[] };
-export type BuyerExecutor = { alias: string; completed: number };
 export type Message = {
   id: number;
   sender_role: string;

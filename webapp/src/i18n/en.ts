@@ -62,10 +62,6 @@ export const en: typeof ru = {
 
   "orders.title": "Orders",
   "orders.empty": "No orders yet. The catalog is in the bot.",
-  "executors.title": "Executors",
-  "executors.empty": "No executors yet. They show up after your first completed order.",
-  "executors.hint": "People who have already completed your orders.",
-  "executors.done": "{n} order|{n} orders",
 
   "support.contact": "Contact support",
   "support.title": "Support",

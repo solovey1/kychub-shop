@@ -50,7 +50,11 @@ async def _product(
     config: Optional[dict[str, Any]] = None,
     stock: int = 0,
 ) -> None:
-    if await s.scalar(select(Product.id).where(Product.title_i18n["ru"].astext == title["ru"])):
+    existing = await s.scalar(
+        select(Product).where(Product.title_i18n["ru"].astext == title["ru"])
+    )
+    if existing is not None:
+        existing.input_schema = input_schema or {}  # keeps a re-run in step with the seed
         return
     FormSchema.model_validate(input_schema or {"fields": []})
     product = Product(
@@ -103,15 +107,6 @@ async def seed(s: AsyncSession) -> None:
             "Реєстрація акаунта Steam у вибраному регіоні.",
         ),
         service=steam,
-        input_schema={
-            "fields": [
-                {
-                    "key": "email",
-                    "type": "email",
-                    "label": _tr("Ваш email", "Your email", "Ваш email"),
-                }
-            ]
-        },
     )
     await _product(
         s,

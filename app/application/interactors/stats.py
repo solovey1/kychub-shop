@@ -22,7 +22,3 @@ class ExecutorStats(BaseInteractor):
 
     async def stats(self, executor_id: int) -> Stats:
         return Stats(*await self.executors.stats(executor_id))
-
-    async def for_buyer(self, user_id: int) -> list[tuple[str, int]]:
-        """Executor aliases and how many orders each one completed for this buyer."""
-        return await self.executors.buyer_executors(user_id)

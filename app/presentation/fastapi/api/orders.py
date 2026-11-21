@@ -6,13 +6,11 @@ from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.orders import OrdersInteractor
-from app.application.interactors.stats import ExecutorStats
 from app.domain.enums.order import OrderStatus
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import CurrentUser
 from app.presentation.fastapi.api.schemas import (
     BalanceOut,
-    BuyerExecutorOut,
     CancelOut,
     LedgerEntryOut,
     OrderBrief,
@@ -82,14 +80,3 @@ async def cancel_order(
 async def balance(user: CurrentUser, interactor: FromDishka[BalanceInteractor]) -> BalanceOut:
     amount, entries = await interactor.summary(user.id, BALANCE_ENTRIES)
     return BalanceOut(balance=usd(amount), entries=[LedgerEntryOut.of(entry) for entry in entries])
-
-
-@router.get("/executors/mine")
-@inject
-async def my_executors(
-    user: CurrentUser, stats: FromDishka[ExecutorStats]
-) -> list[BuyerExecutorOut]:
-    return [
-        BuyerExecutorOut(alias=alias, completed=count)
-        for alias, count in await stats.for_buyer(user.id)
-    ]

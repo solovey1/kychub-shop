@@ -1,6 +1,5 @@
 buttons-tip = Leave a tip
 buttons-tip_custom = Other amount
-buttons-my_executors = My executors
 buttons-balance_short = Balance
 buttons-rating = Rating
 buttons-payout_wallet = Payout wallet
@@ -20,9 +19,6 @@ messages-feedback-tip_done = The tip for this screen was already sent.
 
 messages-executor-tip = You received a tip of { $amount } for order #{ $id }.
 
-messages-orders-executors_title = <b>My executors</b>
-messages-orders-executors_empty = Nobody has completed an order for you yet.
-messages-orders-executor_line = { $alias }: orders { $count }
 
 messages-executor-rating =
     <b>Rating</b>

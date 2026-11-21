@@ -13,6 +13,7 @@ from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.support import SupportGateway
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.uow import UnitOfWork
+from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
 from app.domain.order import Order
@@ -20,6 +21,7 @@ from app.domain.support import Conversation, Message, Ticket
 from app.utils.time import datetime_now
 
 HISTORY_LIMIT = 20
+CHAT_STATUSES = frozenset({OrderStatus.assigned, OrderStatus.ready})
 
 
 @dataclass(frozen=True)
@@ -329,8 +331,10 @@ class ConversationInteractor(BaseInteractor):
         return None
 
     async def _role(self, user_id: int, ctx: _Context) -> ChatRole | None:
-        participants, ticket, _ = ctx
+        participants, ticket, order = ctx
         if ticket is not None and ticket.status is TicketStatus.closed:
+            return None
+        if order is not None and order.status not in CHAT_STATUSES:  # chat only while in work
             return None
         if user_id == participants.buyer_id:
             return ChatRole.buyer

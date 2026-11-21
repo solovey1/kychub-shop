@@ -3,6 +3,7 @@ from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.conversations import CHAT_STATUSES
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
@@ -79,7 +80,8 @@ def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboard
                 )
             ]
         )
-    rows.append([button(i18n.buttons.chat_buyer(), CDChat(action="order", id=order.id))])
+    if order.status in CHAT_STATUSES:
+        rows.append([button(i18n.buttons.chat_buyer(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.back(), CDXOrders(page=page))])
     return markup(rows)
 

@@ -162,17 +162,6 @@ class ExecutorsRepository(ExecutorsGateway):
             avg_score=None if score is None else float(score),
         )
 
-    async def buyer_executors(self, user_id: int) -> list[tuple[str, int]]:
-        count = func.count()
-        query = (
-            select(ExecutorProfile.alias, count)
-            .join(Order, Order.executor_id == ExecutorProfile.user_id)
-            .where(Order.user_id == user_id, Order.status == OrderStatus.completed)
-            .group_by(ExecutorProfile.alias)
-            .order_by(count.desc(), ExecutorProfile.alias)
-        )
-        return [(alias, int(n)) for alias, n in (await self._helper.session.execute(query)).all()]
-
     async def add_withdrawal(self, withdrawal: Withdrawal) -> None:
         await self._uow.flush(withdrawal)
 

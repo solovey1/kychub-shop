@@ -1,6 +1,5 @@
 buttons-tip = Оставить чаевые
 buttons-tip_custom = Другая сумма
-buttons-my_executors = Мои исполнители
 buttons-balance_short = Баланс
 buttons-rating = Рейтинг
 buttons-payout_wallet = Кошелёк для выплат
@@ -20,9 +19,6 @@ messages-feedback-tip_done = Чаевые за этот экран уже отп
 
 messages-executor-tip = Вам оставили чаевые { $amount } по заказу № { $id }.
 
-messages-orders-executors_title = <b>Мои исполнители</b>
-messages-orders-executors_empty = Пока вам никто не выполнил заказ.
-messages-orders-executor_line = { $alias }: заказов { $count }
 
 messages-executor-rating =
     <b>Рейтинг</b>

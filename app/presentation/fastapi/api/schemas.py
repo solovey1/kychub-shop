@@ -100,11 +100,6 @@ class BalanceOut(PydanticModel):
     entries: list[LedgerEntryOut]
 
 
-class BuyerExecutorOut(PydanticModel):
-    alias: str
-    completed: int
-
-
 class ConversationOut(PydanticModel):
     conversation_id: int
     can_post: bool

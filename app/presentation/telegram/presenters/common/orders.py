@@ -10,7 +10,6 @@ from app.domain.order import Order
 from app.presentation.telegram.callbacks.orders import CDOrders
 from app.presentation.telegram.keyboards.orders import (
     cancel_confirm_keyboard,
-    executors_keyboard,
     order_back_keyboard,
     order_keyboard,
     orders_keyboard,
@@ -73,15 +72,3 @@ class OrdersPresenter(BasePresenter):
             text=self.i18n.messages.orders.cancelled(id=str(order_id), amount=fmt_usd(amount)),
             reply_markup=order_back_keyboard(self.i18n, page),
         )
-
-    def executors(self, rows: list[tuple[str, int]]) -> View:
-        i18n = self.i18n
-        if rows:
-            body = "\n".join(
-                i18n.messages.orders.executor_line(alias=html.quote(alias), count=str(count))
-                for alias, count in rows
-            )
-            text = i18n.messages.orders.executors_title() + "\n\n" + body
-        else:
-            text = i18n.messages.orders.executors_empty()
-        return View(text=text, reply_markup=executors_keyboard(i18n))

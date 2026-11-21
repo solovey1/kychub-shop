@@ -1,6 +1,5 @@
 buttons-tip = Залишити чайові
 buttons-tip_custom = Інша сума
-buttons-my_executors = Мої виконавці
 buttons-balance_short = Баланс
 buttons-rating = Рейтинг
 buttons-payout_wallet = Гаманець для виплат
@@ -20,9 +19,6 @@ messages-feedback-tip_done = Чайові з цього екрана вже на
 
 messages-executor-tip = Вам залишили чайові { $amount } за замовленням № { $id }.
 
-messages-orders-executors_title = <b>Мої виконавці</b>
-messages-orders-executors_empty = Поки що вам ніхто не виконав замовлення.
-messages-orders-executor_line = { $alias }: замовлень { $count }
 
 messages-executor-rating =
     <b>Рейтинг</b>

@@ -215,7 +215,6 @@ function route(method: string, url: URL, body: unknown): unknown {
         entry(1, "purchase", "-6.00", "8.40", 1027, 4000),
       ],
     };
-  if (path === "/executors/mine") return [{ alias: "Фокс", completed: 12 }, { alias: "Орион", completed: 3 }];
   if (path === "/support") return { ticket_id: 72, conversation_id: 2, created: true };
   if (path.match(/^\/orders\/\d+\/chat$/)) return { conversation_id: 1, can_post: true };
   if ((m = path.match(/^\/conversations\/(\d+)\/messages$/))) {
