@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass
 from typing import Final
 
+from sqlalchemy.exc import IntegrityError
+
 from app.application.aliases import default_alias
 from app.application.errors.shop import (
     AliasTaken,
@@ -22,6 +24,7 @@ from app.domain.executor import ExecutorProfile
 from app.domain.user import User
 from app.utils.time import datetime_now
 
+PICK_TRIES: Final = 5
 _ALIAS_RE: Final = re.compile(r"[\w.\- ]{2,32}")  # letters (any script), digits, space, - . _
 
 
@@ -41,10 +44,19 @@ class ExecutorAdminInteractor(BaseInteractor):
     async def register(
         self, admin_id: int, tg_id: int, alias: str | None = None
     ) -> ExecutorProfile:
-        """No alias (or an empty one): a free name from the default pool."""
+        """No alias (or an empty one): a free name from the default pool. Two executors added at
+        the same moment may pick the same one: the loser picks again."""
         alias = (alias or "").strip()
         if alias and not _ALIAS_RE.fullmatch(alias):
             raise InvalidInput("alias")
+        for _ in range(PICK_TRIES - 1 if not alias else 0):
+            try:
+                return await self._register(admin_id, tg_id, alias)
+            except IntegrityError:  # the rollback is done; the pool is read again
+                continue
+        return await self._register(admin_id, tg_id, alias)
+
+    async def _register(self, admin_id: int, tg_id: int, alias: str) -> ExecutorProfile:
         try:
             if await self.executors.get_profile(tg_id) is not None:
                 raise ExecutorExists(tg_id)
