@@ -30,7 +30,6 @@ LONG_WORDS_LATIN: Final = (
     "whatsapp",
     "watsapp",
     "viber",
-    "signal",
     "discord",
     "instagram",
     "skype",
@@ -52,7 +51,13 @@ _USERNAME: Final = re.compile(r"(?<![\w@.])@[a-z0-9_]{5,}")
 _EMAIL: Final = re.compile(r"[\w.+-]+@[\w-]+\.[a-z]{2,}")
 _DOMAIN: Final = re.compile(rf"(?<![\w-])[\w-]+\.(?:{TLDS})(?![^\W_])")
 _SPACED_LINK: Final = re.compile(r"(?<![^\W_])(?:tme|wame|vkcom)\s*/")
-_PHONE: Final = re.compile(r"(?<![\d+])\+?\d(?:[\s().\-]{0,2}\d){9,14}(?!\d)")
+# A phone: with a leading «+», or 11-15 digits in a row, or the local «8 (999) 123-45-67» shape.
+# Plain groups of 2-4 digits («123 456 789 012», «1234-5678») are order numbers and codes.
+_PHONE: Final = re.compile(
+    r"(?<![\d+])\+\d(?:[\s().\-]{0,2}\d){9,14}(?!\d)"
+    r"|(?<![\d+])\d{11,15}(?!\d)"
+    r"|(?<![\d+])[78][\s\-]?\(\d{3}\)[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}(?!\d)"
+)
 _BAD_URL: Final = re.compile(r"(?:https?://|www\.)\S+")
 
 
@@ -119,6 +124,7 @@ if __name__ == "__main__":
         "vk.com/id1",
         "напиши в лс",
         "whatsapp",
+        "89991234567",
     ]
     allowed = [
         "заказ на 2 аккаунта",
@@ -127,6 +133,9 @@ if __name__ == "__main__":
         "пароль Zt9!kLm2, почта готова",
         "Готово, проверяй. Если что, пиши сюда",
         "аккаунт 5 из 10 готов",
+        "заказ 123 456 789 012",
+        "код 1234-5678",
+        "signal strength is low",
         "",
     ]
     for line in blocked:

@@ -619,7 +619,7 @@ export const en: typeof ru = {
   "chat.attach": "Attach a file",
   "chat.uploading": "Uploading {name}…",
   "chat.tooBig": "The file is larger than 20 MB",
-  "chat.contacts": "Message not sent: contacts and links are not allowed. Talk here, it protects the deal.",
+  "chat.contacts": "Message not sent: contacts, links and messenger names are off limits, it protects the deal. Codes, logins and passwords for the order are fine. Just write here 💬",
   "chat.uploadFailed": "The file could not be uploaded. Try again.",
   "chat.download": "Download the file",
   "order.cancelAsk": "Ask to cancel",

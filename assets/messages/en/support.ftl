@@ -70,4 +70,4 @@ messages-ticket-notice =
 messages-ticket-joined = 🎧 Support has joined
 messages-chat-tip = ✅ Sent. The reply will come here, the conversation lives in the app.
 messages-chat-use_app = Reply in the app: a message from the bot will not reach the ticket.
-messages-chat-contacts_blocked = ⚠️ Message not sent: contacts and links are not allowed. Talk here, it protects the deal.
+messages-chat-contacts_blocked = ⚠️ Message not sent: contacts, links and messenger names are off limits here, it protects the deal. Everything else is fine: codes, logins and passwords for the order, details, questions. Just write here 💬
