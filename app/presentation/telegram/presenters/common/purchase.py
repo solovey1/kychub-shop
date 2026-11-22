@@ -25,7 +25,7 @@ from app.presentation.telegram.keyboards.purchase import (
     fields_keyboard,
     menu_keyboard,
 )
-from app.presentation.telegram.presenters.base import BasePresenter
+from app.presentation.telegram.presenters.base import BasePresenter, Keys
 from app.presentation.telegram.view.models import RenderMode, View
 
 COPY_LIMIT = 256
@@ -115,7 +115,7 @@ class PurchasePresenter(BasePresenter):
             return None
 
     def _ask_lines(self, field: FormField, files: int) -> list[str]:
-        messages = self.i18n.messages.purchase
+        messages = Keys(self.i18n, "messages-purchase")
         if hint := pick_i18n(field.hint, self.i18n.locale):
             lines = [html.quote(hint)]
         elif field.type is FieldType.file:
@@ -144,7 +144,7 @@ class PurchasePresenter(BasePresenter):
         files: int = 0,
     ) -> View:
         """The live questionnaire: every question with its state, then the current prompt."""
-        messages = self.i18n.messages.purchase
+        messages = Keys(self.i18n, "messages-purchase")
         details = ", ".join(x for x in (self._variant(prep), fmt_usd(prep.variant.price)) if x)
         lines = [messages.head(product=self._product(prep), details=details), ""]
         for i, f in enumerate(prep.form.fields):
@@ -189,7 +189,7 @@ class PurchasePresenter(BasePresenter):
         pick: bool = False,
     ) -> View:
         """The checkout. `pick`: the same text, with the questions as buttons to change one."""
-        messages = self.i18n.messages.purchase
+        messages = Keys(self.i18n, "messages-purchase")
         what = ", ".join(x for x in (self._product(prep), self._variant(prep)) if x)
         lines = [messages.confirm_title(), "", what]
         answered = [
@@ -238,7 +238,7 @@ class PurchasePresenter(BasePresenter):
 
     def delivered(self, order: Order) -> tuple[View, View | None, bytes | None]:
         """The card turned into a receipt, and the result as a new message when it is ready."""
-        messages = self.i18n.messages.purchase
+        messages = Keys(self.i18n, "messages-purchase")
         done = order.status is OrderStatus.completed and bool(order.result)
         if done:
             next_ = messages.next_done()

@@ -23,7 +23,7 @@ from app.presentation.telegram.keyboards.orders import (
     orders_keyboard,
     reorder_row,
 )
-from app.presentation.telegram.presenters.base import BasePresenter
+from app.presentation.telegram.presenters.base import BasePresenter, Keys
 from app.presentation.telegram.presenters.common.purchase import result_view
 from app.presentation.telegram.view.models import View
 from app.utils.time import datetime_now
@@ -107,7 +107,7 @@ class OrdersPresenter(BasePresenter):
         return self.i18n.get(f"order-step-{step}")
 
     def _done(self, step: str, at: dict[str, datetime]) -> str:
-        messages = self.i18n.messages.order
+        messages = Keys(self.i18n, "messages-order")
         if step not in at:
             return messages.step_done_notime(name=self._name(step))
         return messages.step_done(name=self._name(step), time=at[step].strftime("%H:%M"))
@@ -119,7 +119,7 @@ class OrdersPresenter(BasePresenter):
         return self.i18n.messages.order.step_final(name=self._name(status), time=time)
 
     def _current(self, order: Order, at: dict[str, datetime]) -> str:
-        messages = self.i18n.messages.order
+        messages = Keys(self.i18n, "messages-order")
         name = self._name(order.status)
         if order.status is OrderStatus.completed:
             return self._done(order.status, at)
@@ -222,7 +222,7 @@ class OrdersPresenter(BasePresenter):
         return self.i18n.messages.order.extension_stale()
 
     def extension_answered(self, answer: ExtensionAnswer) -> View:
-        messages = self.i18n.messages.order
+        messages = Keys(self.i18n, "messages-order")
         order = answer.order
         if answer.approved and order.deadline_at is not None:
             text = messages.extension_yes(

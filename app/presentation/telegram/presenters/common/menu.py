@@ -18,7 +18,7 @@ from app.presentation.telegram.keyboards.menu import (
     main_menu_keyboard,
     nav_keyboard,
 )
-from app.presentation.telegram.presenters.base import BasePresenter
+from app.presentation.telegram.presenters.base import BasePresenter, Keys
 from app.presentation.telegram.view.models import View
 
 # who sees the «Управление» tab of the Mini App (mirrors webapp/src/admin/access.ts)
@@ -49,7 +49,7 @@ class CommonMenuPresenter(BasePresenter):
         reorders: list[tuple[VariantView, Product]],
         server_url: str,
     ) -> View:
-        messages = self.i18n.messages.greeting
+        messages = Keys(self.i18n, "messages-greeting")
         line = ""
         if active:
             deadlines = [o.deadline_at for o in active if o.executor_id and o.deadline_at]
