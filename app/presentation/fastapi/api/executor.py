@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.application.errors.shop import ExecutorNotFound, OrderUnavailable
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.attention import AttentionInteractor
+from app.application.interactors.cancel_request import CancelRequestInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import EXTENSION_MINUTES, ExtensionInteractor
@@ -19,6 +20,8 @@ from app.domain.enums.order import OrderStatus
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import ExecutorUser
 from app.presentation.fastapi.api.schemas import (
+    CancelAnswerIn,
+    CancelRequestOut,
     DisputeIn,
     DisputeOut,
     ExecutorOrderBrief,
@@ -90,6 +93,11 @@ async def _order(
             options=list(EXTENSION_MINUTES),
         )
         if assigned
+        else None,
+        cancel_request=CancelRequestOut(
+            request_id=view.cancel.pending.request_id, until=view.cancel.pending.agrees_at
+        )
+        if assigned and view.dispute is None and view.cancel.pending is not None
         else None,
         can_dispute=view.order.status in DISPUTE_STATUSES and view.dispute is None,
         dispute=DisputeOut.of(view.dispute) if view.dispute else None,
@@ -258,6 +266,27 @@ async def request_extension(
     """Conflict `extension_pending` / `extension_limit` (409); a passed deadline is a 400."""
     ask = await extension.request(user.id, order_id, body.minutes)
     await effects.extension_asked(ask)
+    return await _order(order_id, user.id, user.language, work, chat)
+
+
+@router.post("/orders/{order_id}/cancel-request")
+@inject
+async def answer_cancel(
+    order_id: int,
+    body: CancelAnswerIn,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
+    cancel_requests: FromDishka[CancelRequestInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """The buyer's request to cancel: agree or keep working. Conflict `cancel_stale` (409): the
+    request is gone, nothing changed; not his order: 404."""
+    try:
+        answer = await cancel_requests.answer(user.id, order_id, body.request_id, body.agree)
+    except OrderUnavailable:
+        raise HTTPException(404, "Not found") from None
+    await effects.cancel_answered(answer)
     return await _order(order_id, user.id, user.language, work, chat)
 
 

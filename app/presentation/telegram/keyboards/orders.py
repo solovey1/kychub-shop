@@ -14,6 +14,7 @@ from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.callbacks.orders import (
     CDCancel,
+    CDCancelAsk,
     CDDeal,
     CDExtAnswer,
     CDOrder,
@@ -93,6 +94,7 @@ def order_keyboard(
     reorder: bool = False,
     pending: Pending | None = None,
     dispute: bool = False,
+    can_ask_cancel: bool = False,
 ) -> InlineKeyboardMarkup:
     rows = []
     if order.status is OrderStatus.ready or (order.status in CHAT_STATUSES and not dispute):
@@ -105,6 +107,8 @@ def order_keyboard(
         rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
     else:  # in work, support comes through the dispute (or is already in it)
         rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
+    if can_ask_cancel:
+        rows.append([button(i18n.buttons.cancel_ask(), CDCancelAsk(id=order.id, page=page))])
     if reorder:
         rows.append(reorder_row(i18n, order))
     if order.status is OrderStatus.in_queue:  # nobody has taken it yet

@@ -59,6 +59,10 @@ class OrdersGateway(Protocol):
     async def overdue_ids(self, now: datetime) -> list[int]:
         """`assigned` orders whose deadline has passed (not while a dispute is open)."""
 
+    async def cancel_request_ids(self, cutoff: datetime) -> list[int]:
+        """`assigned` orders with a cancel request asked before `cutoff` (answered or not: the
+        caller reads the state under the lock); not while a dispute is open."""
+
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
         """`assigned` orders whose deadline is still ahead, oldest first (no open dispute)."""
 

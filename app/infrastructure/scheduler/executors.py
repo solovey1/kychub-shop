@@ -9,6 +9,7 @@ from app.application.interactors.auto_confirm import (
     confirm_deadline,
     confirm_hours,
 )
+from app.application.interactors.cancel_request import CancelRequestInteractor
 from app.application.interactors.deadlines import ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.disputes import DisputeInteractor
@@ -107,6 +108,15 @@ async def remind_disputes(container: AsyncContainer) -> None:
             await effects.dispute_reminder(reminder)
 
 
+async def agree_cancels(container: AsyncContainer) -> None:
+    """An executor who left the buyer's cancel request unanswered for an hour agrees to it."""
+    async with container() as request:
+        answers = await (await request.get(CancelRequestInteractor)).agree_due()
+        effects = await request.get(Effects)
+        for answer in answers:
+            await effects.cancel_answered(answer)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -125,6 +135,7 @@ def _job(
 def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
     _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
+    _job(scheduler, container, agree_cancels, "agree_cancels", 60)
     _job(scheduler, container, auto_confirm, "auto_confirm", 60)
     _job(scheduler, container, remind_confirm, "remind_confirm", 60)
     _job(scheduler, container, resolve_disputes, "resolve_disputes", 60)

@@ -2,9 +2,10 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Final
 
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.application.errors.shop import Conflict, DeadlineExpired, InvalidInput, OrderUnavailable
+from app.application.interactors.cancel_request import CancelRequestInteractor
 from app.application.interactors.deadlines import ExtensionInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
@@ -12,7 +13,7 @@ from app.application.models.form_schema import FieldType, FormSchema
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
-from app.presentation.telegram.callbacks.executor import CDExt, CDOrderAct, CDXResult
+from app.presentation.telegram.callbacks.executor import CDExt, CDOrderAct, CDXCancel, CDXResult
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.flows.common.files import (
     chat_lock,
@@ -34,6 +35,7 @@ class ExecutorOrdersFlow(BaseFlow):
     user: User
     dispatcher: DispatchInteractor
     extensions: ExtensionInteractor
+    cancel_requests: CancelRequestInteractor
     work: FulfillmentWorkInteractor
     effects: Effects
     presenter: ExecutorPresenter
@@ -73,6 +75,21 @@ class ExecutorOrdersFlow(BaseFlow):
             await self._say("messages-executor-ext_failed", cd.id)
             return
         await self.effects.extension_asked(ask)
+        await self.show(cd.id, 0)
+
+    async def cancel_answer(self, cd: CDXCancel) -> None:
+        """The executor answers the buyer's request to cancel the order."""
+        try:
+            answer = await self.cancel_requests.answer(self.user.id, cd.id, cd.rid, bool(cd.ok))
+        except (Conflict, OrderUnavailable):  # the timer agreed first, handed in, a dispute
+            update = self.helper.update
+            if isinstance(update, CallbackQuery):
+                await update.answer(self.presenter.i18n.get("messages-executor-cancel_stale"))
+            return await self.show(cd.id, 0)
+        await self.effects.cancel_answered(answer)
+        if answer.agreed:
+            return await self._say("messages-executor-cancel_agreed", cd.id)
+        await self._say("messages-executor-cancel_declined", cd.id)
         await self.show(cd.id, 0)
 
     async def _say(self, key: str, order_id: int) -> None:

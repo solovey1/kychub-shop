@@ -170,6 +170,19 @@ class OrdersRepository(OrdersGateway):
         )
         return list(await self._helper.session.scalars(query))
 
+    async def cancel_request_ids(self, cutoff: datetime) -> list[int]:
+        asked = exists().where(
+            OrderEvent.order_id == Order.id,
+            OrderEvent.type == "cancel_requested",
+            OrderEvent.created_at < cutoff,
+        )
+        query = (
+            select(Order.id)
+            .where(Order.status == OrderStatus.assigned, asked, _no_dispute())
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))
+
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
         query = (
             select(Order)

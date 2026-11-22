@@ -10,6 +10,7 @@ from app.presentation.telegram.callbacks.executor import (
     CDExt,
     CDOrderAct,
     CDReview,
+    CDXCancel,
     CDXOrder,
     CDXOrders,
     CDXResult,
@@ -49,6 +50,13 @@ async def extension(
     _: CallbackQuery, callback_data: CDExt, flow: FromDishka[ExecutorOrdersFlow]
 ) -> Any:
     return await flow.extension(callback_data)
+
+
+@router.callback_query(CDXCancel.filter())
+async def cancel_answer(
+    _: CallbackQuery, callback_data: CDXCancel, flow: FromDishka[ExecutorOrdersFlow]
+) -> Any:
+    return await flow.cancel_answer(callback_data)
 
 
 @router.callback_query(CDXOrders.filter())

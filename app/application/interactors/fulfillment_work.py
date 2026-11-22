@@ -5,6 +5,7 @@ from app.application.errors.shop import DeadlineExpired, InvalidInput, OrderUnav
 from app.application.fulfillment.base import move
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.base import BaseInteractor
+from app.application.interactors.cancel_request import CancelState, cancel_state
 from app.application.interactors.cards import CardBuilder, load_context
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.deadlines import ExtensionState, extension_state
@@ -35,6 +36,7 @@ class ExecutorOrderView:
     order: Order
     card: OrderCard
     extension: ExtensionState
+    cancel: CancelState
     dispute: Dispute | None = None
 
 
@@ -75,10 +77,12 @@ class FulfillmentWorkInteractor(BaseInteractor):
         order = await self.orders.get(order_id)
         if order is None or order.executor_id != executor_id:
             return None
+        events = await self.orders.events(order_id)
         return ExecutorOrderView(
             order,
             await self.cards.build(order, executor_id),
-            extension_state(await self.orders.events(order_id)),
+            extension_state(events),
+            cancel_state(events),
             await self.disputes.open_for_order(order_id),
         )
 

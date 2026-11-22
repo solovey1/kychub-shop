@@ -12,7 +12,7 @@ messages-executor-order =
     { $card }
 
     Статус: { $status }
-messages-executor-until = Здати до: { $time } UTC
+messages-executor-until = Здати до: { $time }
 messages-executor-order_missing = Замовлення № { $id } не знайдено.
 messages-executor-result_ask =
     <b>Результат за замовленням № { $id }</b>
@@ -54,3 +54,12 @@ messages-executor-ext_waiting = ⏳ Прохання продовжити на {
 messages-executor-ext_failed = Зараз не можна просити продовження замовлення №{ $id }: прохання вже надіслано, ліміт вичерпано або термін минув.
 messages-executor-extended = ✅ Замовлення №{ $id }: покупець продовжив термін до { $time }
 messages-executor-ext_declined = ✖️ Замовлення №{ $id }: покупець не продовжив термін, здати до { $time }
+
+buttons-cancel_yes = ✅ Погоджуюсь
+buttons-cancel_no = ✖️ Продовжу виконувати
+messages-executor-cancel_ask = ↩️ Покупець просить скасувати замовлення №{ $id }. Погоджуєтесь? Якщо не відповісте до { $time }, замовлення скасується саме. Штрафу це не несе.
+messages-executor-cancel_wait = ↩️ Покупець просить скасувати замовлення. Дайте відповідь до { $time }, інакше замовлення скасується саме. Штрафу немає.
+messages-executor-cancel_agreed = ↩️ Замовлення №{ $id } скасовано за домовленістю. Штрафу немає.
+messages-executor-cancel_by_timer = ↩️ Замовлення №{ $id } скасовано: ви не відповіли на прохання покупця за годину. Штрафу немає.
+messages-executor-cancel_declined = ✖️ Ви продовжуєте виконувати замовлення №{ $id }.
+messages-executor-cancel_stale = Прохання про скасування вже неактуальне.

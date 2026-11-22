@@ -99,11 +99,26 @@ class ExecutorPresenter(BasePresenter):
         if order.status is OrderStatus.assigned and ext.pending is not None:
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
+        pending = view.cancel.pending
+        asked = (
+            pending is not None and order.status is OrderStatus.assigned and view.dispute is None
+        )
+        if asked and pending is not None:
+            text += "\n" + i18n.messages.executor.cancel_wait(
+                time=fmt_time(pending.agrees_at, self.user.timezone)
+            )
         if view.dispute is not None:
             text += "\n\n" + dispute_line(i18n, view.dispute, "executor", self.user.timezone)
         return View(
             text=text,
-            reply_markup=order_keyboard(i18n, order, page, can_extend, view.dispute is not None),
+            reply_markup=order_keyboard(
+                i18n,
+                order,
+                page,
+                can_extend,
+                view.dispute is not None,
+                pending.request_id if asked and pending is not None else None,
+            ),
         )
 
     def extension_options(self, order_id: int) -> View:

@@ -61,6 +61,19 @@ export function OrderScreen({ id }: { id: number }) {
       }
       reload();
     });
+  const askCancel = () =>
+    run(async () => {
+      if (!(await confirm(t("order.cancelAskConfirm")))) return;
+      try {
+        await send("POST", `/orders/${id}/cancel-request`);
+        success();
+        await alert(t("order.cancelAsked"));
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 409 || e.status === 404)) await alert(t("order.cancelAskFailed"));
+        else return report(e);
+      }
+      reload();
+    });
   const answer = (approve: boolean) =>
     run(async () => {
       const ext = o.extension;
@@ -106,6 +119,11 @@ export function OrderScreen({ id }: { id: number }) {
         >
           <Row title={t("order.extYes")} tone="link" onClick={() => answer(true)} />
           <Row title={t("order.extNo")} tone="bad" onClick={() => answer(false)} />
+        </Section>
+      )}
+      {o.cancel_request && (
+        <Section>
+          <Row title={t("order.cancelWait")} sub={t("order.cancelWaitUntil", { time: fmtDate(o.cancel_request.until, true) })} />
         </Section>
       )}
       {awaitsHim && <DisputeBlock path={`/orders/${id}/dispute`} can={o.can_dispute} dispute={o.dispute} me="buyer" reload={reload} />}
@@ -160,6 +178,7 @@ export function OrderScreen({ id }: { id: number }) {
           />
         )}
         {o.can_cancel && <Row title={t("order.cancel")} tone="bad" onClick={cancel} />}
+        {o.can_ask_cancel && <Row title={t("order.cancelAsk")} sub={t("order.cancelAskHint")} tone="bad" onClick={askCancel} />}
       </Section>
     </div>
   );

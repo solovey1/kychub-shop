@@ -147,6 +147,18 @@ class ExecutorsRepository(ExecutorsGateway):
             )
             return int(await session.scalar(query) or 0)
 
+        async def failed() -> int:
+            """Failed and refunded orders; a cancellation the executor agreed to is no fault."""
+            agreed = exists().where(
+                OrderEvent.order_id == Order.id, OrderEvent.type == "cancel_agreed"
+            )
+            query = (
+                select(func.count())
+                .select_from(Order)
+                .where(mine, Order.status.in_((OrderStatus.failed, OrderStatus.refunded)), ~agreed)
+            )
+            return int(await session.scalar(query) or 0)
+
         seconds = func.extract("epoch", Order.completed_at - Order.assigned_at)
         minutes = await session.scalar(
             select(func.avg(seconds)).where(
@@ -161,7 +173,7 @@ class ExecutorsRepository(ExecutorsGateway):
         )
         return StatsRow(
             completed=await orders_in(OrderStatus.completed),
-            failed=await orders_in(OrderStatus.failed, OrderStatus.refunded),
+            failed=await failed(),
             overdue=await events("overdue"),
             refused=await events("refused"),
             avg_minutes=None if minutes is None else float(minutes) / 60,

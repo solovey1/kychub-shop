@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Final, Literal
 
 from app.application.interactors.base import BaseInteractor
+from app.application.interactors.cancel_request import CANCEL_EVENTS, cancel_state
 from app.application.interactors.conversations import CHAT_STATUSES
 from app.application.interactors.deadlines import EXTENSION_EVENTS, extension_state
 from app.application.interactors.dispatch import DispatchInteractor
@@ -58,18 +59,26 @@ class AttentionInteractor(BaseInteractor):
                 found[order.id] = "extension"
         return found
 
-    async def executor_actions(self, orders: list[Order]) -> dict[int, Literal["work", "dispute"]]:
-        """«work» for an assigned order, «dispute» when a dispute waits for his answer."""
+    async def executor_actions(
+        self, orders: list[Order]
+    ) -> dict[int, Literal["work", "dispute", "cancel"]]:
+        """«work» for an assigned order, «cancel» when the buyer asks to cancel it, «dispute»
+        when a dispute waits for his answer."""
         in_work = [o for o in orders if o.status in _IN_WORK]
         disputes = await self.disputes.open_for_orders([o.id for o in in_work])
-        found: dict[int, Literal["work", "dispute"]] = {}
+        assigned = [
+            o.id for o in in_work if o.status is OrderStatus.assigned and o.id not in disputes
+        ]
+        events = await self.orders.extension_events(assigned, CANCEL_EVENTS)
+        found: dict[int, Literal["work", "dispute", "cancel"]] = {}
         for order in in_work:
             dispute = disputes.get(order.id)
             if dispute is not None:
                 if dispute.awaiting_role == "executor":
                     found[order.id] = "dispute"
             elif order.status is OrderStatus.assigned:
-                found[order.id] = "work"
+                pending = cancel_state(events.get(order.id, [])).pending
+                found[order.id] = "cancel" if pending is not None else "work"
         return found
 
     async def counts(self, user_id: int, is_executor: bool) -> Attention:

@@ -8,6 +8,7 @@ from dishka import FromDishka
 
 from app.presentation.telegram.callbacks.orders import (
     CDCancel,
+    CDCancelAsk,
     CDDeal,
     CDExtAnswer,
     CDOrder,
@@ -41,6 +42,13 @@ async def order(_: CallbackQuery, callback_data: CDOrder, flow: FromDishka[Order
 @router.callback_query(CDCancel.filter())
 async def cancel(_: CallbackQuery, callback_data: CDCancel, flow: FromDishka[OrdersFlow]) -> Any:
     return await flow.cancel(callback_data)
+
+
+@router.callback_query(CDCancelAsk.filter())
+async def ask_cancel(
+    _: CallbackQuery, callback_data: CDCancelAsk, flow: FromDishka[OrdersFlow]
+) -> Any:
+    return await flow.ask_cancel(callback_data)
 
 
 @router.callback_query(CDExtAnswer.filter())

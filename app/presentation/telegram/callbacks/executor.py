@@ -30,6 +30,12 @@ class CDReview(CallbackData, prefix="rv"):
     id: int
 
 
+class CDXCancel(CallbackData, prefix="xc"):
+    id: int
+    rid: int  # the request being answered
+    ok: int  # 1 = agree to cancel, 0 = keep working
+
+
 class CDExt(CallbackData, prefix="xe"):
     action: str  # ask | pick
     id: int

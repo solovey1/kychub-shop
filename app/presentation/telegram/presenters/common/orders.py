@@ -7,6 +7,7 @@ from aiogram_i18n import I18nContext
 
 from app.application.cards import fmt_duration
 from app.application.i18n_text import country_flag, fmt_time, fmt_usd, pick_i18n
+from app.application.interactors.cancel_request import CancelState
 from app.application.interactors.deadlines import ExtensionAnswer, Pending, extended_deadline
 from app.application.interactors.disputes import DisputeNews
 from app.domain.dispute import Dispute
@@ -141,6 +142,7 @@ class OrdersPresenter(BasePresenter):
         pending: Pending | None = None,
         confirm_at: datetime | None = None,
         dispute: Dispute | None = None,
+        cancel: CancelState | None = None,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -166,6 +168,10 @@ class OrdersPresenter(BasePresenter):
             text += "\n\n" + i18n.messages.order.extension(
                 duration=fmt_duration(i18n.get, pending.minutes), time=self._time(until)
             )
+        if cancel is not None and cancel.pending is not None and dispute is None:
+            text += "\n\n" + i18n.messages.order.cancel_wait(
+                time=self._time(cancel.pending.agrees_at)
+            )
         if dispute is not None:
             text += "\n\n" + dispute_line(i18n, dispute, "buyer", self.user.timezone)
         if order.status is OrderStatus.ready and order.result:
@@ -185,7 +191,16 @@ class OrdersPresenter(BasePresenter):
             )
         return View(
             text=text,
-            reply_markup=order_keyboard(i18n, order, page, reorder, pending, dispute is not None),
+            reply_markup=order_keyboard(
+                i18n,
+                order,
+                page,
+                reorder,
+                pending,
+                dispute is not None,
+                bool(cancel and cancel.can_request and dispute is None)
+                and order.status is OrderStatus.assigned,
+            ),
         ), None
 
     def dispute_ask(self, order_id: int, page: int) -> View:
@@ -214,6 +229,15 @@ class OrdersPresenter(BasePresenter):
             text=self.i18n.messages.dispute.cancelled(),
             reply_markup=markup([[button(self.i18n.buttons.back(), CDXOrder(id=order_id))]]),
         )
+
+    def cancel_asked(self, order_id: int, page: int) -> View:
+        return View(
+            text=self.i18n.messages.order.cancel_asked(id=str(order_id)),
+            reply_markup=order_back_keyboard(self.i18n, page),
+        )
+
+    def cancel_unavailable(self) -> str:
+        return self.i18n.messages.order.cancel_unavailable()
 
     def confirmed(self, order_id: int, page: int) -> View:
         return View(

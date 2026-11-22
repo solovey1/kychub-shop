@@ -14,6 +14,7 @@ from app.application.interactors.admin.system import (
 from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.auto_confirm import AutoConfirmInteractor
 from app.application.interactors.balance import BalanceInteractor
+from app.application.interactors.cancel_request import CancelRequestInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
 from app.application.interactors.conversations import ConversationInteractor
@@ -57,6 +58,7 @@ class InteractorsProvider(Provider):
         DispatchInteractor,
         AttentionInteractor,
         ExtensionInteractor,
+        CancelRequestInteractor,
         ReminderInteractor,
         FulfillmentWorkInteractor,
         OrderReviewInteractor,

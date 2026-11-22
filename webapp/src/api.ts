@@ -66,7 +66,10 @@ export type Order = OrderBrief & {
   dispute: Dispute | null;
   reserved: string | null;
   extension: { request_id: number; minutes: number; until: string } | null;
+  can_ask_cancel: boolean;
+  cancel_request: CancelRequest | null; // the buyer's own request, waiting for the executor
 };
+export type CancelRequest = { request_id: number; until: string };
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 export type Entry = {
   id: number;
@@ -109,6 +112,7 @@ export type ExecutorOrder = QueueItem & {
   result_form: ResultField[] | null;
   result: Record<string, string> | null;
   extension: { pending_minutes: number | null; can_request: boolean; options: number[] } | null;
+  cancel_request: CancelRequest | null; // the buyer asks to cancel: answer it
   can_dispute: boolean;
   dispute: Dispute | null;
   chat: OrderChat | null;
@@ -121,7 +125,7 @@ export type ExecutorListItem = {
   country: string | null;
   deadline_at: string | null;
   unread: number;
-  action?: "work" | "dispute" | null; // assigned (working) / a dispute waits for him
+  action?: "work" | "dispute" | "cancel" | null; // assigned (working) / a dispute waits / buyer asks to cancel
 };
 export type Stats = {
   completed: number;

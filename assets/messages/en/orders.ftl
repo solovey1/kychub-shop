@@ -89,3 +89,10 @@ messages-contacts-staff = ⚠️ { $who } keeps trying to pass contacts in order
 
 messages-order-waiting = ⏳ <b>Order #{ $id } is in the queue</b>: all executors are busy. Someone will take it as soon as they are free.
 buttons-cancel_refund = ✖️ Cancel and refund
+
+buttons-cancel_ask = ↩️ Ask to cancel
+messages-order-cancel_wait = ↩️ You asked to cancel the order. The executor answers by { $time }, otherwise it is cancelled on its own and your money is returned.
+messages-order-cancel_asked = ↩️ Your request to cancel order #{ $id } went to the executor. If they agree or stay silent for an hour, the money returns to your balance.
+messages-order-cancel_unavailable = You cannot ask to cancel right now: a request is already sent, the limit is spent or the order is no longer in work.
+messages-order-cancel_agreed = ↩️ Order #{ $id } is cancelled, { $amount } is back on your balance.
+messages-order-cancel_declined = The executor keeps working on order #{ $id }. If something is wrong — 🆘 call support.

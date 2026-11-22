@@ -99,6 +99,18 @@ class ExtensionStateOut(PydanticModel):
     options: list[int]
 
 
+class CancelRequestOut(PydanticModel):
+    """A cancel request that waits for the executor: it agrees by itself at `until`."""
+
+    request_id: int
+    until: datetime
+
+
+class CancelAnswerIn(PydanticModel):
+    request_id: int
+    agree: bool
+
+
 class DisputeOut(PydanticModel):
     """An open dispute. `reason` is for support only: the other side never reads it."""
 
@@ -177,6 +189,8 @@ class OrderOut(OrderBrief):
     can_cancel: bool = False
     reserved: str | None = None  # still held for this order, not charged yet
     extension: ExtensionAskOut | None = None
+    can_ask_cancel: bool = False  # assigned, no dispute, no open request, under the limit
+    cancel_request: CancelRequestOut | None = None  # the buyer's own request, waiting
 
 
 class OrderListOut(PydanticModel):
@@ -293,6 +307,7 @@ class ExecutorOrderOut(ExecutorOrderBrief):
     result_form: list[ResultFieldOut] | None = None  # while the order waits for a result
     result: dict[str, str] | None = None  # what the executor handed in
     extension: ExtensionStateOut | None = None  # only while the order is assigned
+    cancel_request: CancelRequestOut | None = None  # the buyer asks to cancel: answer it
     can_dispute: bool = False
     dispute: DisputeOut | None = None
     chat: OrderChatOut | None = None
@@ -306,7 +321,8 @@ class ExecutorOrderListItem(PydanticModel):
     country: str | None
     deadline_at: datetime | None
     unread: int = 0
-    action: Literal["work", "dispute"] | None = None  # assigned: working; a dispute waits for him
+    # assigned: working; the buyer asks to cancel; a dispute waits for him
+    action: Literal["work", "dispute", "cancel"] | None = None
 
 
 class ExecutorOrderListOut(PydanticModel):

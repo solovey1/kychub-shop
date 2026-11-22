@@ -15,6 +15,7 @@ from app.presentation.telegram.callbacks.executor import (
     CDExt,
     CDOrderAct,
     CDReview,
+    CDXCancel,
     CDXOrder,
     CDXOrders,
     CDXResult,
@@ -82,9 +83,25 @@ def extension_options_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboa
 
 
 def order_keyboard(
-    i18n: I18nContext, order: Order, page: int, can_extend: bool = False, dispute: bool = False
+    i18n: I18nContext,
+    order: Order,
+    page: int,
+    can_extend: bool = False,
+    dispute: bool = False,
+    cancel_request: int | None = None,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
+    if cancel_request is not None:  # the buyer asks to cancel: answer first
+        rows.append(
+            [
+                button(
+                    i18n.buttons.cancel_yes(),
+                    CDXCancel(id=order.id, rid=cancel_request, ok=1),
+                    style="success",
+                ),
+                button(i18n.buttons.cancel_no(), CDXCancel(id=order.id, rid=cancel_request, ok=0)),
+            ]
+        )
     if can_extend:
         rows.append([button(i18n.buttons.ext_ask(), CDExt(action="ask", id=order.id))])
     if order.status is OrderStatus.assigned:

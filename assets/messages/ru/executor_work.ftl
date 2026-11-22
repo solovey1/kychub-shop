@@ -12,7 +12,7 @@ messages-executor-order =
     { $card }
 
     Статус: { $status }
-messages-executor-until = Сдать до: { $time } UTC
+messages-executor-until = Сдать до: { $time }
 messages-executor-order_missing = Заказ № { $id } не найден.
 messages-executor-result_ask =
     <b>Результат по заказу № { $id }</b>
@@ -54,3 +54,12 @@ messages-executor-ext_waiting = ⏳ Просьба продлить на { $dura
 messages-executor-ext_failed = Сейчас нельзя попросить продление заказа №{ $id }: просьба уже отправлена, лимит исчерпан или срок вышел.
 messages-executor-extended = ✅ Заказ №{ $id }: покупатель продлил срок до { $time }
 messages-executor-ext_declined = ✖️ Заказ №{ $id }: покупатель не продлил срок, сдать до { $time }
+
+buttons-cancel_yes = ✅ Согласен
+buttons-cancel_no = ✖️ Продолжу выполнять
+messages-executor-cancel_ask = ↩️ Покупатель просит отменить заказ №{ $id }. Согласны? Если не ответите до { $time }, заказ отменится сам. Штрафа это не несёт.
+messages-executor-cancel_wait = ↩️ Покупатель просит отменить заказ. Ответьте до { $time }, иначе заказ отменится сам. Штрафа это не несёт.
+messages-executor-cancel_agreed = ↩️ Заказ №{ $id } отменён по договорённости. Штрафа нет.
+messages-executor-cancel_by_timer = ↩️ Заказ №{ $id } отменён: вы не ответили на просьбу покупателя за час. Штрафа нет.
+messages-executor-cancel_declined = ✖️ Вы продолжаете выполнять заказ №{ $id }.
+messages-executor-cancel_stale = Просьба об отмене уже неактуальна.

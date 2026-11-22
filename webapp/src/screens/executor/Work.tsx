@@ -113,8 +113,8 @@ function Mine() {
             tag={
               o.action === "work" && o.deadline_at
                 ? t("action.work", { time: fmtDate(o.deadline_at, true) })
-                : o.action === "dispute"
-                  ? t("action.dispute")
+                : o.action === "dispute" || o.action === "cancel"
+                  ? t(`action.${o.action}`)
                   : undefined
             }
             onClick={() => go(`/work/order/${o.id}`)}

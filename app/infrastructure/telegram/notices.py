@@ -7,6 +7,7 @@ from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMa
 
 from app.application.cards import fmt_duration
 from app.application.i18n_text import fmt_usd
+from app.application.interactors.cancel_request import AGREE_AFTER, CancelAnswer, CancelAsk
 from app.application.interactors.deadlines import (
     ExtensionAnswer,
     ExtensionAsk,
@@ -18,7 +19,7 @@ from app.application.interactors.payouts import Refunded
 from app.domain.order import Order
 from app.infrastructure.telegram.notifier import Notifier, Translate
 from app.presentation.telegram.callbacks.chat import CDChat
-from app.presentation.telegram.callbacks.executor import CDExt, CDXOrder
+from app.presentation.telegram.callbacks.executor import CDExt, CDXCancel, CDXOrder
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.callbacks.orders import CDOrder
 from app.presentation.telegram.keyboards.common import app_button, button, markup
@@ -269,6 +270,59 @@ class OrderNotices:
             _open_order(order.id),
             id=str(order.id),
             time=order.deadline_at,
+        )
+
+    async def cancel_asked(self, ask: CancelAsk) -> None:
+        """To the executor: the buyer asks to cancel; silence for an hour counts as «yes»."""
+        order = ask.order
+        if order.executor_id is None:
+            return
+        order_id, rid = order.id, ask.request_id
+        await self.notifier.send(
+            order.executor_id,
+            "messages-executor-cancel_ask",
+            lambda tr: markup(
+                [
+                    [
+                        button(
+                            tr("buttons-cancel_yes"),
+                            CDXCancel(id=order_id, rid=rid, ok=1),
+                            style="success",
+                        ),
+                        button(tr("buttons-cancel_no"), CDXCancel(id=order_id, rid=rid, ok=0)),
+                    ],
+                    [button(tr("buttons-open_order"), CDXOrder(id=order_id))],
+                ]
+            ),
+            id=str(order_id),
+            time=datetime_now() + AGREE_AFTER,
+        )
+
+    async def cancel_answered(self, answer: CancelAnswer) -> None:
+        order = answer.order
+        order_id = order.id
+        if answer.agreed and answer.refund is not None:
+            await self.notifier.send(
+                order.user_id,
+                "messages-order-cancel_agreed",
+                id=str(order_id),
+                amount=fmt_usd(answer.refund.amount),
+            )
+            if answer.by_timer and order.executor_id is not None:
+                await self.notifier.send(
+                    order.executor_id, "messages-executor-cancel_by_timer", id=str(order_id)
+                )
+            return
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-cancel_declined",
+            lambda tr: markup(
+                [
+                    *deal_rows(tr, order_id, ok=False),
+                    [button(tr("buttons-open_order"), CDOrder(id=order_id))],
+                ]
+            ),
+            id=str(order_id),
         )
 
     async def review_request(self, order: Order) -> None:

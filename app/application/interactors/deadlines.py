@@ -20,14 +20,14 @@ SOON_MINUTES: Final = 15
 HALF_MIN_TOTAL_MINUTES: Final = 60
 
 # the events after which a request that is still open belongs to nobody any more
-_NEW_ASSIGNMENT: Final = ("assigned", "reassigned", "overdue", "refused", "sent_back")
+NEW_ASSIGNMENT: Final = ("assigned", "reassigned", "overdue", "refused", "sent_back")
 
 
 EXTENSION_EVENTS: Final = (
     "extension_requested",
     "extended",
     "extension_declined",
-    *_NEW_ASSIGNMENT,
+    *NEW_ASSIGNMENT,
 )
 
 
@@ -59,7 +59,7 @@ def extension_state(events: list[OrderEvent]) -> ExtensionState:
         elif event.type in ("extended", "extension_declined"):
             if pending is not None and pending.request_id == rid:
                 pending = None
-        elif event.type in _NEW_ASSIGNMENT:
+        elif event.type in NEW_ASSIGNMENT:
             pending = None
     return ExtensionState(pending, requests)
 

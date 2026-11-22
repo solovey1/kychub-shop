@@ -4,6 +4,7 @@ from typing import Any
 from aiogram.types import CallbackQuery, Message
 
 from app.application.errors.shop import Conflict, OrderUnavailable
+from app.application.interactors.cancel_request import CancelRequestInteractor, cancel_state
 from app.application.interactors.deadlines import ExtensionInteractor
 from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
@@ -12,7 +13,12 @@ from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.enums.order import OrderStatus
 from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
-from app.presentation.telegram.callbacks.orders import CDCancel, CDDeal, CDExtAnswer
+from app.presentation.telegram.callbacks.orders import (
+    CDCancel,
+    CDCancelAsk,
+    CDDeal,
+    CDExtAnswer,
+)
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.orders import OrdersPresenter
 from app.presentation.telegram.states.support import DisputeForm
@@ -27,6 +33,7 @@ class OrdersFlow(BaseFlow):
     renderer: Renderer
     effects: Effects
     extension: ExtensionInteractor
+    cancel_requests: CancelRequestInteractor
     review: OrderReviewInteractor
     disputes: DisputeInteractor
     helper: MessageHelper
@@ -47,8 +54,9 @@ class OrdersFlow(BaseFlow):
         pending = await self.interactor.pending_extension(order)
         confirm_at = await self.interactor.confirm_at(order)
         dispute = await self.interactor.dispute(order)
+        cancel = cancel_state(events)
         view, file = self.presenter.order(
-            order, page, events, alias, reorder, reserved, pending, confirm_at, dispute
+            order, page, events, alias, reorder, reserved, pending, confirm_at, dispute, cancel
         )
         await self.renderer.apply(view)
         if file is not None:
@@ -114,6 +122,18 @@ class OrdersFlow(BaseFlow):
             return
         await self.renderer.apply(self.presenter.extension_answered(answer))
         await self.effects.extension_answered(answer)
+
+    async def ask_cancel(self, cd: CDCancelAsk) -> None:
+        """The buyer asks the executor of an assigned order to agree to a cancellation."""
+        try:
+            ask = await self.cancel_requests.request(self.user.id, cd.id)
+        except (Conflict, OrderUnavailable):  # pending, spent, a dispute, or the order moved on
+            update = self.helper.update
+            if isinstance(update, CallbackQuery):
+                await update.answer(self.presenter.cancel_unavailable(), show_alert=True)
+            return await self.show(cd.id, cd.page)
+        await self.renderer.apply(self.presenter.cancel_asked(cd.id, cd.page))
+        await self.effects.cancel_asked(ask)
 
     async def cancel(self, cd: CDCancel) -> Any:
         if not cd.ok:

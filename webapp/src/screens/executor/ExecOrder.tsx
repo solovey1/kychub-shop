@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { ApiError, send, useFetch, type ExecutorOrder, type ResultField } from "../../api";
-import { named, t } from "../../i18n";
+import { fmtDate, named, t } from "../../i18n";
 import { alert, confirm, failure, success, useMainButton } from "../../telegram";
 import { Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
 import { ChatRow } from "../../ui/ChatRow";
@@ -121,6 +121,19 @@ export function ExecOrder({ id }: { id: number }) {
         } else await report(e);
       }
     });
+  const answerCancel = (agree: boolean) =>
+    run(async () => {
+      const req = o.cancel_request;
+      if (!req) return;
+      try {
+        await send("POST", `/executor/orders/${id}/cancel-request`, { request_id: req.request_id, agree });
+        success();
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 409 || e.status === 404)) await alert(t("exec.cancelStale"));
+        else return report(e);
+      }
+      reload();
+    });
   const refuse = () =>
     run(async () => {
       if (!(await confirm(t("exec.refuseConfirm")))) return;
@@ -140,6 +153,12 @@ export function ExecOrder({ id }: { id: number }) {
         <h1>{o.product}</h1>
         <p>{list(o.country?.toUpperCase(), `№${o.id}`)}</p>
       </div>
+      {o.cancel_request && (
+        <Section title={t("exec.cancelAsk")} footer={t("exec.cancelAskUntil", { time: fmtDate(o.cancel_request.until, true) })}>
+          <Row title={t("exec.cancelYes")} tone="link" onClick={() => answerCancel(true)} />
+          <Row title={t("exec.cancelNo")} tone="bad" onClick={() => answerCancel(false)} />
+        </Section>
+      )}
       {awaitsHim && (
         <DisputeBlock
           path={`/executor/orders/${id}/dispute`}

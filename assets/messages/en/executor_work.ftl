@@ -12,7 +12,7 @@ messages-executor-order =
     { $card }
 
     Status: { $status }
-messages-executor-until = Submit by: { $time } UTC
+messages-executor-until = Submit by: { $time }
 messages-executor-order_missing = Order #{ $id } not found.
 messages-executor-result_ask =
     <b>Result for order #{ $id }</b>
@@ -54,3 +54,12 @@ messages-executor-ext_waiting = ⏳ Your request for { $duration } more is waiti
 messages-executor-ext_failed = You cannot ask for more time on order #{ $id } right now: a request is already open, the limit is spent or the deadline has passed.
 messages-executor-extended = ✅ Order #{ $id }: the buyer extended the deadline to { $time }
 messages-executor-ext_declined = ✖️ Order #{ $id }: the buyer did not extend, deliver by { $time }
+
+buttons-cancel_yes = ✅ I agree
+buttons-cancel_no = ✖️ I will keep working
+messages-executor-cancel_ask = ↩️ The buyer asks to cancel order #{ $id }. Agree? If you do not answer by { $time }, it is cancelled on its own. No penalty either way.
+messages-executor-cancel_wait = ↩️ The buyer asks to cancel the order. Answer by { $time }, otherwise it is cancelled on its own. No penalty.
+messages-executor-cancel_agreed = ↩️ Order #{ $id } is cancelled by agreement. No penalty.
+messages-executor-cancel_by_timer = ↩️ Order #{ $id } is cancelled: you did not answer the buyer's request within an hour. No penalty.
+messages-executor-cancel_declined = ✖️ You keep working on order #{ $id }.
+messages-executor-cancel_stale = That cancel request is no longer valid.

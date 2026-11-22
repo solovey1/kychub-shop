@@ -8,6 +8,7 @@ from aiogram import html
 from app.application.errors.shop import ContactsBlocked
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.auto_confirm import confirm_deadline, confirm_hours
+from app.application.interactors.cancel_request import CancelAnswer, CancelAsk
 from app.application.interactors.conversations import Posted
 from app.application.interactors.deadlines import ExtensionAnswer, ExtensionAsk
 from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
@@ -160,6 +161,19 @@ class Effects:
             self.notices.extension_answered(answer),
         )
         await self._order_event(answer.order.id, OrderStatus.assigned)
+
+    async def cancel_asked(self, ask: CancelAsk) -> None:
+        await _safe(f"asking the executor of order {ask.order.id}", self.notices.cancel_asked(ask))
+        await self._order_event(ask.order.id, OrderStatus.assigned)
+
+    async def cancel_answered(self, answer: CancelAnswer) -> None:
+        """Cancelled by agreement (the executor's «yes» or an hour of silence) or declined."""
+        order = answer.order
+        await _safe(
+            f"answering the cancel request of order {order.id}",
+            self.notices.cancel_answered(answer),
+        )
+        await self._order_event(order.id, order.status, staff=answer.agreed)
 
     async def contacts_blocked(self, error: ContactsBlocked) -> None:
         """Call for every blocked message: only the third of a person reaches support."""

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.balance import BalanceInteractor
+from app.application.interactors.cancel_request import CancelRequestInteractor, cancel_state
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
@@ -18,6 +19,7 @@ from app.presentation.fastapi.api.auth import CurrentUser
 from app.presentation.fastapi.api.schemas import (
     BalanceOut,
     CancelOut,
+    CancelRequestOut,
     DisputeIn,
     DisputeOut,
     ExtensionAnswerIn,
@@ -70,6 +72,8 @@ async def _order(
     result = order.result or {}
     reserved = await orders.reserved(order)
     dispute = await orders.dispute(order)
+    cancel = cancel_state(await orders.events(order_id))
+    asking = order.status is OrderStatus.assigned and dispute is None
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
         executor_alias=await orders.executor_alias(order),
@@ -88,6 +92,12 @@ async def _order(
             until=extended_deadline(order, pending.minutes, datetime_now()),
         )
         if pending is not None and order.deadline_at is not None
+        else None,
+        can_ask_cancel=asking and cancel.can_request,
+        cancel_request=CancelRequestOut(
+            request_id=cancel.pending.request_id, until=cancel.pending.agrees_at
+        )
+        if asking and cancel.pending is not None
         else None,
     )
 
@@ -117,6 +127,27 @@ async def answer_extension(
     """Conflict `extension_stale` (409): the request is gone, nothing changed."""
     answer = await extension.answer(user.id, order_id, body.request_id, body.approve)
     await effects.extension_answered(answer)
+    return await _order(order_id, user, orders, chat)
+
+
+@router.post("/orders/{order_id}/cancel-request")
+@inject
+async def ask_cancel(
+    order_id: int,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
+    cancel_requests: FromDishka[CancelRequestInteractor],
+    effects: FromDishka[Effects],
+) -> OrderOut:
+    """Ask the executor of an assigned order to agree to a cancellation. Conflict
+    `cancel_pending` / `cancel_limit` / `dispute_open` (409); not his order, or not assigned:
+    404."""
+    try:
+        ask = await cancel_requests.request(user.id, order_id)
+    except OrderUnavailable:
+        raise HTTPException(404, "Not found") from None
+    await effects.cancel_asked(ask)
     return await _order(order_id, user, orders, chat)
 
 
