@@ -10,6 +10,7 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
 from app.application.interactors.disputes import DISPUTE_STATUSES, DisputeInteractor
+from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
@@ -29,6 +30,7 @@ from app.presentation.fastapi.api.schemas import (
     OrderChatOut,
     OrderListOut,
     OrderOut,
+    RateIn,
     usd,
 )
 from app.utils.time import datetime_now
@@ -73,6 +75,7 @@ async def _order(
     reserved = await orders.reserved(order)
     dispute = await orders.dispute(order)
     cancel = cancel_state(await orders.events(order_id))
+    score = await orders.rating(order)
     asking = order.status is OrderStatus.assigned and dispute is None
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
@@ -95,6 +98,10 @@ async def _order(
         )
         if pending is not None and order.deadline_at is not None
         else None,
+        can_rate=order.status is OrderStatus.completed
+        and order.executor_id is not None
+        and score is None,
+        rating=score,
         can_ask_cancel=asking and cancel.can_request,
         cancel_request=CancelRequestOut(
             request_id=cancel.pending.request_id, until=cancel.pending.agrees_at
@@ -165,7 +172,23 @@ async def confirm_order(
 ) -> OrderOut:
     """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404."""
     order = await review.confirm_by_buyer(user.id, order_id)
-    await effects.order_confirmed(order)
+    await effects.order_confirmed(order, ask_rating=True)
+    return await _order(order_id, user, orders, chat)
+
+
+@router.post("/orders/{order_id}/rate")
+@inject
+async def rate_order(
+    order_id: int,
+    body: RateIn,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
+    reviews: FromDishka[ReviewInteractor],
+) -> OrderOut:
+    """1..5 stars for a completed order. Rated already: 400 `AlreadyRated`; a wrong score: 422;
+    not his order, or not completed: 404."""
+    await reviews.rate(user.id, order_id, body.score)
     return await _order(order_id, user, orders, chat)
 
 

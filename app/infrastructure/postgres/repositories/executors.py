@@ -129,6 +129,22 @@ class ExecutorsRepository(ExecutorsGateway):
             is not None
         )
 
+    async def review_score(self, order_id: int) -> int | None:
+        score: int | None = await self._helper.session.scalar(
+            select(OrderReview.score).where(OrderReview.order_id == order_id)
+        )
+        return score
+
+    async def rating(self, executor_id: int) -> tuple[float | None, int]:
+        row = (
+            await self._helper.session.execute(
+                select(func.avg(OrderReview.score), func.count()).where(
+                    OrderReview.executor_id == executor_id
+                )
+            )
+        ).one()
+        return (None if row[0] is None else float(row[0])), int(row[1])
+
     async def add_review(self, review: OrderReview) -> None:
         await self._uow.flush(review)
 

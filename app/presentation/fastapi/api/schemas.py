@@ -191,6 +191,12 @@ class OrderOut(OrderBrief):
     extension: ExtensionAskOut | None = None
     can_ask_cancel: bool = False  # assigned, no dispute, no open request, under the limit
     cancel_request: CancelRequestOut | None = None  # the buyer's own request, waiting
+    can_rate: bool = False  # completed, not rated yet
+    rating: int | None = None  # his score, once given
+
+
+class RateIn(PydanticModel):
+    score: int
 
 
 class OrderListOut(PydanticModel):

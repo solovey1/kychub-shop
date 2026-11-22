@@ -64,6 +64,12 @@ class ExecutorsGateway(Protocol):
 
     async def review_exists(self, order_id: int) -> bool: ...
 
+    async def review_score(self, order_id: int) -> int | None:
+        """The buyer's score of this order, None when he did not rate it."""
+
+    async def rating(self, executor_id: int) -> tuple[float | None, int]:
+        """(average score, number of scores) over the executor's reviews."""
+
     async def add_review(self, review: OrderReview) -> None:
         """Insert and flush."""
 

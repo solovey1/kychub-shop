@@ -76,6 +76,10 @@ class OrdersInteractor(BaseInteractor):
             return None
         return confirm_deadline(order, await confirm_hours(self.settings))
 
+    async def rating(self, order: Order) -> int | None:
+        """The score the buyer gave this order."""
+        return await self.executors.review_score(order.id)
+
     async def events(self, order_id: int) -> list[OrderEvent]:
         return await self.gateway.events(order_id)
 

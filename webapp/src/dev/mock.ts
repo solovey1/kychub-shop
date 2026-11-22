@@ -1130,7 +1130,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), chat: BUYER_CHATS[o.id] ?? null, executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null, can_ask_cancel: o.status === "assigned", cancel_request: null };
+    return { ...brief(o), chat: BUYER_CHATS[o.id] ?? null, executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null, can_ask_cancel: o.status === "assigned", cancel_request: null, can_rate: o.status === "completed", rating: null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));

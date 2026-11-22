@@ -74,6 +74,16 @@ export function OrderScreen({ id }: { id: number }) {
       }
       reload();
     });
+  const rate = (score: number) =>
+    run(async () => {
+      try {
+        await send("POST", `/orders/${id}/rate`, { score });
+        success();
+      } catch (e) {
+        if (!(e instanceof ApiError && e.status === 400)) return report(e); // rated already
+      }
+      reload();
+    });
   const answer = (approve: boolean) =>
     run(async () => {
       const ext = o.extension;
@@ -110,6 +120,22 @@ export function OrderScreen({ id }: { id: number }) {
           footer={o.confirm_at ? t("order.confirmAt", { time: fmtDate(o.confirm_at, true) }) : undefined}
         >
           <Row title={t("order.confirm")} tone="link" onClick={confirmOrder} />
+        </Section>
+      )}
+      {o.can_rate && (
+        <Section title={t("order.rate")} footer={t("order.rateHint")}>
+          <div className="stars">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" aria-label={String(n)} onClick={() => rate(n)}>
+                ☆
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
+      {o.rating !== null && (
+        <Section>
+          <Row title={t("order.rated")} right={"★".repeat(o.rating)} />
         </Section>
       )}
       {o.extension && (

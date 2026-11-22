@@ -807,3 +807,17 @@ button.row:active {
   color: var(--fg);
   font-weight: 500;
 }
+
+.stars {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 12px;
+}
+.stars button {
+  background: none;
+  border: 0;
+  padding: 6px 10px;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--btn);
+}

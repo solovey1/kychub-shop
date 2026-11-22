@@ -101,6 +101,11 @@ class OrderReviewInteractor(BaseInteractor):
             if buyer_id is not None and order.user_id != buyer_id:
                 raise OrderUnavailable(order_id)
             await self.complete_locked(order, actor_id)
+            if buyer_id is not None:
+                # he is looking at the order now: ask for the rating at once; the event (same one
+                # the timed job writes) keeps the job from asking a second time
+                await self.orders.add_event(OrderEvent(order_id=order.id, type="review_requested"))
+                order.review_due_at = None
             await self.uow.commit()
             return order
         except BaseException:

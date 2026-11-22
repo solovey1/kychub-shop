@@ -135,9 +135,15 @@ class Effects:
         )
         await self._order_event(order.id, OrderStatus.ready, staff=True)
 
-    async def order_confirmed(self, order: Order) -> None:
+    async def order_confirmed(self, order: Order, *, ask_rating: bool = False) -> None:
+        """`ask_rating`: the buyer confirmed it himself, so the rating request goes right after
+        the result (anybody else confirming leaves it to the timed job)."""
         await _safe(f"delivering order {order.id}", self.notices.deliver(order))
         await _safe(f"confirming order {order.id}", self.notices.confirmed(order))
+        if ask_rating:
+            await _safe(
+                f"asking for a rating of order {order.id}", self.notices.review_request(order)
+            )
         await self._order_event(order.id, OrderStatus.completed, staff=True)
 
     async def order_sent_back(self, order: Order, comment: str) -> None:
