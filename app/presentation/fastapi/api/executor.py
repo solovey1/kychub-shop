@@ -6,6 +6,7 @@ from app.application.errors.shop import ExecutorNotFound, OrderUnavailable
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
+from app.application.interactors.deadlines import EXTENSION_MINUTES, ExtensionInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import ExecutorCabinetInteractor
@@ -20,6 +21,8 @@ from app.presentation.fastapi.api.schemas import (
     ExecutorOrderListItem,
     ExecutorOrderListOut,
     ExecutorOrderOut,
+    ExtensionRequestIn,
+    ExtensionStateOut,
     LedgerEntryOut,
     OnlineIn,
     OnlineOut,
@@ -33,6 +36,7 @@ from app.presentation.fastapi.api.schemas import (
     card_fields,
     usd,
 )
+from app.utils.time import datetime_now
 
 router: APIRouter = APIRouter(prefix="/executor", tags=["executor"])
 
@@ -61,12 +65,23 @@ async def _order(
     if view.order.status is OrderStatus.assigned:
         form = _form(await work.result_form(user_id, order_id), locale)
     result = view.order.result
+    assigned = view.order.status is OrderStatus.assigned
+    ext = view.extension
     return ExecutorOrderOut(
         **card_brief(view.card, view.order.status, locale),
         deadline_at=view.order.deadline_at,
         fields=card_fields(view.card, locale),
         result_form=form,
         result=dict(result.get("fields", {})) if result else None,
+        extension=ExtensionStateOut(
+            pending_minutes=ext.pending.minutes if ext.pending else None,
+            can_request=ext.can_request
+            and view.order.deadline_at is not None
+            and view.order.deadline_at > datetime_now(),
+            options=list(EXTENSION_MINUTES),
+        )
+        if assigned
+        else None,
     )
 
 
@@ -187,6 +202,22 @@ async def submit_result(
     """Text fields only: a file field of the result form cannot be filled from the Mini App."""
     order = await work.submit(user.id, order_id, body.fields)  # OrderUnavailable -> 404
     await effects.result_submitted(order)
+    return await _order(order_id, user.id, user.language, work)
+
+
+@router.post("/orders/{order_id}/extension")
+@inject
+async def request_extension(
+    order_id: int,
+    body: ExtensionRequestIn,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    extension: FromDishka[ExtensionInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """Conflict `extension_pending` / `extension_limit` (409); a passed deadline is a 400."""
+    ask = await extension.request(user.id, order_id, body.minutes)
+    await effects.extension_asked(ask)
     return await _order(order_id, user.id, user.language, work)
 
 

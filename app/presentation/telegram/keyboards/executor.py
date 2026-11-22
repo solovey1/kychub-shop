@@ -1,15 +1,18 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram_i18n import I18nContext
 
+from app.application.cards import fmt_duration
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import CHAT_STATUSES
+from app.application.interactors.deadlines import EXTENSION_MINUTES
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.executor import (
     CDCabinet,
+    CDExt,
     CDOrderAct,
     CDReview,
     CDXOrder,
@@ -67,8 +70,22 @@ def orders_keyboard(
     return markup(rows)
 
 
-def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboardMarkup:
+def extension_options_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboardMarkup:
+    options = [
+        button("+" + fmt_duration(i18n.get, m), CDExt(action="pick", id=order_id, value=m))
+        for m in EXTENSION_MINUTES
+    ]
+    rows = [options[i : i + 3] for i in range(0, len(options), 3)]
+    rows.append([button(i18n.buttons.back(), CDXOrder(id=order_id))])
+    return markup(rows)
+
+
+def order_keyboard(
+    i18n: I18nContext, order: Order, page: int, can_extend: bool = False
+) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
+    if can_extend:
+        rows.append([button(i18n.buttons.ext_ask(), CDExt(action="ask", id=order.id))])
     if order.status is OrderStatus.assigned:
         rows.append(
             [

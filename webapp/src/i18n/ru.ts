@@ -87,6 +87,11 @@ export const ru = {
   "order.reserved": "Зарезервировано",
   "order.reservedNote": "Спишется после выполнения",
   "order.cancelTooLate": "Заказ уже взят в работу, отменить его нельзя.",
+  "order.extAsk": "Исполнитель просит продлить срок на {d}",
+  "order.extUntil": "Новый срок: до {time}",
+  "order.extYes": "Продлить",
+  "order.extNo": "Нет",
+  "order.extStale": "Просьба уже неактуальна",
 
   "balance.title": "Баланс",
   "balance.topup": "Пополнить в боте",
@@ -119,6 +124,7 @@ export const ru = {
   "left.over": "Срок вышел",
   "left.hm": "{h} ч {m} мин",
   "left.m": "{m} мин",
+  "left.h": "{h} ч",
 
   "exec.status": "Статус",
   "exec.left": "Осталось",
@@ -128,6 +134,11 @@ export const ru = {
   "exec.writeBuyer": "Написать покупателю",
   "exec.refuse": "Отказаться от заказа",
   "exec.refuseConfirm": "Отказаться от заказа? Он вернётся в очередь.",
+  "exec.extTitle": "Срок",
+  "exec.extAsk": "Попросить продление",
+  "exec.extHint": "Покупатель должен согласиться.",
+  "exec.extWaiting": "Просьба продлить на {d} ждёт ответа покупателя",
+  "exec.extFailed": "Сейчас нельзя попросить продление: просьба уже отправлена, лимит исчерпан или срок вышел.",
 
   "form.title": "Результат",
   "form.submit": "Сдать результат",

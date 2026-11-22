@@ -28,3 +28,9 @@ class CDXResult(CallbackData, prefix="xr"):
 class CDReview(CallbackData, prefix="rv"):
     action: str  # open | ok | back | fail | failok
     id: int
+
+
+class CDExt(CallbackData, prefix="xe"):
+    action: str  # ask | pick
+    id: int
+    value: int = 0  # minutes, for pick

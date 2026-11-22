@@ -5,6 +5,7 @@ import { ApiError, send, useFetch, type Order as OrderData } from "../../api";
 import { fmtDate, fmtMoney, t } from "../../i18n";
 import { alert, confirm, success } from "../../telegram";
 import { Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
+import { duration } from "../../ui/Left";
 import { Track } from "../../ui/Track";
 import { openSupport } from "./Orders";
 
@@ -47,6 +48,19 @@ export function OrderScreen({ id }: { id: number }) {
         } else await report(e);
       }
     });
+  const answer = (approve: boolean) =>
+    run(async () => {
+      const ext = o.extension;
+      if (!ext) return;
+      try {
+        await send("POST", `/orders/${id}/extension`, { request_id: ext.request_id, approve });
+        success();
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 409 || e.status === 404)) await alert(t("order.extStale"));
+        else return report(e);
+      }
+      reload();
+    });
   const chat = (to: (cid: number) => string, create: () => Promise<{ conversation_id: number }>) =>
     run(async () => {
       try {
@@ -85,6 +99,15 @@ export function OrderScreen({ id }: { id: number }) {
       {lines.length === 0 && o.result_files > 0 && (
         <Section title={t("order.result")} footer={t("order.files")}>
           <Row title={t("order.filesCount", { n: o.result_files })} />
+        </Section>
+      )}
+      {o.extension && (
+        <Section
+          title={t("order.extAsk", { d: duration(o.extension.minutes) })}
+          footer={t("order.extUntil", { time: fmtDate(o.extension.until, true) })}
+        >
+          <Row title={t("order.extYes")} tone="link" onClick={() => answer(true)} />
+          <Row title={t("order.extNo")} tone="bad" onClick={() => answer(false)} />
         </Section>
       )}
       <Section>

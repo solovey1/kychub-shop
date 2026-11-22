@@ -88,6 +88,11 @@ export const uk: typeof ru = {
   "order.reserved": "Зарезервовано",
   "order.reservedNote": "Спишеться після виконання",
   "order.cancelTooLate": "Замовлення вже взято в роботу, скасувати його не можна.",
+  "order.extAsk": "Виконавець просить продовжити термін на {d}",
+  "order.extUntil": "Новий термін: до {time}",
+  "order.extYes": "Продовжити",
+  "order.extNo": "Ні",
+  "order.extStale": "Прохання вже неактуальне",
 
   "balance.title": "Баланс",
   "balance.topup": "Поповнити в боті",
@@ -120,6 +125,7 @@ export const uk: typeof ru = {
   "left.over": "Термін вийшов",
   "left.hm": "{h} год {m} хв",
   "left.m": "{m} хв",
+  "left.h": "{h} год",
 
   "exec.status": "Статус",
   "exec.left": "Залишилось",
@@ -129,6 +135,11 @@ export const uk: typeof ru = {
   "exec.writeBuyer": "Написати покупцю",
   "exec.refuse": "Відмовитися від замовлення",
   "exec.refuseConfirm": "Відмовитися від замовлення? Воно повернеться в чергу.",
+  "exec.extTitle": "Термін",
+  "exec.extAsk": "Попросити продовження",
+  "exec.extHint": "Покупець має погодитись.",
+  "exec.extWaiting": "Прохання продовжити на {d} чекає на відповідь покупця",
+  "exec.extFailed": "Зараз не можна просити продовження: прохання вже надіслано, ліміт вичерпано або термін минув.",
 
   "form.title": "Результат",
   "form.submit": "Здати результат",

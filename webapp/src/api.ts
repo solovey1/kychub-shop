@@ -39,6 +39,7 @@ export type Order = OrderBrief & {
   result_files: number;
   can_cancel: boolean;
   reserved: string | null;
+  extension: { request_id: number; minutes: number; until: string } | null;
 };
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 export type Entry = {
@@ -81,6 +82,7 @@ export type ExecutorOrder = QueueItem & {
   fields: CardField[];
   result_form: ResultField[] | null;
   result: Record<string, string> | null;
+  extension: { pending_minutes: number | null; can_request: boolean; options: number[] } | null;
 };
 export type ExecutorListItem = {
   id: number;

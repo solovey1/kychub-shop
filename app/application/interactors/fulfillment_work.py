@@ -7,6 +7,7 @@ from app.application.i18n_text import pick_i18n
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, load_context
 from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.deadlines import ExtensionState, extension_state
 from app.application.models.form_schema import FieldType, FormField, FormSchema, split_files
 from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.orders import OrdersGateway
@@ -31,6 +32,7 @@ DEFAULT_RESULT_FORM = FormSchema(
 class ExecutorOrderView:
     order: Order
     card: OrderCard
+    extension: ExtensionState
 
 
 def pack_result(form: FormSchema, values: dict[str, str]) -> dict[str, object]:
@@ -69,7 +71,11 @@ class FulfillmentWorkInteractor(BaseInteractor):
         order = await self.orders.get(order_id)
         if order is None or order.executor_id != executor_id:
             return None
-        return ExecutorOrderView(order, await self.cards.build(order, executor_id))
+        return ExecutorOrderView(
+            order,
+            await self.cards.build(order, executor_id),
+            extension_state(await self.orders.events(order_id)),
+        )
 
     async def result_form(self, executor_id: int, order_id: int) -> FormSchema:
         order = await self.orders.get(order_id)

@@ -5,6 +5,7 @@ from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.catalog import PAGE_SIZE, VariantView
+from app.application.interactors.deadlines import Pending, extension_state
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import Refunded, open_hold, refund_buyer
 from app.application.ports.repositories.executors import ExecutorsGateway
@@ -51,6 +52,12 @@ class OrdersInteractor(BaseInteractor):
         if await open_hold(self.ledger_gateway, order):
             return order.price - order.discount
         return Decimal(0)
+
+    async def pending_extension(self, order: Order) -> Pending | None:
+        """The executor's open request for more time, what the buyer has to answer."""
+        if order.status is not OrderStatus.assigned:
+            return None
+        return extension_state(await self.gateway.events(order.id)).pending
 
     async def events(self, order_id: int) -> list[OrderEvent]:
         return await self.gateway.events(order_id)

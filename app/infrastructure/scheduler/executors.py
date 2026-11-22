@@ -4,6 +4,7 @@ from typing import Final
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
+from app.application.interactors.deadlines import ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.hold import HoldInteractor
@@ -49,6 +50,16 @@ async def request_reviews(container: AsyncContainer) -> None:
             await notices.review_request(order)
 
 
+async def remind_deadlines(container: AsyncContainer) -> None:
+    """Executors whose order is half way to its deadline, or close to it, get a reminder. The
+    event is committed before the message goes out (like the rating request)."""
+    async with container() as request:
+        reminders = await (await request.get(ReminderInteractor)).due()
+        notices = await request.get(OrderNotices)
+        for reminder in reminders:
+            await notices.reminder(reminder)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -66,6 +77,7 @@ def _job(
 
 def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
+    _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
     _job(scheduler, container, requeue_stale, "requeue_stale", 300)
     _job(scheduler, container, release_holds, "release_holds", 600)
     _job(scheduler, container, request_reviews, "request_reviews", 300)

@@ -59,12 +59,36 @@ class OrderBrief(PydanticModel):
         )
 
 
+class ExtensionAskOut(PydanticModel):
+    """What the buyer is asked: more time for the executor, and the deadline he would get."""
+
+    request_id: int
+    minutes: int
+    until: datetime
+
+
+class ExtensionAnswerIn(PydanticModel):
+    request_id: int
+    approve: bool
+
+
+class ExtensionRequestIn(PydanticModel):
+    minutes: int
+
+
+class ExtensionStateOut(PydanticModel):
+    pending_minutes: int | None  # a request waits for the buyer
+    can_request: bool
+    options: list[int]
+
+
 class OrderOut(OrderBrief):
     executor_alias: str | None = None
     result: str | None = None  # only once the order is completed
     result_files: int = 0
     can_cancel: bool = False
     reserved: str | None = None  # still held for this order, not charged yet
+    extension: ExtensionAskOut | None = None
 
 
 class OrderListOut(PydanticModel):
@@ -184,6 +208,7 @@ class ExecutorOrderOut(ExecutorOrderBrief):
     fields: list[CardFieldOut]
     result_form: list[ResultFieldOut] | None = None  # while the order waits for a result
     result: dict[str, str] | None = None  # what the executor handed in
+    extension: ExtensionStateOut | None = None  # only while the order is assigned
 
 
 class ExecutorOrderListItem(PydanticModel):

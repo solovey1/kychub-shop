@@ -3,9 +3,9 @@ import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { ApiError, send, useFetch, type ExecutorOrder, type ResultField } from "../../api";
 import { named, t } from "../../i18n";
-import { confirm, failure, success, useMainButton } from "../../telegram";
+import { alert, confirm, failure, success, useMainButton } from "../../telegram";
 import { Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
-import { Left } from "../../ui/Left";
+import { Left, duration } from "../../ui/Left";
 import { Track } from "../../ui/Track";
 
 function Input({
@@ -91,6 +91,7 @@ export function ExecOrder({ id }: { id: number }) {
   const [, go] = useLocation();
   const { data: o, error, reload } = useFetch<ExecutorOrder>(`/executor/orders/${id}`, ["order"]);
   const { run } = useBusy();
+  const [picking, setPicking] = useState(false);
   if (error && !o) return <Failure error={error} retry={reload} />;
   if (!o) return <Loading />;
 
@@ -101,6 +102,21 @@ export function ExecOrder({ id }: { id: number }) {
         go(`/work/order/${id}/chat/${r.conversation_id}`);
       } catch (e) {
         await report(e);
+      }
+    });
+  const ask = (minutes: number) =>
+    run(async () => {
+      try {
+        await send("POST", `/executor/orders/${id}/extension`, { minutes });
+        success();
+        setPicking(false);
+        reload();
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 409 || e.status === 400)) {
+          await alert(t("exec.extFailed"));
+          setPicking(false);
+          reload();
+        } else await report(e);
       }
     });
   const refuse = () =>
@@ -140,6 +156,17 @@ export function ExecOrder({ id }: { id: number }) {
               sub={f.label}
             />
           ))}
+        </Section>
+      )}
+      {o.extension && (o.extension.pending_minutes || o.extension.can_request) && (
+        <Section title={t("exec.extTitle")} footer={o.extension.pending_minutes ? undefined : t("exec.extHint")}>
+          {o.extension.pending_minutes ? (
+            <Row title={t("exec.extWaiting", { d: duration(o.extension.pending_minutes) })} />
+          ) : picking ? (
+            o.extension.options.map((m) => <Row key={m} title={`+${duration(m)}`} chevron onClick={() => ask(m)} />)
+          ) : (
+            <Row title={t("exec.extAsk")} chevron onClick={() => setPicking(true)} />
+          )}
         </Section>
       )}
       {o.result_form && <ResultForm id={id} form={o.result_form} reload={reload} />}

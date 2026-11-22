@@ -47,3 +47,10 @@ order-status-cancelled = { order-icon-cancelled } скасовано
 
 buttons-order_item = { $icon } №{ $id }, { $title }, { $total }
 buttons-open_order = 📦 Відкрити замовлення
+messages-order-extension = ⏳ Виконавець просить продовжити термін на { $duration }. Новий термін: до { $time }
+messages-order-extension_ask = ⏳ Виконавець просить продовжити замовлення №{ $id } на { $duration }. Новий термін: до { $time }
+messages-order-extension_yes = ✅ Термін замовлення №{ $id } продовжено до { $time }
+messages-order-extension_no = ✖️ Ви відмовили в продовженні замовлення №{ $id }. Термін не змінився.
+messages-order-extension_stale = Прохання вже неактуальне
+buttons-ext_yes = ✅ Продовжити
+buttons-ext_no = ✖️ Ні

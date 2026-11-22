@@ -4,15 +4,24 @@ from typing import Callable
 from aiogram import html
 from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.application.cards import fmt_duration
 from app.application.i18n_text import fmt_usd
+from app.application.interactors.deadlines import (
+    ExtensionAnswer,
+    ExtensionAsk,
+    Reminder,
+    extended_deadline,
+)
 from app.application.interactors.payouts import Refunded
 from app.domain.order import Order
 from app.infrastructure.telegram.notifier import Notifier, Translate
-from app.presentation.telegram.callbacks.executor import CDReview, CDXOrder
+from app.presentation.telegram.callbacks.executor import CDExt, CDReview, CDXOrder
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.keyboards.common import button, markup
 from app.presentation.telegram.keyboards.feedback import rate_keyboard
+from app.presentation.telegram.keyboards.orders import extension_keyboard
 from app.presentation.telegram.presenters.common.purchase import COPY_LIMIT, FILE_LIMIT
+from app.utils.time import datetime_now
 
 
 def _open_review(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
@@ -112,6 +121,57 @@ class OrderNotices:
             await self.notifier.send(
                 refund.executor_id, "messages-executor-order_closed", id=str(refund.order_id)
             )
+
+    async def reminder(self, reminder: Reminder) -> None:
+        order = reminder.order
+        if order.executor_id is None or order.deadline_at is None:
+            return
+        order_id, left = order.id, reminder.left_minutes
+        until = order.deadline_at.strftime("%H:%M")
+        await self.notifier.send(
+            order.executor_id,
+            lambda tr, _: tr(
+                "messages-executor-reminder",
+                id=str(order_id),
+                left=fmt_duration(tr, left),
+                time=until,
+            ),
+            lambda tr: markup(
+                [
+                    [button(tr("buttons-open_order"), CDXOrder(id=order_id), style="primary")],
+                    [button(tr("buttons-ext_ask"), CDExt(action="ask", id=order_id))],
+                ]
+            ),
+        )
+
+    async def extension_asked(self, ask: ExtensionAsk) -> None:
+        """To the buyer, who sees the executor's alias at most: never a name or an id."""
+        order = ask.order
+        order_id, rid, minutes = order.id, ask.request_id, ask.minutes
+        until = extended_deadline(order, minutes, datetime_now()).strftime("%H:%M")
+        await self.notifier.send(
+            order.user_id,
+            lambda tr, _: tr(
+                "messages-order-extension_ask",
+                id=str(order_id),
+                duration=fmt_duration(tr, minutes),
+                time=until,
+            ),
+            lambda tr: extension_keyboard(tr, order_id, rid),
+        )
+
+    async def extension_answered(self, answer: ExtensionAnswer) -> None:
+        order = answer.order
+        if order.executor_id is None or order.deadline_at is None:
+            return
+        key = "messages-executor-extended" if answer.approved else "messages-executor-ext_declined"
+        await self.notifier.send(
+            order.executor_id,
+            key,
+            _open_order(order.id),
+            id=str(order.id),
+            time=order.deadline_at.strftime("%H:%M"),
+        )
 
     async def review_request(self, order: Order) -> None:
         order_id = order.id

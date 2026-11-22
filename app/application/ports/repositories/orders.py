@@ -50,6 +50,9 @@ class OrdersGateway(Protocol):
     async def overdue_ids(self, now: datetime) -> list[int]:
         """`assigned` orders whose deadline has passed."""
 
+    async def assigned_with_deadline(self, now: datetime) -> list[Order]:
+        """`assigned` orders whose deadline is still ahead, oldest first."""
+
     async def stale_ids(self, cutoff: datetime) -> list[int]:
         """Unassigned `in_queue` orders with no dispatch attempt since `cutoff`."""
 

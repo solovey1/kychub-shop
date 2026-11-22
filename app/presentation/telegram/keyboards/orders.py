@@ -1,15 +1,18 @@
+from typing import Callable
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import CHAT_STATUSES
+from app.application.interactors.deadlines import Pending
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.presentation.telegram.callbacks.catalog import CDVariant
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
-from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import CDCancel, CDExtAnswer, CDOrder, CDOrders
 from app.presentation.telegram.keyboards.common import button, markup, pager
 
 
@@ -39,10 +42,31 @@ def reorder_row(i18n: I18nContext, order: Order) -> list[InlineKeyboardButton]:
     return [button(i18n.buttons.reorder_again(), CDVariant(id=order.variant_id))]
 
 
+def extension_keyboard(tr: Callable[..., str], order_id: int, rid: int) -> InlineKeyboardMarkup:
+    return markup(
+        [
+            [
+                button(
+                    tr("buttons-ext_yes"),
+                    CDExtAnswer(id=order_id, rid=rid, ok=1),
+                    style="success",
+                ),
+                button(tr("buttons-ext_no"), CDExtAnswer(id=order_id, rid=rid, ok=0)),
+            ]
+        ]
+    )
+
+
 def order_keyboard(
-    i18n: I18nContext, order: Order, page: int, reorder: bool = False
+    i18n: I18nContext,
+    order: Order,
+    page: int,
+    reorder: bool = False,
+    pending: Pending | None = None,
 ) -> InlineKeyboardMarkup:
     rows = []
+    if pending is not None:
+        rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard
     if order.status in CHAT_STATUSES:
         rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])

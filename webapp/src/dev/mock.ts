@@ -168,6 +168,7 @@ const execDetail = (id: number) => {
       { label: "Почта для регистрации", value: "buyer.mail@example.com", is_file: false },
       { label: "Скриншот профиля", value: null, is_file: true },
     ],
+    extension: o.status === "assigned" ? { pending_minutes: null, can_request: true, options: [15, 30, 60, 120, 360, 1440] } : null,
     result_form: o.status === "assigned" ? form : null,
     result: o.status === "assigned" ? null : { login: "farm_account_01", password: "••••••••" },
   };
@@ -1113,7 +1114,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null };
+    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
@@ -1152,7 +1153,7 @@ function route(method: string, url: URL, body: unknown): unknown {
   if (path === "/executor/queue") return queue;
   if ((m = path.match(/^\/executor\/orders\/(\d+)\/take$/))) return execDetail(Number(m[1]));
   if (path === "/executor/orders") return { items: execOrders, total: execOrders.length, page: 0, page_size: 20 };
-  if ((m = path.match(/^\/executor\/orders\/(\d+)\/(refuse|result)$/))) return m[2] === "refuse" ? { ok: true } : execDetail(Number(m[1]));
+  if ((m = path.match(/^\/executor\/orders\/(\d+)\/(refuse|result|extension)$/))) return m[2] === "refuse" ? { ok: true } : execDetail(Number(m[1]));
   if ((m = path.match(/^\/executor\/orders\/(\d+)$/))) return execDetail(Number(m[1]));
   if (path === "/executor/stats") return { completed: 41, failed: 1, overdue: 2, refused: 3, avg_minutes: 54.4, avg_score: 4.8 };
   if (path === "/executor/balance" || path === "/executor/wallet")

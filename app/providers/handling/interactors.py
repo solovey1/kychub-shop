@@ -15,6 +15,7 @@ from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
 from app.application.interactors.conversations import ConversationInteractor
+from app.application.interactors.deadlines import ExtensionInteractor, ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import (
@@ -51,6 +52,8 @@ class InteractorsProvider(Provider):
         ExecutorCabinetInteractor,
         CardBuilder,
         DispatchInteractor,
+        ExtensionInteractor,
+        ReminderInteractor,
         FulfillmentWorkInteractor,
         OrderReviewInteractor,
         HoldInteractor,

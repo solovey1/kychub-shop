@@ -5,7 +5,9 @@ from decimal import Decimal
 from aiogram import html
 from aiogram_i18n import I18nContext
 
+from app.application.cards import fmt_duration
 from app.application.i18n_text import country_flag, fmt_usd, pick_i18n
+from app.application.interactors.deadlines import ExtensionAnswer, Pending, extended_deadline
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
 from app.presentation.telegram.callbacks.orders import CDOrders
@@ -19,6 +21,7 @@ from app.presentation.telegram.keyboards.orders import (
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.presenters.common.purchase import result_view
 from app.presentation.telegram.view.models import View
+from app.utils.time import datetime_now
 
 _CHAIN = (
     OrderStatus.paid,
@@ -111,6 +114,7 @@ class OrdersPresenter(BasePresenter):
         alias: str | None,
         reorder: bool = False,
         reserved: Decimal = Decimal(0),
+        pending: Pending | None = None,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -131,6 +135,11 @@ class OrdersPresenter(BasePresenter):
             if alias
             else "",
         )
+        if pending is not None:
+            until = extended_deadline(order, pending.minutes, datetime_now())
+            text += "\n\n" + i18n.messages.order.extension(
+                duration=fmt_duration(i18n.get, pending.minutes), time=until.strftime("%H:%M")
+            )
         if order.status is OrderStatus.completed and order.result:
             return result_view(
                 i18n,
@@ -139,7 +148,23 @@ class OrdersPresenter(BasePresenter):
                 CDOrders(page=page),
                 reorder_row(i18n, order) if reorder else None,
             )
-        return View(text=text, reply_markup=order_keyboard(i18n, order, page, reorder)), None
+        return View(
+            text=text, reply_markup=order_keyboard(i18n, order, page, reorder, pending)
+        ), None
+
+    def extension_stale(self) -> str:
+        return self.i18n.messages.order.extension_stale()
+
+    def extension_answered(self, answer: ExtensionAnswer) -> View:
+        messages = self.i18n.messages.order
+        order = answer.order
+        if answer.approved and order.deadline_at is not None:
+            text = messages.extension_yes(
+                id=str(order.id), time=order.deadline_at.strftime("%H:%M")
+            )
+        else:
+            text = messages.extension_no(id=str(order.id))
+        return View(text=text)
 
     def cancel_confirm(self, order_id: int, page: int) -> View:
         return View(

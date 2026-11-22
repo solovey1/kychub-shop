@@ -4,14 +4,15 @@ from typing import Any, Final
 
 from aiogram.types import Message
 
-from app.application.errors.shop import DeadlineExpired, InvalidInput, OrderUnavailable
+from app.application.errors.shop import Conflict, DeadlineExpired, InvalidInput, OrderUnavailable
+from app.application.interactors.deadlines import ExtensionInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
 from app.application.models.form_schema import FieldType, FormSchema
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
-from app.presentation.telegram.callbacks.executor import CDOrderAct, CDXResult
+from app.presentation.telegram.callbacks.executor import CDExt, CDOrderAct, CDXResult
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.flows.common.files import (
     chat_lock,
@@ -32,6 +33,7 @@ logger: Final = logging.getLogger(__name__)
 class ExecutorOrdersFlow(BaseFlow):
     user: User
     dispatcher: DispatchInteractor
+    extensions: ExtensionInteractor
     work: FulfillmentWorkInteractor
     effects: Effects
     presenter: ExecutorPresenter
@@ -60,6 +62,18 @@ class ExecutorOrdersFlow(BaseFlow):
             return await self._say("messages-executor-refuse_failed", order_id)
         await self._say("messages-executor-refused", order_id)
         await self.effects.order_refused(result)
+
+    async def extension(self, cd: CDExt) -> None:
+        if cd.action == "ask":
+            await self.renderer.apply(self.presenter.extension_options(cd.id))
+            return
+        try:
+            ask = await self.extensions.request(self.user.id, cd.id, cd.value)
+        except (Conflict, OrderUnavailable, DeadlineExpired, InvalidInput):
+            await self._say("messages-executor-ext_failed", cd.id)
+            return
+        await self.effects.extension_asked(ask)
+        await self.show(cd.id, 0)
 
     async def _say(self, key: str, order_id: int) -> None:
         await self.renderer.apply(self.presenter.text(key, id=str(order_id)))

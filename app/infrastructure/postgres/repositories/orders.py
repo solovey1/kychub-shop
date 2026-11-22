@@ -141,6 +141,14 @@ class OrdersRepository(OrdersGateway):
         )
         return list(await self._helper.session.scalars(query))
 
+    async def assigned_with_deadline(self, now: datetime) -> list[Order]:
+        query = (
+            select(Order)
+            .where(Order.status == OrderStatus.assigned, Order.deadline_at >= now)
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))
+
     async def stale_ids(self, cutoff: datetime) -> list[int]:
         last_dispatch = (
             select(func.max(OrderEvent.created_at))

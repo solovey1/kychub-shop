@@ -6,19 +6,24 @@ from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
+from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
+from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import CurrentUser
 from app.presentation.fastapi.api.schemas import (
     BalanceOut,
     CancelOut,
+    ExtensionAnswerIn,
+    ExtensionAskOut,
     LedgerEntryOut,
     OrderBrief,
     OrderListOut,
     OrderOut,
     usd,
 )
+from app.utils.time import datetime_now
 
 router: APIRouter = APIRouter(tags=["buyer"])
 
@@ -43,14 +48,11 @@ async def list_orders(
     )
 
 
-@router.get("/orders/{order_id}")
-@inject
-async def get_order(
-    order_id: int, user: CurrentUser, orders: FromDishka[OrdersInteractor]
-) -> OrderOut:
+async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOut:
     order = await orders.get(user.id, order_id)
     if order is None:
         raise HTTPException(404, "Not found")
+    pending = await orders.pending_extension(order)
     done = order.status is OrderStatus.completed and order.result is not None
     result = order.result or {}
     reserved = await orders.reserved(order)
@@ -61,7 +63,38 @@ async def get_order(
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
         reserved=usd(reserved) if reserved > 0 else None,
+        extension=ExtensionAskOut(
+            request_id=pending.request_id,
+            minutes=pending.minutes,
+            until=extended_deadline(order, pending.minutes, datetime_now()),
+        )
+        if pending is not None and order.deadline_at is not None
+        else None,
     )
+
+
+@router.get("/orders/{order_id}")
+@inject
+async def get_order(
+    order_id: int, user: CurrentUser, orders: FromDishka[OrdersInteractor]
+) -> OrderOut:
+    return await _order(order_id, user, orders)
+
+
+@router.post("/orders/{order_id}/extension")
+@inject
+async def answer_extension(
+    order_id: int,
+    body: ExtensionAnswerIn,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    extension: FromDishka[ExtensionInteractor],
+    effects: FromDishka[Effects],
+) -> OrderOut:
+    """Conflict `extension_stale` (409): the request is gone, nothing changed."""
+    answer = await extension.answer(user.id, order_id, body.request_id, body.approve)
+    await effects.extension_answered(answer)
+    return await _order(order_id, user, orders)
 
 
 @router.post("/orders/{order_id}/cancel")

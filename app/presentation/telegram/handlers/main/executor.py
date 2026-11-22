@@ -7,6 +7,7 @@ from dishka import FromDishka
 from app.domain.enums.roles import Role
 from app.presentation.telegram.callbacks.executor import (
     CDCabinet,
+    CDExt,
     CDOrderAct,
     CDReview,
     CDXOrder,
@@ -41,6 +42,13 @@ async def order_action(
     _: CallbackQuery, callback_data: CDOrderAct, flow: FromDishka[ExecutorOrdersFlow]
 ) -> Any:
     return await flow.action(callback_data)
+
+
+@router.callback_query(CDExt.filter())
+async def extension(
+    _: CallbackQuery, callback_data: CDExt, flow: FromDishka[ExecutorOrdersFlow]
+) -> Any:
+    return await flow.extension(callback_data)
 
 
 @router.callback_query(CDXOrders.filter())

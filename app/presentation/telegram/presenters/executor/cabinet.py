@@ -4,7 +4,7 @@ from html import escape
 
 from aiogram_i18n import I18nContext
 
-from app.application.cards import render_card
+from app.application.cards import fmt_duration, render_card
 from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.executor_wallet import WalletSummary
 from app.application.interactors.executors import CabinetOverview
@@ -17,6 +17,7 @@ from app.presentation.telegram.keyboards.executor import (
     back_to_cabinet,
     balance_keyboard,
     cabinet_keyboard,
+    extension_options_keyboard,
     order_back_keyboard,
     order_keyboard,
     orders_keyboard,
@@ -26,6 +27,7 @@ from app.presentation.telegram.keyboards.executor import (
 )
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.view.models import RenderMode, View
+from app.utils.time import datetime_now
 
 
 @dataclass(frozen=True)
@@ -84,7 +86,23 @@ class ExecutorPresenter(BasePresenter):
         if order.deadline_at is not None and order.status is OrderStatus.assigned:
             until = order.deadline_at.strftime("%d.%m.%Y %H:%M")
             text += "\n" + i18n.messages.executor.until(time=until)
-        return View(text=text, reply_markup=order_keyboard(i18n, order, page))
+        ext = view.extension
+        can_extend = (
+            order.status is OrderStatus.assigned
+            and order.deadline_at is not None
+            and order.deadline_at > datetime_now()
+            and ext.can_request
+        )
+        if order.status is OrderStatus.assigned and ext.pending is not None:
+            wait = fmt_duration(i18n.get, ext.pending.minutes)
+            text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
+        return View(text=text, reply_markup=order_keyboard(i18n, order, page, can_extend))
+
+    def extension_options(self, order_id: int) -> View:
+        return View(
+            text=self.i18n.messages.executor.ext_pick(id=str(order_id)),
+            reply_markup=extension_options_keyboard(self.i18n, order_id),
+        )
 
     def result_ask(
         self,

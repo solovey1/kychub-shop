@@ -47,3 +47,10 @@ order-status-cancelled = { order-icon-cancelled } cancelled
 
 buttons-order_item = { $icon } #{ $id }, { $title }, { $total }
 buttons-open_order = 📦 Open order
+messages-order-extension = ⏳ The executor asks for { $duration } more. New deadline: { $time }
+messages-order-extension_ask = ⏳ The executor asks to extend order #{ $id } by { $duration }. New deadline: { $time }
+messages-order-extension_yes = ✅ The deadline of order #{ $id } is extended to { $time }
+messages-order-extension_no = ✖️ You declined the extension of order #{ $id }. The deadline is unchanged.
+messages-order-extension_stale = This request is no longer relevant
+buttons-ext_yes = ✅ Extend
+buttons-ext_no = ✖️ No

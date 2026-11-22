@@ -88,6 +88,11 @@ export const en: typeof ru = {
   "order.reserved": "Reserved",
   "order.reservedNote": "Charged once the order is done",
   "order.cancelTooLate": "The order is already in progress and cannot be cancelled.",
+  "order.extAsk": "The executor asks for {d} more",
+  "order.extUntil": "New deadline: {time}",
+  "order.extYes": "Extend",
+  "order.extNo": "No",
+  "order.extStale": "This request is no longer relevant",
 
   "balance.title": "Balance",
   "balance.topup": "Top up in the bot",
@@ -120,6 +125,7 @@ export const en: typeof ru = {
   "left.over": "Overdue",
   "left.hm": "{h} h {m} min",
   "left.m": "{m} min",
+  "left.h": "{h} h",
 
   "exec.status": "Status",
   "exec.left": "Time left",
@@ -129,6 +135,11 @@ export const en: typeof ru = {
   "exec.writeBuyer": "Message the buyer",
   "exec.refuse": "Give up the order",
   "exec.refuseConfirm": "Give up the order? It goes back to the queue.",
+  "exec.extTitle": "Deadline",
+  "exec.extAsk": "Ask for more time",
+  "exec.extHint": "The buyer has to agree.",
+  "exec.extWaiting": "Your request for {d} more is waiting for the buyer",
+  "exec.extFailed": "You cannot ask for more time now: a request is already open, the limit is spent or the deadline has passed.",
 
   "form.title": "Result",
   "form.submit": "Submit result",

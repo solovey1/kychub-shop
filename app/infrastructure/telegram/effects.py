@@ -7,6 +7,7 @@ from aiogram import html
 
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.conversations import Posted
+from app.application.interactors.deadlines import ExtensionAnswer, ExtensionAsk
 from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
 from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
@@ -134,6 +135,17 @@ class Effects:
             )
         await _safe(f"refunding order {refund.order_id}", self.notices.refunded(refund))
         await self._order_event(refund.order_id, OrderStatus.refunded, queue=in_queue, staff=True)
+
+    async def extension_asked(self, ask: ExtensionAsk) -> None:
+        await _safe(f"asking the buyer of order {ask.order.id}", self.notices.extension_asked(ask))
+        await self._order_event(ask.order.id, OrderStatus.assigned)
+
+    async def extension_answered(self, answer: ExtensionAnswer) -> None:
+        await _safe(
+            f"telling the executor of order {answer.order.id}",
+            self.notices.extension_answered(answer),
+        )
+        await self._order_event(answer.order.id, OrderStatus.assigned)
 
     async def withdrawal_created(self, user: User, withdrawal: Withdrawal) -> None:
         await _safe(
