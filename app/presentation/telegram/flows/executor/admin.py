@@ -45,10 +45,10 @@ class ExecutorAdminFlow(BaseFlow):
             await self._reply("admin_done")
 
     async def add(self, args: str | None) -> None:
-        parts = (args or "").split()
-        if len(parts) != 2 or not parts[0].isdigit():
+        tg_id, _, alias = (args or "").strip().partition(" ")
+        if not tg_id.isdigit():
             return await self._reply("usage_add")
-        await self._run(self.interactor.register(self.user.id, int(parts[0]), parts[1]))
+        await self._run(self.interactor.register(self.user.id, int(tg_id), alias or None))
 
     async def perm(self, args: str | None) -> None:
         parts = (args or "").split()

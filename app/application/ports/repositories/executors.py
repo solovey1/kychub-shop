@@ -30,6 +30,9 @@ class ExecutorsGateway(Protocol):
 
     async def get_by_alias(self, alias: str) -> ExecutorProfile | None: ...
 
+    async def aliases(self) -> set[str]:
+        """Every alias in use."""
+
     async def add_profile(self, profile: ExecutorProfile) -> None:
         """Insert and flush."""
 

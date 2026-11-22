@@ -432,6 +432,7 @@ export const ru = {
   "people.newExecutorNote": "Человек должен хотя бы раз запустить бота.",
   "people.addExecutorButton": "Добавить",
   "people.tgId": "Telegram ID",
+  "people.aliasRandom": "Случайное имя",
   "people.alias": "Псевдоним",
   "people.maxParallel": "Заказов одновременно (1–100)",
   "people.percent": "Доля исполнителя, %",

@@ -19,7 +19,7 @@ messages-executor-percent_service = by service
 messages-executor-no_profile = Executor profile not found.
 
 messages-executor-admin_done = Done.
-messages-executor-usage_add = Usage: /executor_add &lt;tg_id&gt; &lt;alias&gt;
+messages-executor-usage_add = Usage: /executor_add &lt;tg_id&gt; [alias]. Without an alias a random name is picked.
 messages-executor-usage_perm = Usage: /executor_perm &lt;tg_id&gt; &lt;service code&gt; &lt;RU,UA,...&gt;. Use "-" instead of countries to revoke.
 messages-executor-usage_switch = Usage: /executor_on or /executor_off &lt;tg_id&gt;
 messages-executor-usage_limits = Usage: /executor_limits &lt;tg_id&gt; &lt;parallel&gt; [percent]

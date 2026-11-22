@@ -433,6 +433,7 @@ export const uk: typeof ru = {
   "people.newExecutorNote": "Людина має хоча б раз запустити бота.",
   "people.addExecutorButton": "Додати",
   "people.tgId": "Telegram ID",
+  "people.aliasRandom": "Випадкове ім'я",
   "people.alias": "Псевдонім",
   "people.maxParallel": "Замовлень одночасно (1–100)",
   "people.percent": "Частка виконавця, %",

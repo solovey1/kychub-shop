@@ -167,6 +167,10 @@ async def update_executor(
 ) -> OkOut:
     sent = body.model_fields_set
     profile = (await people.executor(user_id)).profile
+    if body.alias is not None and body.alias.strip() != profile.alias:
+        await executors.rename(
+            admin.id, user_id, body.alias
+        )  # first: a taken name changes nothing
     if body.is_active is not None and body.is_active != profile.is_active:
         await executors.set_active(admin.id, user_id, body.is_active)
     if sent & {"max_parallel", "percent_override"}:

@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import Final
 
+from app.application.aliases import default_alias
 from app.application.errors.shop import (
     AliasTaken,
     ExecutorExists,
@@ -21,7 +22,7 @@ from app.domain.executor import ExecutorProfile
 from app.domain.user import User
 from app.utils.time import datetime_now
 
-_ALIAS_RE: Final = re.compile(r"[\w.\-]{2,32}")
+_ALIAS_RE: Final = re.compile(r"[\w.\- ]{2,32}")  # letters (any script), digits, space, - . _
 
 
 @dataclass(frozen=True)
@@ -37,15 +38,20 @@ class ExecutorAdminInteractor(BaseInteractor):
     executors: ExecutorsGateway
     catalog: CatalogGateway
 
-    async def register(self, admin_id: int, tg_id: int, alias: str) -> ExecutorProfile:
-        alias = alias.strip()
-        if not _ALIAS_RE.fullmatch(alias):
+    async def register(
+        self, admin_id: int, tg_id: int, alias: str | None = None
+    ) -> ExecutorProfile:
+        """No alias (or an empty one): a free name from the default pool."""
+        alias = (alias or "").strip()
+        if alias and not _ALIAS_RE.fullmatch(alias):
             raise InvalidInput("alias")
         try:
-            if await self.executors.get_by_alias(alias) is not None:
-                raise AliasTaken(alias)
             if await self.executors.get_profile(tg_id) is not None:
                 raise ExecutorExists(tg_id)
+            if not alias:
+                alias = default_alias(await self.executors.aliases())
+            elif await self.executors.get_by_alias(alias) is not None:
+                raise AliasTaken(alias)
             user = await self.users.get(tg_id)
             if user is None:  # picked up at the first /start
                 user = User(id=tg_id, name="", language="ru")
@@ -59,6 +65,25 @@ class ExecutorAdminInteractor(BaseInteractor):
             await self.uow.rollback()
             raise
         return profile
+
+    async def rename(self, admin_id: int, tg_id: int, alias: str) -> None:
+        alias = alias.strip()
+        if not _ALIAS_RE.fullmatch(alias):
+            raise InvalidInput("alias")
+        try:
+            profile = await self._profile(tg_id)
+            if profile.alias == alias:
+                await self.uow.rollback()
+                return
+            taken = await self.executors.get_by_alias(alias)
+            if taken is not None:
+                raise AliasTaken(alias)
+            old, profile.alias = profile.alias, alias
+            await self._audit(admin_id, "executor.alias", tg_id, {"from": old, "to": alias})
+            await self.uow.commit()
+        except BaseException:
+            await self.uow.rollback()
+            raise
 
     async def set_permissions(
         self, admin_id: int, tg_id: int, service_code: str, countries: list[str]

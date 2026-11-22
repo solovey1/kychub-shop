@@ -28,6 +28,7 @@ function Editor({
   countries: AdminCountry[];
 }) {
   const initial = (sid: number) => executor.permissions.find((p) => p.service_id === sid)?.countries ?? [];
+  const [alias, setAlias] = useState(executor.alias);
   const [active, setActive] = useState(executor.is_active);
   const [maxParallel, setMaxParallel] = useState(String(executor.max_parallel));
   const [percent, setPercent] = useState(executor.percent_override === null ? "" : String(executor.percent_override));
@@ -39,14 +40,17 @@ function Editor({
 
   const limit = Number(maxParallel);
   const pct = percent === "" ? null : Number(percent);
+  const newAlias = alias.trim();
   const baseChanged =
+    newAlias !== executor.alias ||
     active !== executor.is_active || limit !== executor.max_parallel || pct !== executor.percent_override;
   const changed = services.filter((s) => !same(perms[s.id], initial(s.id)));
-  const valid = limit >= 1 && limit <= 100 && (pct === null || pct <= 100);
+  const valid = newAlias.length >= 2 && limit >= 1 && limit <= 100 && (pct === null || pct <= 100);
 
   useSave(valid && (baseChanged || changed.length > 0) ? t("save") : null, async () => {
     if (baseChanged)
       await send("PATCH", `/admin/executors/${executor.id}`, {
+        alias: newAlias,
         is_active: active,
         max_parallel: limit,
         percent_override: pct,
@@ -81,6 +85,9 @@ function Editor({
         <p>{list(executor.name, `ID ${executor.id}`, executor.online ? t("people.online") : t("people.offline"))}</p>
       </div>
       <Section footer={t("people.percentNote")}>
+        <Field label={t("people.alias")} invalid={newAlias.length < 2}>
+          <input value={alias} maxLength={32} onChange={(e) => setAlias(e.target.value)} />
+        </Field>
         <SwitchRow label={t("admin.active")} checked={active} onChange={setActive} />
         <Field label={t("people.maxParallel")} invalid={!(limit >= 1 && limit <= 100)}>
           <input inputMode="numeric" value={maxParallel} onChange={(e) => setMaxParallel(e.target.value.replace(/\D/g, ""))} />
@@ -133,8 +140,8 @@ export function NewExecutor() {
   const [tgId, setTgId] = useState("");
   const [alias, setAlias] = useState("");
   const exit = useExit("/admin/people/executors");
-  useSave(tgId !== "" && alias.trim() !== "" ? t("people.addExecutorButton") : null, async () => {
-    await send("POST", "/admin/executors", { tg_id: Number(tgId), alias: alias.trim() });
+  useSave(tgId !== "" ? t("people.addExecutorButton") : null, async () => {
+    await send("POST", "/admin/executors", { tg_id: Number(tgId), alias: alias.trim() || null });
     exit();
   });
   return (
@@ -147,7 +154,7 @@ export function NewExecutor() {
           <input inputMode="numeric" value={tgId} onChange={(e) => setTgId(e.target.value.replace(/\D/g, ""))} />
         </Field>
         <Field label={t("people.alias")}>
-          <input value={alias} maxLength={32} onChange={(e) => setAlias(e.target.value)} />
+          <input value={alias} maxLength={32} placeholder={t("people.aliasRandom")} onChange={(e) => setAlias(e.target.value)} />
         </Field>
       </Section>
     </div>

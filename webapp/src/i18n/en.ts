@@ -433,6 +433,7 @@ export const en: typeof ru = {
   "people.newExecutorNote": "The person must have started the bot at least once.",
   "people.addExecutorButton": "Add",
   "people.tgId": "Telegram ID",
+  "people.aliasRandom": "Random name",
   "people.alias": "Alias",
   "people.maxParallel": "Orders at a time (1-100)",
   "people.percent": "Executor share, %",

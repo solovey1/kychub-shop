@@ -19,7 +19,7 @@ messages-executor-percent_service = по сервису
 messages-executor-no_profile = Профиль исполнителя не найден.
 
 messages-executor-admin_done = Готово.
-messages-executor-usage_add = Использование: /executor_add &lt;tg_id&gt; &lt;псевдоним&gt;
+messages-executor-usage_add = Использование: /executor_add &lt;tg_id&gt; [псевдоним]. Без псевдонима выбирается случайное имя.
 messages-executor-usage_perm = Использование: /executor_perm &lt;tg_id&gt; &lt;код сервиса&gt; &lt;RU,UA,...&gt;. Вместо стран «-» снимает допуск.
 messages-executor-usage_switch = Использование: /executor_on или /executor_off &lt;tg_id&gt;
 messages-executor-usage_limits = Использование: /executor_limits &lt;tg_id&gt; &lt;параллельных&gt; [процент]

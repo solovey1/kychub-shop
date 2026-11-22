@@ -245,10 +245,11 @@ class ExecutorRowOut(PydanticModel):
 
 class ExecutorIn(PydanticModel):
     tg_id: int
-    alias: str
+    alias: str | None = Field(None, max_length=32)  # none or empty: a name from the default pool
 
 
 class ExecutorPatch(PydanticModel):
+    alias: str | None = Field(None, max_length=32)
     is_active: bool | None = None
     max_parallel: int | None = None
     percent_override: int | None = None  # sent as null: back to the service percent

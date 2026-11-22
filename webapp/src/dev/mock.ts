@@ -760,9 +760,9 @@ function peopleRoute(method: string, path: string, body: unknown, q: URLSearchPa
 
   if (path === "/admin/executors") {
     if (method === "POST") {
-      if (mExecutors.some((e) => e.alias === b.alias)) throw fail(409, "AliasTaken", "alias is taken");
+      if (b.alias && mExecutors.some((e) => e.alias === b.alias)) throw fail(409, "AliasTaken", "alias is taken");
       if (mExecutors.some((e) => e.id === b.tg_id)) throw fail(409, "ExecutorExists", "already an executor");
-      mExecutors.push({ id: b.tg_id as number, alias: b.alias as string, is_active: true, online: false, max_parallel: 3, percent_override: null, permissions: [] });
+      mExecutors.push({ id: b.tg_id as number, alias: (b.alias as string | null) || "Губка Боб", is_active: true, online: false, max_parallel: 3, percent_override: null, permissions: [] });
       return ok;
     }
     return mExecutors.map((e) => ({
@@ -784,7 +784,10 @@ function peopleRoute(method: string, path: string, body: unknown, q: URLSearchPa
   if ((m = path.match(/^\/admin\/executors\/(\d+)$/))) {
     const e = mExecutors.find((x) => x.id === Number(m![1]));
     if (!e) throw 404;
-    if (method === "PATCH") return Object.assign(e, b), ok;
+    if (method === "PATCH") {
+      if (b.alias && b.alias !== e.alias && mExecutors.some((x) => x.alias === b.alias)) throw fail(409, "AliasTaken", "alias is taken");
+      return Object.assign(e, b), ok;
+    }
     return {
       ...e,
       name: userById(e.id).name,

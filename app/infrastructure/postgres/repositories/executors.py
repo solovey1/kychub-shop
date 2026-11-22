@@ -38,6 +38,9 @@ class ExecutorsRepository(ExecutorsGateway):
     async def get_by_alias(self, alias: str) -> ExecutorProfile | None:
         return await self._helper.get_one(ExecutorProfile.alias == alias)
 
+    async def aliases(self) -> set[str]:
+        return set(await self._helper.session.scalars(select(ExecutorProfile.alias)))
+
     async def add_profile(self, profile: ExecutorProfile) -> None:
         await self._uow.flush(profile)
 
