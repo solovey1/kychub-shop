@@ -16,6 +16,14 @@ const PARENTS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^\/work\/order\//, () => "/work/mine"],
   [/^\/work\/offer\//, () => "/work/queue"],
   [/^\/support\/review\//, () => "/support/review"],
+  [/^\/admin\/catalog\/p\/(\d+)\/v\/(\d+)\/stock$/, (m) => `/admin/catalog/p/${m[1]}/v/${m[2]}`],
+  [/^\/admin\/catalog\/p\/(\d+)\/v\//, (m) => `/admin/catalog/p/${m[1]}`],
+  [/^\/admin\/catalog\/c\/(\d+)\/edit$/, (m) => `/admin/catalog/c/${m[1]}`],
+  [/^\/admin\/catalog\/s\//, () => "/admin/catalog/services"],
+  [/^\/admin\/catalog\/k\//, () => "/admin/catalog/countries"],
+  [/^\/admin\/catalog\/(services|countries)$/, () => "/admin"],
+  [/^\/admin\/catalog\/(c|p)\//, () => "/admin/catalog"],
+  [/^\/admin\//, () => "/admin"],
 ];
 
 /** The screen «back» leads to when the history has nothing before this one. */

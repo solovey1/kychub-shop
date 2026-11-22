@@ -1,6 +1,15 @@
 import { useEffect } from "react";
 import { Redirect, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+import { Admin } from "./admin/Admin";
+import { hasAdminTab } from "./admin/access";
+import { Catalog } from "./admin/catalog/Catalog";
+import { CategoryForm } from "./admin/catalog/Category";
+import { CountryForm } from "./admin/catalog/Country";
+import { ProductForm } from "./admin/catalog/Product";
+import { ServiceForm } from "./admin/catalog/Service";
+import { Stock } from "./admin/catalog/Stock";
+import { VariantForm } from "./admin/catalog/Variant";
 import { useExpired, useFetch, type Me } from "./api";
 import { setLang, t } from "./i18n";
 import { startLive } from "./live";
@@ -21,7 +30,7 @@ import { Tabs } from "./ui/Tabs";
 import { useUnreadFeed } from "./unread";
 
 const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$/;
-const TOP = /^\/(orders|balance|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
+const TOP = /^\/(orders|balance|admin|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
 
 function Shell({ me }: { me: Me }) {
   const [path, go] = useLocation();
@@ -46,8 +55,10 @@ function Shell({ me }: { me: Me }) {
     ...(me.roles.some((r) => r === "manager" || r === "admin")
       ? [{ to: "/support/tickets", key: "support" }]
       : []),
+    ...(hasAdminTab(me.roles) ? [{ to: "/admin", key: "admin" }] : []),
   ];
   const id = (p: { id?: string }) => Number(p.id);
+  const staff = hasAdminTab(me.roles);
   return (
     <div className="app">
       <Switch>
@@ -71,6 +82,48 @@ function Shell({ me }: { me: Me }) {
         <Route path="/ticket/:id/:cid">
           {(p) => <TicketChat tid={id(p)} cid={Number(p.cid)} />}
         </Route>
+        {staff && (
+          <>
+            <Route path="/admin">
+              <Admin roles={me.roles} />
+            </Route>
+            <Route path="/admin/catalog">
+              <Catalog seg="catalog" />
+            </Route>
+            <Route path="/admin/catalog/services">
+              <Catalog seg="services" />
+            </Route>
+            <Route path="/admin/catalog/countries">
+              <Catalog seg="countries" />
+            </Route>
+            <Route path="/admin/catalog/c/new/in/:parent">
+              {(p) => <CategoryForm id={null} parent={Number(p.parent) || null} />}
+            </Route>
+            <Route path="/admin/catalog/c/:id/edit">{(p) => <CategoryForm id={id(p)} parent={null} />}</Route>
+            <Route path="/admin/catalog/c/:id">{(p) => <Catalog seg="catalog" cat={id(p)} />}</Route>
+            <Route path="/admin/catalog/p/new/in/:cat">
+              {(p) => <ProductForm id={null} category={Number(p.cat)} />}
+            </Route>
+            <Route path="/admin/catalog/p/:pid/v/new">
+              {(p) => <VariantForm pid={Number(p.pid)} id={null} />}
+            </Route>
+            <Route path="/admin/catalog/p/:pid/v/:id/stock">
+              {(p) => <Stock pid={Number(p.pid)} id={id(p)} />}
+            </Route>
+            <Route path="/admin/catalog/p/:pid/v/:id">
+              {(p) => <VariantForm pid={Number(p.pid)} id={id(p)} />}
+            </Route>
+            <Route path="/admin/catalog/p/:id">{(p) => <ProductForm id={id(p)} category={0} />}</Route>
+            <Route path="/admin/catalog/s/new">
+              <ServiceForm id={null} />
+            </Route>
+            <Route path="/admin/catalog/s/:id">{(p) => <ServiceForm id={id(p)} />}</Route>
+            <Route path="/admin/catalog/k/new">
+              <CountryForm code={null} />
+            </Route>
+            <Route path="/admin/catalog/k/:code">{(p) => <CountryForm code={p.code ?? null} />}</Route>
+          </>
+        )}
         <Route>
           <Redirect to="/orders" replace />
         </Route>

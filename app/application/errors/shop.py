@@ -91,3 +91,23 @@ class ManagerExists(AppError):  # noqa: N818
 
 class ManagerNotFound(AppError):  # noqa: N818
     pass
+
+
+class NotFound(AppError):  # noqa: N818
+    """An admin target (category, product, promo code...) that does not exist."""
+
+
+class Conflict(AppError):  # noqa: N818
+    """The change is refused because of the current state. `code` is a stable key for the UI."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+class InvalidField(InvalidInput):
+    """A rejected form field: `field` names it, the message says why."""
+
+    def __init__(self, field: str, message: str) -> None:
+        super().__init__(message)
+        self.field = field

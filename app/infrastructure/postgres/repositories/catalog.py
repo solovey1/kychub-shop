@@ -115,7 +115,8 @@ class CatalogRepository(CatalogGateway):
                 ProductVariant,
                 (ProductVariant.product_id == Product.id) & ProductVariant.is_active,
             )
-            .where(Product.is_active)
+            .join(Category, Category.id == Product.category_id)
+            .where(Product.is_active, Category.is_active)
             .group_by(Product.id)
             .order_by(Product.position, Product.id)
             .offset(offset)

@@ -64,6 +64,11 @@ def require_role(*roles: Role) -> Any:
     return Depends(check)
 
 
+def require_perm(*perms: Role) -> Any:
+    """Admins and owners always pass; a manager needs one of the `CAN_*` flags."""
+    return require_role(Role.OWNER, Role.ADMIN, *perms)
+
+
 ExecutorUser = Annotated[User, require_role(Role.EXECUTOR)]
 StaffUser = Annotated[User, require_role(Role.MANAGER, Role.ADMIN)]
 AdminUser = Annotated[User, require_role(Role.ADMIN)]

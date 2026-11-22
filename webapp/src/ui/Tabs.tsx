@@ -9,6 +9,7 @@ const ICONS: Record<string, string> = {
   balance: "M3.5 7.5h17v11h-17zM3.5 7.5l2.5-3h10l2 3M15.5 13h2",
   work: "M4 8.5h16v10H4zM9 8.5v-2h6v2M4 13h16",
   support: "M4 5.5h16v11H9.5L5 20v-3.5H4z",
+  admin: "M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5",
 };
 
 export function Tabs({ tabs }: { tabs: { to: string; key: string }[] }) {

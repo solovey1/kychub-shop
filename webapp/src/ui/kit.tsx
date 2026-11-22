@@ -35,6 +35,7 @@ export function Row({
   tone,
   chevron,
   unread,
+  dim,
   onClick,
 }: {
   title: ReactNode;
@@ -45,11 +46,12 @@ export function Row({
   tone?: "bad" | "link";
   chevron?: boolean;
   unread?: number;
+  dim?: boolean;
   onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
   return (
-    <Tag className={`row${tone ? ` tone-${tone}` : ""}`} onClick={onClick}>
+    <Tag className={`row${tone ? ` tone-${tone}` : ""}${dim ? " dim" : ""}`} onClick={onClick}>
       <span className="row-main">
         <span className="row-title">{title}</span>
         {sub && <span className="row-sub">{sub}</span>}

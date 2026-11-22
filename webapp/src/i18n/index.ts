@@ -28,6 +28,8 @@ export function t(key: Key, params: Record<string, string | number> = {}): strin
   return text.replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ""));
 }
 
+export const known = (key: string): key is Key => key in ru;
+
 /** A dictionary entry by a name that comes from the server (status, ledger kind, role). */
 export function named(prefix: string, name: string): string {
   const key = `${prefix}.${name}`;

@@ -1,13 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 import { ApiError } from "./api";
-import { t } from "./i18n";
+import { known, t } from "./i18n";
 import { alert, failure } from "./telegram";
 
 /** What went wrong and what to do, for a person. */
 export function reason(e: unknown): string {
   if (!(e instanceof ApiError)) return t("error.network");
   if (e.status === 404) return t("error.notFound");
-  if (e.status === 409) return t("error.conflict");
+  if (e.status === 409) {
+    const key = `conflict.${e.code}`;
+    return known(key) ? t(key) : t("error.conflict");
+  }
   if (e.status === 400 || e.status === 422) return t("error.rejected", { detail: e.detail });
   return t("error.generic");
 }

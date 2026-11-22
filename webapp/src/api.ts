@@ -123,11 +123,84 @@ export type StaffOrder = StaffOrderBrief & {
   result_files: number;
 };
 
+// The admin API (app/presentation/fastapi/api/admin/schemas.py). Texts are {ru, en, uk}, `ru` required.
+export type I18n = Record<string, string>;
+export type AdminCategory = {
+  id: number;
+  parent_id: number | null;
+  title: I18n;
+  position: number;
+  is_active: boolean;
+  children: number;
+  products: number;
+};
+export type Fulfillment = "stock" | "fixed" | "manual" | "executor";
+export type AdminProductBrief = {
+  id: number;
+  title: I18n;
+  is_active: boolean;
+  fulfillment_type: Fulfillment;
+  variants: number;
+  price_from: string | null;
+};
+export type FieldType = "text" | "email" | "number" | "choice" | "login" | "file";
+export type SchemaField = {
+  key: string;
+  label: I18n;
+  type: FieldType;
+  required: boolean;
+  regex?: string;
+  options?: string[];
+  hidden_from_executor?: boolean;
+  hint?: I18n;
+  placeholder?: I18n;
+  max_length?: number;
+};
+export type FormSchema = { fields?: SchemaField[] };
+export type AdminVariant = {
+  id: number;
+  country_code: string | null;
+  title: I18n | null;
+  price: string;
+  is_active: boolean;
+  stock: number | null;
+};
+export type AdminProduct = {
+  id: number;
+  category_id: number;
+  service_id: number | null;
+  title: I18n;
+  description: I18n;
+  input_schema: FormSchema;
+  result_schema: FormSchema;
+  fulfillment_type: Fulfillment;
+  fulfillment_config: { text?: string };
+  is_active: boolean;
+  variants: AdminVariant[];
+  used: "has_orders" | "has_promo" | null;
+};
+export type AdminStock = {
+  free: number;
+  unlimited: string | null;
+  recent: { id: number; payload: string }[];
+};
+export type AdminService = {
+  id: number;
+  code: string;
+  title: string;
+  deadline_minutes: number;
+  assign_mode: "queue" | "auto";
+  executor_percent: number;
+  is_active: boolean;
+};
+export type AdminCountry = { code: string; title: I18n };
+
 export class ApiError extends Error {
   constructor(
     public status: number,
     public code: string | null,
     public detail: string,
+    public field: string | null = null,
   ) {
     super(detail);
   }
@@ -157,19 +230,24 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
   }
   let code: string | null = null;
   let detail = res.statusText;
+  let field: string | null = null;
   try {
     const json = await res.json();
     code = typeof json.code === "string" ? json.code : null;
     detail = typeof json.detail === "string" ? json.detail : JSON.stringify(json.detail);
+    field = typeof json.field === "string" ? json.field : null;
   } catch {
     // not JSON: keep the status text
   }
-  throw new ApiError(res.status, code, detail);
+  throw new ApiError(res.status, code, detail, field);
 }
 
 export const get = async <T>(path: string): Promise<T> => (await request("GET", path)).json();
-export const send = async <T>(method: "POST" | "PUT", path: string, body?: unknown): Promise<T> =>
-  (await request(method, path, body ?? {})).json();
+export const send = async <T>(
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<T> => (await request(method, path, body ?? {})).json();
 
 /** A file behind the auth header as a blob: URL, the caller revokes it. */
 export async function blobUrl(path: string): Promise<string> {

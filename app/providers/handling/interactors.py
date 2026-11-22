@@ -1,5 +1,6 @@
 from dishka import Provider, Scope, provide_all
 
+from app.application.interactors.admin.catalog import CatalogAdminInteractor
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
@@ -49,4 +50,5 @@ class InteractorsProvider(Provider):
         ExecutorWalletInteractor,
         ManagerAdminInteractor,
         ConversationInteractor,
+        CatalogAdminInteractor,
     )

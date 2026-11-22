@@ -184,10 +184,406 @@ function brief(o: Brief) {
   return { id: o.id, status: o.status, product: o.product, variant: o.variant, country: o.country, total: o.total, created_at: o.created_at, unread: o.unread ?? 0 };
 }
 
+// --- admin: the catalog, stateful in memory so every screen can be clicked through
+type I18n = Record<string, string>;
+const tr = (ru: string, en: string, uk = ru): I18n => ({ ru, en, uk });
+/** A failed request with the JSON body the real API sends: 409 {code, detail}, 422 {code, detail, field}. */
+type Fail = { status: number; body: { code?: string; detail: string; field?: string } };
+const fail = (status: number, code: string, detail: string, field?: string): Fail => ({
+  status,
+  body: { code, detail, field },
+});
+
+type MCategory = { id: number; parent_id: number | null; title: I18n; position: number; is_active: boolean };
+type MVariant = { id: number; country_code: string | null; title: I18n | null; price: string; is_active: boolean };
+type MProduct = {
+  id: number;
+  category_id: number;
+  service_id: number | null;
+  title: I18n;
+  description: I18n;
+  input_schema: { fields: object[] };
+  result_schema: { fields: object[] };
+  fulfillment_type: string;
+  fulfillment_config: { text?: string };
+  is_active: boolean;
+  variants: MVariant[];
+  used: string | null;
+};
+type MService = {
+  id: number;
+  code: string;
+  title: string;
+  deadline_minutes: number;
+  assign_mode: string;
+  executor_percent: number;
+  is_active: boolean;
+};
+type MCountry = { code: string; title: I18n };
+type MStock = { units: { id: number; payload: string }[]; unlimited: string | null };
+
+const mCategories: MCategory[] = [
+  { id: 1, parent_id: null, title: tr("Аккаунты", "Accounts", "Акаунти"), position: 0, is_active: true },
+  { id: 2, parent_id: null, title: tr("Прокси", "Proxies", "Проксі"), position: 1, is_active: true },
+  { id: 3, parent_id: null, title: tr("Услуги", "Services", "Послуги"), position: 2, is_active: true },
+  { id: 4, parent_id: 1, title: tr("Instagram", "Instagram"), position: 0, is_active: true },
+  { id: 5, parent_id: 1, title: tr("Facebook", "Facebook"), position: 1, is_active: true },
+  { id: 6, parent_id: 2, title: tr("Residential", "Residential"), position: 0, is_active: true },
+  { id: 7, parent_id: 2, title: tr("Mobile", "Mobile"), position: 1, is_active: false },
+  { id: 8, parent_id: 3, title: tr("Регистрации", "Registrations", "Реєстрації"), position: 0, is_active: true },
+];
+const mProducts: MProduct[] = [
+  {
+    id: 1,
+    category_id: 5,
+    service_id: null,
+    title: tr("Аккаунт Facebook, старый", "Facebook account, aged", "Акаунт Facebook, старий"),
+    description: tr("Аккаунт 2019 года с историей.", "An account from 2019 with history.", "Акаунт 2019 року з історією."),
+    input_schema: { fields: [] },
+    result_schema: { fields: [] },
+    fulfillment_type: "stock",
+    fulfillment_config: {},
+    is_active: true,
+    variants: [
+      { id: 1, country_code: "us", title: null, price: "15.00", is_active: true },
+      { id: 2, country_code: "de", title: tr("С почтой", "With mailbox", "З поштою"), price: "18.50", is_active: true },
+    ],
+    used: null,
+  },
+  {
+    id: 2,
+    category_id: 4,
+    service_id: 1,
+    title: tr("Аккаунт Instagram, прогретый", "Instagram account, warmed up", "Акаунт Instagram, прогрітий"),
+    description: tr("Прогрев аккаунта под ключ.", "A warmed-up account, ready to use.", "Прогрів акаунта під ключ."),
+    input_schema: {
+      fields: [
+        {
+          key: "profile_name",
+          type: "text",
+          required: true,
+          label: tr("Имя профиля", "Profile name", "Ім'я профілю"),
+          placeholder: tr("Например, my_shop", "For example, my_shop", "Наприклад, my_shop"),
+          max_length: 64,
+        },
+        {
+          key: "niche",
+          type: "choice",
+          required: false,
+          label: tr("Тематика", "Niche", "Тематика"),
+          hint: tr("Выберите одну", "Pick one", "Виберіть одну"),
+          options: ["Красота", "Фитнес", "Еда"],
+        },
+        {
+          key: "email",
+          type: "email",
+          required: true,
+          label: tr("Почта покупателя", "Buyer email", "Пошта покупця"),
+          hidden_from_executor: true,
+        },
+      ],
+    },
+    result_schema: {
+      fields: [
+        { key: "login", type: "login", required: true, label: tr("Логин", "Login", "Логін") },
+        { key: "password", type: "text", required: true, label: tr("Пароль", "Password", "Пароль") },
+      ],
+    },
+    fulfillment_type: "executor",
+    fulfillment_config: {},
+    is_active: true,
+    variants: [
+      { id: 3, country_code: "us", title: tr("30 дней", "30 days", "30 днів"), price: "12.50", is_active: true },
+      { id: 4, country_code: "pl", title: tr("7 дней", "7 days", "7 днів"), price: "8.00", is_active: false },
+    ],
+    used: "has_orders",
+  },
+  {
+    id: 3,
+    category_id: 4,
+    service_id: null,
+    title: tr("Гайд по прогреву", "Warm-up guide", "Гайд із прогріву"),
+    description: tr("", "", ""),
+    input_schema: { fields: [] },
+    result_schema: { fields: [] },
+    fulfillment_type: "fixed",
+    fulfillment_config: { text: "Шаг 1. Заполните профиль.\nШаг 2. Подпишитесь на 20 аккаунтов." },
+    is_active: true,
+    variants: [{ id: 5, country_code: null, title: null, price: "3.00", is_active: true }],
+    used: "has_promo",
+  },
+  {
+    id: 4,
+    category_id: 6,
+    service_id: null,
+    title: tr("Прокси, 10 штук", "Proxies, 10 pcs", "Проксі, 10 штук"),
+    description: tr("Резидентские прокси, выдаются вручную.", "Residential proxies, issued by hand.", "Резидентські проксі, видаються вручну."),
+    input_schema: { fields: [] },
+    result_schema: { fields: [] },
+    fulfillment_type: "manual",
+    fulfillment_config: {},
+    is_active: true,
+    variants: [{ id: 6, country_code: "pl", title: null, price: "20.00", is_active: true }],
+    used: null,
+  },
+  {
+    id: 5,
+    category_id: 7,
+    service_id: null,
+    title: tr("Mobile прокси, сутки", "Mobile proxy, one day", "Mobile проксі, доба"),
+    description: tr("", "", ""),
+    input_schema: { fields: [] },
+    result_schema: { fields: [] },
+    fulfillment_type: "stock",
+    fulfillment_config: {},
+    is_active: false,
+    variants: [{ id: 7, country_code: "us", title: null, price: "40.00", is_active: true }],
+    used: null,
+  },
+  {
+    id: 6,
+    category_id: 8,
+    service_id: 2,
+    title: tr("Регистрация Google Ads", "Google Ads registration", "Реєстрація Google Ads"),
+    description: tr("Регистрация с верификацией.", "Registration with verification.", "Реєстрація з верифікацією."),
+    input_schema: {
+      fields: [{ key: "email", type: "email", required: true, label: tr("Почта", "Email", "Пошта") }],
+    },
+    result_schema: {
+      fields: [{ key: "account", type: "text", required: true, label: tr("Аккаунт", "Account", "Акаунт") }],
+    },
+    fulfillment_type: "executor",
+    fulfillment_config: {},
+    is_active: true,
+    variants: [{ id: 8, country_code: null, title: tr("С верификацией", "Verified", "З верифікацією"), price: "45.00", is_active: true }],
+    used: "has_orders",
+  },
+];
+const mServices: MService[] = [
+  { id: 1, code: "socials", title: "Соцсети", deadline_minutes: 90, assign_mode: "queue", executor_percent: 40, is_active: true },
+  { id: 2, code: "ads", title: "Реклама", deadline_minutes: 180, assign_mode: "auto", executor_percent: 35, is_active: true },
+];
+const mCountries: MCountry[] = [
+  { code: "us", title: tr("США", "United States", "США") },
+  { code: "de", title: tr("Германия", "Germany", "Німеччина") },
+  { code: "pl", title: tr("Польша", "Poland", "Польща") },
+];
+
+let nextId = 100;
+const mStock = new Map<number, MStock>();
+const unit = (payload: string) => ({ id: nextId++, payload });
+mStock.set(1, { units: Array.from({ length: 30 }, (_, i) => unit(`fb_user_${1000 + i}:Zq${7000 + i * 13}!`)), unlimited: null });
+mStock.set(2, { units: Array.from({ length: 4 }, (_, i) => unit(`fb_de_${200 + i}:Kx${i}9!`)), unlimited: "fb_demo:demo-pass" });
+mStock.set(7, { units: Array.from({ length: 3 }, (_, i) => unit(`mob_${i}:10.1.1.${i}:8080`)), unlimited: null });
+
+const mProductOf = (id: number) => {
+  const p = mProducts.find((x) => x.id === id);
+  if (!p) throw 404;
+  return p;
+};
+const descendants = (id: number): number[] =>
+  mCategories.filter((c) => c.parent_id === id).flatMap((c) => [c.id, ...descendants(c.id)]);
+const price = (v: unknown) => Number(v).toFixed(2);
+
+/** Swap `id` with its neighbour among `siblings` (already in display order) inside `all`. */
+function swap<T extends { id: number }>(all: T[], siblings: T[], id: number, direction: unknown) {
+  const i = siblings.findIndex((s) => s.id === id);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= siblings.length) return;
+  const a = all.indexOf(siblings[i]);
+  const b = all.indexOf(siblings[j]);
+  [all[a], all[b]] = [all[b], all[a]];
+}
+
+function adminRoute(method: string, path: string, body: unknown): unknown {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const ok = { ok: true };
+  let m: RegExpMatchArray | null;
+
+  if (path === "/admin/categories") {
+    if (method === "POST") {
+      const id = nextId++;
+      const siblings = mCategories.filter((c) => c.parent_id === (b.parent_id ?? null));
+      mCategories.push({
+        id,
+        parent_id: (b.parent_id as number | null) ?? null,
+        title: b.title as I18n,
+        position: siblings.length,
+        is_active: b.is_active !== false,
+      });
+      return { id };
+    }
+    return [...mCategories]
+      .sort((x, y) => x.position - y.position)
+      .map((c) => ({
+        ...c,
+        children: mCategories.filter((x) => x.parent_id === c.id).length,
+        products: mProducts.filter((p) => p.category_id === c.id).length,
+      }));
+  }
+  if ((m = path.match(/^\/admin\/categories\/(\d+)\/move$/))) {
+    const c = mCategories.find((x) => x.id === Number(m![1]));
+    if (!c) throw 404;
+    const siblings = mCategories.filter((x) => x.parent_id === c.parent_id).sort((x, y) => x.position - y.position);
+    const i = siblings.findIndex((x) => x.id === c.id);
+    const o = siblings[b.direction === "up" ? i - 1 : i + 1];
+    if (o) [c.position, o.position] = [o.position, c.position];
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/categories\/(\d+)\/products$/)))
+    return mProducts
+      .filter((p) => p.category_id === Number(m![1]))
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        is_active: p.is_active,
+        fulfillment_type: p.fulfillment_type,
+        variants: p.variants.length,
+        price_from: p.variants.length ? price(Math.min(...p.variants.map((v) => Number(v.price)))) : null,
+      }));
+  if ((m = path.match(/^\/admin\/categories\/(\d+)$/))) {
+    const id = Number(m[1]);
+    const c = mCategories.find((x) => x.id === id);
+    if (!c) throw 404;
+    if (method === "DELETE") {
+      if (mCategories.some((x) => x.parent_id === id)) throw fail(409, "has_children", "category has subcategories");
+      if (mProducts.some((p) => p.category_id === id)) throw fail(409, "has_products", "category has products");
+      mCategories.splice(mCategories.indexOf(c), 1);
+      return ok;
+    }
+    if ("parent_id" in b && b.parent_id !== null && (b.parent_id === id || descendants(id).includes(b.parent_id as number)))
+      throw fail(409, "cycle", "category inside itself");
+    Object.assign(c, b);
+    return ok;
+  }
+
+  if (path === "/admin/products") {
+    const id = nextId++;
+    mProducts.push({
+      description: {},
+      input_schema: { fields: [] },
+      result_schema: { fields: [] },
+      fulfillment_config: {},
+      is_active: true,
+      service_id: null,
+      ...(b as Partial<MProduct>),
+      id,
+      variants: [],
+      used: null,
+    } as MProduct);
+    return { id };
+  }
+  if ((m = path.match(/^\/admin\/products\/(\d+)\/move$/))) {
+    const p = mProductOf(Number(m[1]));
+    swap(mProducts, mProducts.filter((x) => x.category_id === p.category_id), p.id, b.direction);
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/products\/(\d+)\/variants$/))) {
+    const p = mProductOf(Number(m[1]));
+    const id = nextId++;
+    p.variants.push({ id, country_code: (b.country_code as string | null) ?? null, title: (b.title as I18n | null) ?? null, price: price(b.price), is_active: b.is_active !== false });
+    return { id };
+  }
+  if ((m = path.match(/^\/admin\/products\/(\d+)$/))) {
+    const p = mProductOf(Number(m[1]));
+    if (method === "GET")
+      return { ...p, variants: p.variants.map((v) => ({ ...v, stock: p.fulfillment_type === "stock" ? (mStock.get(v.id)?.units.length ?? 0) : null })) };
+    if (method === "DELETE") {
+      if (p.used) throw fail(409, p.used, "product is used");
+      mProducts.splice(mProducts.indexOf(p), 1);
+      return ok;
+    }
+    for (const key of ["input_schema", "result_schema"] as const) {
+      const fields = ((b[key] as MProduct["input_schema"] | undefined)?.fields ?? []) as { key: string; regex?: string }[];
+      if (new Set(fields.map((f) => f.key)).size !== fields.length) throw fail(422, "InvalidField", "duplicate field keys", key);
+      for (const f of fields)
+        try {
+          if (f.regex) new RegExp(f.regex);
+        } catch {
+          throw fail(422, "InvalidField", `bad regex: ${f.regex}`, key);
+        }
+    }
+    Object.assign(p, b);
+    return ok;
+  }
+
+  if ((m = path.match(/^\/admin\/variants\/(\d+)\/stock\/unlimited$/))) {
+    const s = mStock.get(Number(m[1])) ?? { units: [], unlimited: null };
+    s.unlimited = (b.text as string | null) || null;
+    mStock.set(Number(m[1]), s);
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/variants\/(\d+)\/stock$/))) {
+    const id = Number(m[1]);
+    const s = mStock.get(id) ?? { units: [], unlimited: null };
+    mStock.set(id, s);
+    if (method === "POST") {
+      const lines = String(b.text).split("\n").map((l) => l.trim()).filter(Boolean);
+      const fresh = [...new Set(lines)].filter((l) => !s.units.some((u) => u.payload === l));
+      s.units.push(...fresh.map(unit));
+      return { added: fresh.length, duplicates: lines.length - fresh.length };
+    }
+    return { free: s.units.length, unlimited: s.unlimited, recent: s.units.slice(-50).reverse() };
+  }
+  if ((m = path.match(/^\/admin\/variants\/(\d+)$/))) {
+    const id = Number(m[1]);
+    const p = mProducts.find((x) => x.variants.some((v) => v.id === id));
+    const v = p?.variants.find((x) => x.id === id);
+    if (!p || !v) throw 404;
+    if (method === "DELETE") {
+      if (p.used === "has_orders") throw fail(409, "has_orders", "variant has orders");
+      p.variants.splice(p.variants.indexOf(v), 1);
+      return ok;
+    }
+    Object.assign(v, b, "price" in b ? { price: price(b.price) } : {});
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/stock\/(\d+)$/))) {
+    for (const s of mStock.values()) s.units = s.units.filter((u) => u.id !== Number(m![1]));
+    return ok;
+  }
+
+  if (path === "/admin/services") {
+    if (method === "GET") return mServices;
+    if (mServices.some((s) => s.code === b.code)) throw fail(409, "code_taken", "service code is taken");
+    const id = nextId++;
+    mServices.push({ ...(b as Omit<MService, "id">), id });
+    return { id };
+  }
+  if ((m = path.match(/^\/admin\/services\/(\d+)$/))) {
+    const s = mServices.find((x) => x.id === Number(m![1]));
+    if (!s) throw 404;
+    if (method === "DELETE") {
+      if (mProducts.some((p) => p.service_id === s.id)) throw fail(409, "in_use", "service is used");
+      mServices.splice(mServices.indexOf(s), 1);
+    } else Object.assign(s, b);
+    return ok;
+  }
+
+  if (path === "/admin/countries") {
+    if (method === "GET") return mCountries;
+    if (mCountries.some((c) => c.code === b.code)) throw fail(409, "code_taken", "country code is taken");
+    const c = { code: b.code as string, title: b.title as I18n };
+    mCountries.push(c);
+    return c;
+  }
+  if ((m = path.match(/^\/admin\/countries\/([a-z]{2})$/))) {
+    const c = mCountries.find((x) => x.code === m![1]);
+    if (!c) throw 404;
+    if (method === "DELETE") {
+      if (mProducts.some((p) => p.variants.some((v) => v.country_code === c.code))) throw fail(409, "in_use", "country is used");
+      mCountries.splice(mCountries.indexOf(c), 1);
+    } else c.title = b.title as I18n;
+    return ok;
+  }
+  throw 404;
+}
+
 function route(method: string, url: URL, body: unknown): unknown {
   const path = url.pathname.replace(/^\/api/, "");
   const q = url.searchParams;
   let m: RegExpMatchArray | null;
+  if (path.startsWith("/admin/")) return adminRoute(method, path, body);
   if (path === "/me")
     return {
       id: 1,
@@ -294,6 +690,10 @@ window.fetch = async (input, init) => {
     return data instanceof Blob ? new Response(data) : Response.json(data);
   } catch (e) {
     if (typeof e === "number") return Response.json({ detail: "Not found" }, { status: e });
+    if (typeof e === "object" && e !== null && "status" in e) {
+      const f = e as Fail;
+      return Response.json(f.body, { status: f.status });
+    }
     throw e;
   }
 };
