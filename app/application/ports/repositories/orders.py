@@ -37,8 +37,8 @@ class OrdersGateway(Protocol):
     ) -> dict[int, list[OrderEvent]]:
         """Events of these types, oldest first, by order id (one query)."""
 
-    async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
-        """The user's newest order of this product, whatever its status."""
+    async def recent_with_input(self, user_id: int, product_id: int, limit: int) -> list[Order]:
+        """The user's newest orders of this product that kept some answers, newest first."""
 
     async def reorderable(
         self, user_id: int, limit: int

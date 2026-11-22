@@ -2,5 +2,5 @@ from aiogram.filters.callback_data import CallbackData
 
 
 class CDPurchase(CallbackData, prefix="pur"):
-    action: str  # pay | promo | cancel | choice | skip | prev | done
+    action: str  # pay | promo | cancel | choice | skip | acct | new | done
     value: int = 0

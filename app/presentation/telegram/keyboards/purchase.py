@@ -12,8 +12,6 @@ from app.presentation.telegram.callbacks.orders import CDOrder
 from app.presentation.telegram.callbacks.purchase import CDPurchase
 from app.presentation.telegram.keyboards.common import button, markup
 
-PREV_LIMIT = 24  # characters of the previous answer on its button
-
 
 def _cancel(i18n: I18nContext) -> list[InlineKeyboardButton]:
     return [button(i18n.buttons.cancel(), CDPurchase(action="cancel"), style="danger")]
@@ -23,18 +21,20 @@ def back_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
     return markup([[button(i18n.buttons.back(), CDPurchase(action="back"))]])
 
 
-def ask_keyboard(
-    i18n: I18nContext, field: FormField, prev: str | None = None, files: int = 0
-) -> InlineKeyboardMarkup:
+def accounts_keyboard(i18n: I18nContext, labels: list[str]) -> InlineKeyboardMarkup:
+    rows = [[button(label, CDPurchase(action="acct", value=i))] for i, label in enumerate(labels)]
+    rows.append([button(i18n.buttons.new_account(), CDPurchase(action="new"))])
+    rows.append(_cancel(i18n))
+    return markup(rows)
+
+
+def ask_keyboard(i18n: I18nContext, field: FormField, files: int = 0) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if field.type is FieldType.choice:
         rows += [
             [button(option, CDPurchase(action="choice", value=i))]
             for i, option in enumerate(field.options or [])
         ]
-    if prev:
-        short = prev if len(prev) <= PREV_LIMIT else prev[: PREV_LIMIT - 1] + "…"
-        rows.append([button(i18n.buttons.prev(value=short), CDPurchase(action="prev"))])
     if files:  # several files: finished by this button, or on reaching the limit
         rows.append([button(i18n.buttons.done(), CDPurchase(action="done"), style="success")])
     elif not field.required:

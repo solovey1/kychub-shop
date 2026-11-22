@@ -9,7 +9,7 @@ from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.catalog import VariantView
-from app.application.interactors.purchase import Prepared, Quote
+from app.application.interactors.purchase import AnswerSet, Prepared, Quote
 from app.application.models.form_schema import FieldType, FormField, split_files
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
@@ -19,6 +19,7 @@ from app.presentation.telegram.keyboards.catalog import variant_name
 from app.presentation.telegram.keyboards.common import button, markup
 from app.presentation.telegram.keyboards.purchase import (
     accepted_keyboard,
+    accounts_keyboard,
     ask_keyboard,
     back_keyboard,
     confirm_keyboard,
@@ -104,15 +105,14 @@ class PurchasePresenter(BasePresenter):
     def reason(self, error: str) -> str:
         return self.i18n.get(f"messages-purchase-reason_{reason_code(error)}")
 
-    def prev_value(self, field: FormField, prev: dict[str, str]) -> str | None:
-        """The answer given last time, if it is still good for this field (files are not)."""
-        value = prev.get(field.key)
-        if not value:
-            return None
-        try:
-            return field.validate_value(value)
-        except ValueError:
-            return None
+    def accounts(self, prep: Prepared, sets: list[AnswerSet]) -> View:
+        """Which account's data to use: one button per earlier answer set, or new data."""
+        messages = Keys(self.i18n, "messages-purchase")
+        labels = [s.label or messages.account_from(id=s.code, date=s.date) for s in sets]
+        return View(
+            text=messages.pick_account(product=self._product(prep)),
+            reply_markup=accounts_keyboard(self.i18n, labels),
+        )
 
     def _ask_lines(self, field: FormField, files: int) -> list[str]:
         messages = Keys(self.i18n, "messages-purchase")
@@ -137,7 +137,6 @@ class PurchasePresenter(BasePresenter):
         prep: Prepared,
         answers: dict[str, str],
         idx: int,
-        prev: dict[str, str],
         *,
         current: bool,
         reason: str | None = None,
@@ -162,12 +161,9 @@ class PurchasePresenter(BasePresenter):
         lines += self._ask_lines(field, files)
         if reason is not None:
             lines.append(messages.invalid(reason=reason))
-        prev_value = self.prev_value(field, prev)
-        if prev_value and field.type is FieldType.file:  # the button shows a count, not ids
-            prev_value = self._value(field, prev_value)
         return View(
             text="\n".join(lines),
-            reply_markup=ask_keyboard(self.i18n, field, prev_value, files),
+            reply_markup=ask_keyboard(self.i18n, field, files),
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 
