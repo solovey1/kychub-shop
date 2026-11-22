@@ -1119,7 +1119,6 @@ function route(method: string, url: URL, body: unknown): unknown {
       id: 1,
       name: "Сергей",
       language: query.get("lang") ?? "ru",
-      timezone: "Europe/Kyiv",
       roles,
       balance: "128.40",
       hold: "12.50",

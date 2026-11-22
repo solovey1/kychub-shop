@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Final
 
@@ -10,7 +10,6 @@ from app.application.errors.shop import (
     InvalidInput,
     WalletNotSet,
 )
-from app.application.i18n_text import local_date
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.ports.repositories.executors import ExecutorsGateway
@@ -36,11 +35,11 @@ class WalletSummary:
     entries: list[LedgerEntry]
     holds: list[tuple[datetime, Decimal]]  # (hold ends, earning), earliest first
 
-    def hold_days(self, tz: str | None) -> list[tuple[date, Decimal]]:
-        """What becomes available on which day (his time zone), earliest first."""
+    def hold_days(self) -> list[tuple[date, Decimal]]:
+        """What becomes available on which day (UTC), earliest first."""
         days: dict[date, Decimal] = {}
         for at, amount in self.holds:
-            day = local_date(at, tz)
+            day = at.astimezone(timezone.utc).date()
             days[day] = days.get(day, Decimal(0)) + amount
         return sorted(days.items())
 

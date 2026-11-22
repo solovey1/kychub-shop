@@ -5,7 +5,6 @@ from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import fmt_date, fmt_usd
 from app.domain.ledger import LedgerEntry, Payment
-from app.domain.user import User
 from app.presentation.telegram.keyboards.balance import (
     back_to_balance,
     balance_keyboard,
@@ -20,7 +19,6 @@ from app.presentation.telegram.view.models import RenderMode, View
 @dataclass(frozen=True)
 class BalancePresenter(BasePresenter):
     i18n: I18nContext
-    user: User
 
     @staticmethod
     def _mode(current: bool) -> RenderMode:
@@ -40,7 +38,7 @@ class BalancePresenter(BasePresenter):
         if entries:
             history = "\n".join(
                 i18n.messages.balance.entry(
-                    date=fmt_date(e.created_at, self.user.timezone),
+                    date=fmt_date(e.created_at),
                     kind=i18n.get(f"ledger-kind-{e.kind}"),
                     amount=("+" if e.amount > 0 else "") + fmt_usd(e.amount),
                 )

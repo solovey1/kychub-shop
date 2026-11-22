@@ -18,7 +18,6 @@ export type Me = {
   id: number;
   name: string;
   language: string;
-  timezone: string | null;
   roles: string[];
   balance: string;
   hold: string;

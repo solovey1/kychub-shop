@@ -12,9 +12,8 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const randomCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
 
 const value = (p: PromoBrief) => (p.kind === "percent" ? `${p.value}%` : `$${p.value}`);
-/** ISO (UTC) to the value of a datetime-local input, in the local zone. */
-const toLocal = (iso: string | null) =>
-  iso ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : "";
+/** ISO (UTC) to the value of a datetime-local input, which is read as UTC too. */
+const toLocal = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 16) : "");
 
 export function PromoList() {
   const [, go] = useLocation();
@@ -88,7 +87,7 @@ function Editor({ promo }: { promo?: Promo }) {
         discount_amount: kind === "amount" ? amount : null,
         bonus_amount: kind === "bonus" ? amount : null,
         usage_limit: limit === "" ? null : Number(limit),
-        expires_at: expires === "" ? null : new Date(expires).toISOString(),
+        expires_at: expires === "" ? null : new Date(`${expires}Z`).toISOString(),
         product_id: productId === "" ? null : Number(productId),
         min_amount: minAmount === "" ? null : minAmount,
         new_users_only: newOnly,
@@ -155,7 +154,7 @@ function Editor({ promo }: { promo?: Promo }) {
         <Field label={t("promo.limit")}>
           <input inputMode="numeric" value={limit} onChange={(e) => setLimit(e.target.value.replace(/\D/g, ""))} />
         </Field>
-        <Field label={t("promo.expires")}>
+        <Field label={`${t("promo.expires")} (UTC)`}>
           <input type="datetime-local" value={expires} onChange={(e) => setExpires(e.target.value)} />
         </Field>
         <Field label={t("promo.product")}>

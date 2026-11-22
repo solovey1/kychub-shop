@@ -14,7 +14,6 @@ from app.application.interactors.stats import Stats
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
-from app.domain.user import User
 from app.presentation.telegram.keyboards.executor import (
     back_to_cabinet,
     balance_keyboard,
@@ -38,7 +37,6 @@ HOLD_DAYS_SHOWN: Final = 5
 @dataclass(frozen=True)
 class ExecutorPresenter(BasePresenter):
     i18n: I18nContext
-    user: User
 
     def cabinet(self, overview: CabinetOverview) -> View:
         i18n = self.i18n
@@ -90,7 +88,7 @@ class ExecutorPresenter(BasePresenter):
             status=i18n.get(f"order-status-{order.status}"),
         )
         if order.deadline_at is not None and order.status is OrderStatus.assigned:
-            until = fmt_time(order.deadline_at, self.user.timezone)
+            until = fmt_time(order.deadline_at)
             text += "\n" + i18n.messages.executor.until(time=until)
         ext = view.extension
         can_extend = (
@@ -104,24 +102,18 @@ class ExecutorPresenter(BasePresenter):
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
         if view.info is not None:
-            text += "\n" + i18n.messages.executor.info_wait(
-                time=fmt_time(view.info.until, self.user.timezone)
-            )
+            text += "\n" + i18n.messages.executor.info_wait(time=fmt_time(view.info.until))
         accept = order.status is OrderStatus.assigned and order.accept_until is not None
         if accept and order.accept_until is not None:
-            text += "\n" + i18n.messages.executor.accept_wait(
-                time=fmt_time(order.accept_until, self.user.timezone)
-            )
+            text += "\n" + i18n.messages.executor.accept_wait(time=fmt_time(order.accept_until))
         pending = view.cancel.pending
         asked = (
             pending is not None and order.status is OrderStatus.assigned and view.dispute is None
         )
         if asked and pending is not None:
-            text += "\n" + i18n.messages.executor.cancel_wait(
-                time=fmt_time(pending.agrees_at, self.user.timezone)
-            )
+            text += "\n" + i18n.messages.executor.cancel_wait(time=fmt_time(pending.agrees_at))
         if view.dispute is not None:
-            text += "\n\n" + dispute_line(i18n, view.dispute, "executor", self.user.timezone)
+            text += "\n\n" + dispute_line(i18n, view.dispute, "executor")
         return View(
             text=text,
             reply_markup=order_keyboard(
@@ -215,7 +207,7 @@ class ExecutorPresenter(BasePresenter):
         if summary.entries:
             history = "\n".join(
                 i18n.messages.balance.entry(
-                    date=fmt_date(e.created_at, self.user.timezone),
+                    date=fmt_date(e.created_at),
                     kind=i18n.get(f"ledger-kind-{e.kind}"),
                     amount=("+" if e.amount > 0 else "") + fmt_usd(e.amount),
                 )
@@ -223,7 +215,7 @@ class ExecutorPresenter(BasePresenter):
             )
         else:
             history = i18n.messages.balance.history_empty()
-        days = summary.hold_days(self.user.timezone)[:HOLD_DAYS_SHOWN]
+        days = summary.hold_days()[:HOLD_DAYS_SHOWN]
         holds = "\n".join(
             i18n.get(
                 "messages-executor-hold_line",

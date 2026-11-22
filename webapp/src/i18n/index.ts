@@ -52,15 +52,16 @@ export function fmtMoney(value: string, signed = false) {
   return `${sign}$${num}`;
 }
 
-const isToday = (d: Date) => d.toDateString() === new Date().toDateString();
+const isToday = (d: Date) => d.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
 
+/** Time of day is always UTC and says so; `timeOnlyToday` drops the date for today. */
 export function fmtDate(iso: string, timeOnlyToday = false) {
   const d = new Date(iso);
   const opts: Intl.DateTimeFormatOptions =
     timeOnlyToday && isToday(d)
       ? { hour: "2-digit", minute: "2-digit" }
       : { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
-  return new Intl.DateTimeFormat(lang, opts).format(d);
+  return `${new Intl.DateTimeFormat(lang, { ...opts, timeZone: "UTC" }).format(d)} UTC`;
 }
 
 /** `2026-11-25` (a calendar date, no zone) as `25.11`. */

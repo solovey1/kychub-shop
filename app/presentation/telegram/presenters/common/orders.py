@@ -14,7 +14,6 @@ from app.application.interactors.info_state import InfoPending
 from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
-from app.domain.user import User
 from app.presentation.telegram.callbacks.executor import CDXOrder
 from app.presentation.telegram.callbacks.orders import CDOrders
 from app.presentation.telegram.keyboards.common import button, markup
@@ -53,7 +52,7 @@ def _times(events: list[OrderEvent]) -> dict[str, datetime]:
     return at
 
 
-def dispute_line(i18n: I18nContext, dispute: Dispute, me: str, tz: str | None) -> str:
+def dispute_line(i18n: I18nContext, dispute: Dispute, me: str) -> str:
     """The banner of an open dispute for the buyer (`me`="buyer") or the executor."""
     if dispute.awaiting_role is None or dispute.awaiting_until is None:
         return i18n.messages.order.dispute()
@@ -62,16 +61,15 @@ def dispute_line(i18n: I18nContext, dispute: Dispute, me: str, tz: str | None) -
         if dispute.awaiting_role == me
         else f"dispute-from-{dispute.awaiting_role}"
     )
-    return i18n.messages.order.dispute_wait(who=who, time=fmt_time(dispute.awaiting_until, tz))
+    return i18n.messages.order.dispute_wait(who=who, time=fmt_time(dispute.awaiting_until))
 
 
 @dataclass(frozen=True)
 class OrdersPresenter(BasePresenter):
     i18n: I18nContext
-    user: User
 
     def _time(self, at: datetime) -> str:
-        return fmt_time(at, self.user.timezone)
+        return fmt_time(at)
 
     def orders(self, orders: list[Order], total: int, page: int) -> View:
         if not orders:
@@ -188,7 +186,7 @@ class OrdersPresenter(BasePresenter):
                 question=html.quote(info.question), time=self._time(info.until)
             )
         if dispute is not None:
-            text += "\n\n" + dispute_line(i18n, dispute, "buyer", self.user.timezone)
+            text += "\n\n" + dispute_line(i18n, dispute, "buyer")
         if order.status is OrderStatus.ready and order.result:
             shown = html.quote(str(order.result.get("text", ""))[:RESULT_SHOWN])
             text += "\n\n" + i18n.messages.order.check(

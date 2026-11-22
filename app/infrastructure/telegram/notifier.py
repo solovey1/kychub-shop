@@ -42,43 +42,39 @@ class Notifier:
     async def ticket_code(self, ticket_id: int) -> str:
         return await self.support.ticket_code(ticket_id)
 
-    async def _who(self, user_id: int) -> tuple[str, str | None]:
-        """The recipient's language and time zone."""
+    async def _locale(self, user_id: int) -> str:
         user = await self.users.get(user_id)
-        return (user.language, user.timezone) if user else (DEFAULT_LOCALE, None)
+        return user.language if user else DEFAULT_LOCALE
 
-    def _tr(self, locale: str, tz: str | None = None) -> Translate:
-        """A `datetime` argument is written in the recipient's time zone, so callers pass the
-        moment itself and every recipient (buyer, executor, staff) reads his own clock."""
+    def _tr(self, locale: str) -> Translate:
+        """A `datetime` argument is written in UTC, so callers pass the moment itself."""
 
         def tr(key: str, **kw: Any) -> str:
-            kw = {k: fmt_time(v, tz) if isinstance(v, datetime) else v for k, v in kw.items()}
+            kw = {k: fmt_time(v) if isinstance(v, datetime) else v for k, v in kw.items()}
             return self.core.get(key, locale, **kw)
 
         return tr
 
     async def translator(self, user_id: int) -> Translate:
         """A translator into the user's own language."""
-        return self._tr(*await self._who(user_id))
+        return self._tr(await self._locale(user_id))
 
-    def _render(self, locale: str, tz: str | None, key: Text, kwargs: dict[str, Any]) -> str:
-        tr = self._tr(locale, tz)
+    def _render(self, locale: str, key: Text, kwargs: dict[str, Any]) -> str:
+        tr = self._tr(locale)
         return key(tr, locale) if callable(key) else tr(key, **kwargs)
 
-    def _markup(
-        self, locale: str, tz: str | None, markup: Markup | None
-    ) -> InlineKeyboardMarkup | None:
-        return markup(self._tr(locale, tz)) if callable(markup) else markup
+    def _markup(self, locale: str, markup: Markup | None) -> InlineKeyboardMarkup | None:
+        return markup(self._tr(locale)) if callable(markup) else markup
 
     async def send(
         self, user_id: int, key: Text, reply_markup: Markup | None = None, **kwargs: Any
     ) -> Message | None:
         try:
-            locale, tz = await self._who(user_id)
+            locale = await self._locale(user_id)
             return await self.bot.send_message(
                 user_id,
-                self._render(locale, tz, key, kwargs),
-                reply_markup=self._markup(locale, tz, reply_markup),
+                self._render(locale, key, kwargs),
+                reply_markup=self._markup(locale, reply_markup),
             )
         except TelegramAPIError:
             logger.info("could not notify user %s", user_id)
@@ -96,12 +92,12 @@ class Notifier:
     ) -> bool:
         """Replaces the text; the keyboard is removed unless a new one is given."""
         try:
-            locale, tz = await self._who(chat_id)
+            locale = await self._locale(chat_id)
             await self.bot.edit_message_text(
-                self._render(locale, tz, key, kwargs),
+                self._render(locale, key, kwargs),
                 chat_id=chat_id,
                 message_id=message_id,
-                reply_markup=self._markup(locale, tz, reply_markup),
+                reply_markup=self._markup(locale, reply_markup),
             )
             return True
         except TelegramAPIError:

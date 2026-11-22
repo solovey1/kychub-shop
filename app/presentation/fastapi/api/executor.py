@@ -354,17 +354,13 @@ async def stats(user: ExecutorUser, interactor: FromDishka[ExecutorStats]) -> St
     return StatsOut(**vars(await interactor.stats(user.id)))
 
 
-async def _wallet(
-    user_id: int, tz: str | None, wallet: ExecutorWalletInteractor
-) -> WalletDetailOut:
+async def _wallet(user_id: int, wallet: ExecutorWalletInteractor) -> WalletDetailOut:
     try:
         summary = await wallet.summary(user_id)
     except ExecutorNotFound:
         raise HTTPException(404, "Not found") from None
     return WalletDetailOut(
-        hold_days=[
-            HoldDayOut(date=d.isoformat(), amount=usd(a)) for d, a in summary.hold_days(tz)
-        ],
+        hold_days=[HoldDayOut(date=d.isoformat(), amount=usd(a)) for d, a in summary.hold_days()],
         hold=usd(summary.hold),
         available=usd(summary.available),
         wallet=summary.wallet,
@@ -378,7 +374,7 @@ async def _wallet(
 async def balance(
     user: ExecutorUser, wallet: FromDishka[ExecutorWalletInteractor]
 ) -> WalletDetailOut:
-    return await _wallet(user.id, user.timezone, wallet)
+    return await _wallet(user.id, wallet)
 
 
 @router.put("/wallet")
@@ -387,7 +383,7 @@ async def set_wallet(
     body: WalletIn, user: ExecutorUser, wallet: FromDishka[ExecutorWalletInteractor]
 ) -> WalletDetailOut:
     await wallet.set_wallet(user.id, body.address)  # InvalidInput -> 422
-    return await _wallet(user.id, user.timezone, wallet)
+    return await _wallet(user.id, wallet)
 
 
 @router.post("/withdraw")

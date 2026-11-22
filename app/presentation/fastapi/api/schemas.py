@@ -31,15 +31,10 @@ class MeOut(PydanticModel):
     id: int
     name: str
     language: str
-    timezone: str | None = None
     roles: list[str]
     balance: str
     hold: str
     executor: WalletOut | None = None
-
-
-class TimezoneIn(PydanticModel):
-    timezone: str = Field(max_length=64)
 
 
 class OrderBrief(PydanticModel):

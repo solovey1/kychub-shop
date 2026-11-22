@@ -54,9 +54,7 @@ class CommonMenuPresenter(BasePresenter):
         if active:
             deadlines = [o.deadline_at for o in active if o.executor_id and o.deadline_at]
             line = "\n" + (
-                messages.orders_until(
-                    count=len(active), time=fmt_time(min(deadlines), user.timezone)
-                )
+                messages.orders_until(count=len(active), time=fmt_time(min(deadlines)))
                 if deadlines
                 else messages.orders(count=len(active))
             )
