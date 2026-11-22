@@ -49,4 +49,18 @@ class CryptoPayGateway:
         if status is None:
             logger.warning("unknown Crypto Pay status %s for invoice %s", invoice.status, pay_id)
             return PaymentStatus.created
+        if (
+            status is PaymentStatus.success
+            and invoice.paid_amount is not None
+            and invoice.paid_asset == invoice.asset
+            and Decimal(str(invoice.paid_amount)) < amount
+        ):
+            logger.warning(
+                "Crypto Pay invoice %s paid %s %s, less than %s",
+                pay_id,
+                invoice.paid_amount,
+                invoice.paid_asset,
+                amount,
+            )
+            return PaymentStatus.partially_paid
         return status
