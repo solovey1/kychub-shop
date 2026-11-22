@@ -6,7 +6,13 @@ messages-purchase-line_next_optional = ▫️ { $label } (optional)
 messages-purchase-ask = Enter { $label }
 messages-purchase-choose = Choose { $label }
 messages-purchase-hint_file = 📎 Send a photo or a file
-messages-purchase-file_value = 📎 file
+messages-purchase-files_value =
+    📎 { $n ->
+        [one] { $n } file
+       *[other] { $n } files
+    }
+messages-purchase-hint_files = 📎 Send photos or files, up to { $max }
+messages-purchase-files_progress = 📎 Files: { $n } of { $max }
 messages-purchase-prompt = ✏️ { $label }
 messages-purchase-invalid = ⚠️ { $reason }
 messages-purchase-confirm_title = 🧾 <b>Check your order</b>
@@ -64,3 +70,4 @@ buttons-topup = 💳 Top up
 buttons-topup_missing = 💳 Top up { $amount }
 buttons-edit = ✏️ Edit answers
 buttons-prev = ↩️ Same as last time: { $value }
+buttons-done = ✅ Done

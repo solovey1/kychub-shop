@@ -69,6 +69,7 @@ class Effects:
             await self.offers.announce(result)
 
     async def order_taken(self, order_id: int, executor_id: int) -> None:
+        await self.offers.send_files(order_id, executor_id)
         await _safe(
             f"closing the offers of order {order_id}",
             self.offers.close(order_id, "messages-executor-offer_taken", except_chat=executor_id),

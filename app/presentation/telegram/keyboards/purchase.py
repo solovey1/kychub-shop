@@ -24,7 +24,7 @@ def back_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
 
 
 def ask_keyboard(
-    i18n: I18nContext, field: FormField, prev: str | None = None
+    i18n: I18nContext, field: FormField, prev: str | None = None, files: int = 0
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if field.type is FieldType.choice:
@@ -35,7 +35,9 @@ def ask_keyboard(
     if prev:
         short = prev if len(prev) <= PREV_LIMIT else prev[: PREV_LIMIT - 1] + "…"
         rows.append([button(i18n.buttons.prev(value=short), CDPurchase(action="prev"))])
-    if not field.required:
+    if files:  # several files: finished by this button, or on reaching the limit
+        rows.append([button(i18n.buttons.done(), CDPurchase(action="done"), style="success")])
+    elif not field.required:
         rows.append([button(i18n.buttons.skip(), CDPurchase(action="skip"))])
     rows.append(_cancel(i18n))
     return markup(rows)

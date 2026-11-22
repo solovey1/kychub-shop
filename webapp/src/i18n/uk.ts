@@ -292,6 +292,7 @@ export const uk: typeof ru = {
   "schema.hint": "Підказка під запитанням",
   "schema.placeholder": "Текст у порожньому полі",
   "schema.regex": "Регулярний вираз",
+  "schema.maxFiles": "Макс. файлів (1–10)",
   "schema.maxLength": "Максимальна довжина",
   "schema.hidden": "Приховати від виконавця",
   "schema.order": "Порядок",

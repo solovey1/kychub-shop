@@ -8,6 +8,7 @@ from aiogram.types import InlineKeyboardMarkup
 from app.application.cards import OrderCard, render_card
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.dispatch import DispatchResult
+from app.application.models.form_schema import split_files
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import OrderOfferKey
@@ -69,6 +70,20 @@ class OfferService:
             logger.exception("announcing dispatch of order %s failed", result.order_id)
         await self._publish(result)
 
+    async def send_files(self, order_id: int, executor_id: int) -> None:
+        """The files the buyer attached to the order (the fields he may see), to the executor."""
+        try:
+            order = await self.orders.get(order_id)
+            if order is None:
+                return
+            card = await self.cards.build(order, executor_id)
+            for f in card.fields:
+                if f.is_file:
+                    for file_id in split_files(f.value):
+                        await self.notifier.send_media(executor_id, file_id)
+        except Exception:
+            logger.exception("sending the files of order %s failed", order_id)
+
     async def _publish(self, result: DispatchResult) -> None:
         """Open Mini Apps: the executors who may take the order, the people whose order moved."""
         try:
@@ -110,6 +125,7 @@ class OfferService:
             await self.notifier.send(
                 executor_id, _text("messages-executor-assigned", card), _refuse_keyboard(order_id)
             )
+            await self.send_files(order_id, executor_id)
             return
         key = OrderOfferKey(order_id=order_id)
         sent: list[list[int]] = await self.kv.get(key) or []

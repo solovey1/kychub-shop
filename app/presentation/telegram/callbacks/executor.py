@@ -20,7 +20,7 @@ class CDXOrder(CallbackData, prefix="xv"):
 
 
 class CDXResult(CallbackData, prefix="xr"):
-    action: str  # start | choice | skip | cancel
+    action: str  # start | choice | skip | cancel | done
     id: int
     value: int = 0
 

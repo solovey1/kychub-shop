@@ -291,6 +291,7 @@ export const ru = {
   "schema.hint": "Подсказка под вопросом",
   "schema.placeholder": "Текст в пустом поле",
   "schema.regex": "Регулярное выражение",
+  "schema.maxFiles": "Макс. файлов (1–10)",
   "schema.maxLength": "Максимальная длина",
   "schema.hidden": "Скрыть от исполнителя",
   "schema.order": "Порядок",

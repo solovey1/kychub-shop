@@ -292,6 +292,7 @@ export const en: typeof ru = {
   "schema.hint": "Hint under the question",
   "schema.placeholder": "Text in the empty field",
   "schema.regex": "Regular expression",
+  "schema.maxFiles": "Max files (1–10)",
   "schema.maxLength": "Maximum length",
   "schema.hidden": "Hide from the executor",
   "schema.order": "Order",

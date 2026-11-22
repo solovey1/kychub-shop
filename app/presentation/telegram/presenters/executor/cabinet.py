@@ -95,6 +95,7 @@ class ExecutorPresenter(BasePresenter):
         *,
         current: bool,
         reason: str | None = None,
+        files: int = 0,
     ) -> View:
         i18n = self.i18n
         text = i18n.messages.executor.result_ask(
@@ -104,12 +105,19 @@ class ExecutorPresenter(BasePresenter):
             label=escape(pick_i18n(field.label, i18n.locale)),
         )
         if field.type is FieldType.file:
-            text += "\n" + i18n.messages.purchase.hint_file()
+            many = field.max_files > 1
+            text += "\n" + (
+                i18n.messages.purchase.hint_files(max=field.max_files)
+                if many
+                else i18n.messages.purchase.hint_file()
+            )
+            if many:
+                text += "\n" + i18n.messages.purchase.files_progress(n=files, max=field.max_files)
         if reason is not None:
             text = i18n.messages.purchase.invalid(reason=reason) + "\n\n" + text
         return View(
             text=text,
-            reply_markup=result_ask_keyboard(i18n, order_id, field),
+            reply_markup=result_ask_keyboard(i18n, order_id, field, files),
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 

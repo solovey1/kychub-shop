@@ -10,7 +10,7 @@ from aiogram_i18n import I18nContext
 from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.catalog import VariantView
 from app.application.interactors.purchase import Prepared, Quote
-from app.application.models.form_schema import FieldType, FormField
+from app.application.models.form_schema import FieldType, FormField, split_files
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.domain.user import User
@@ -98,7 +98,7 @@ class PurchasePresenter(BasePresenter):
 
     def _value(self, field: FormField, value: str) -> str:
         if field.type is FieldType.file:
-            return self.i18n.messages.purchase.file_value()
+            return self.i18n.messages.purchase.files_value(n=len(split_files(value)))
         return html.quote(value) if value else "—"
 
     def reason(self, error: str) -> str:
@@ -107,12 +107,30 @@ class PurchasePresenter(BasePresenter):
     def prev_value(self, field: FormField, prev: dict[str, str]) -> str | None:
         """The answer given last time, if it is still good for this field (files are not)."""
         value = prev.get(field.key)
-        if not value or field.type is FieldType.file:
+        if not value:
             return None
         try:
             return field.validate_value(value)
         except ValueError:
             return None
+
+    def _ask_lines(self, field: FormField, files: int) -> list[str]:
+        messages = self.i18n.messages.purchase
+        if hint := pick_i18n(field.hint, self.i18n.locale):
+            lines = [html.quote(hint)]
+        elif field.type is FieldType.file:
+            lines = [
+                messages.hint_files(max=field.max_files)
+                if field.max_files > 1
+                else messages.hint_file()
+            ]
+        elif field.type is FieldType.choice:
+            lines = [messages.choose(label=self._label(field))]
+        else:
+            lines = [messages.ask(label=self._label(field))]
+        if field.type is FieldType.file and field.max_files > 1:
+            lines.append(messages.files_progress(n=files, max=field.max_files))
+        return lines
 
     def card(
         self,
@@ -123,6 +141,7 @@ class PurchasePresenter(BasePresenter):
         *,
         current: bool,
         reason: str | None = None,
+        files: int = 0,
     ) -> View:
         """The live questionnaire: every question with its state, then the current prompt."""
         messages = self.i18n.messages.purchase
@@ -140,19 +159,15 @@ class PurchasePresenter(BasePresenter):
                 lines.append(messages.line_next_optional(label=label))
         field = prep.form.fields[idx]
         lines.append(SEPARATOR)
-        if hint := pick_i18n(field.hint, self.i18n.locale):
-            lines.append(html.quote(hint))
-        elif field.type is FieldType.file:
-            lines.append(messages.hint_file())
-        elif field.type is FieldType.choice:
-            lines.append(messages.choose(label=self._label(field)))
-        else:
-            lines.append(messages.ask(label=self._label(field)))
+        lines += self._ask_lines(field, files)
         if reason is not None:
             lines.append(messages.invalid(reason=reason))
+        prev_value = self.prev_value(field, prev)
+        if prev_value and field.type is FieldType.file:  # the button shows a count, not ids
+            prev_value = self._value(field, prev_value)
         return View(
             text="\n".join(lines),
-            reply_markup=ask_keyboard(self.i18n, field, self.prev_value(field, prev)),
+            reply_markup=ask_keyboard(self.i18n, field, prev_value, files),
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 

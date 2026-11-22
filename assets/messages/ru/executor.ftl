@@ -41,7 +41,12 @@ messages-card =
     ⏱ Срок до { $deadline }
 
     <blockquote>{ $fields }</blockquote>
-messages-card-file = (файл)
+messages-card-file =
+    { $n ->
+        [one] ({ $n } файл)
+        [few] ({ $n } файла)
+       *[other] ({ $n } файлов)
+    }
 
 buttons-take = ✅ Взять
 buttons-refuse = ✖️ Отказаться

@@ -41,7 +41,11 @@ messages-card =
     ⏱ Due in { $deadline }
 
     <blockquote>{ $fields }</blockquote>
-messages-card-file = (file)
+messages-card-file =
+    { $n ->
+        [one] ({ $n } file)
+       *[other] ({ $n } files)
+    }
 
 buttons-take = ✅ Take
 buttons-refuse = ✖️ Refuse

@@ -21,6 +21,12 @@ from app.domain.user import User
 from app.infrastructure.telegram.offers import OfferService
 from app.presentation.telegram.callbacks.purchase import CDPurchase
 from app.presentation.telegram.flows.base import BaseFlow
+from app.presentation.telegram.flows.common.files import (
+    chat_lock,
+    finish_files,
+    is_straggler,
+    take_file,
+)
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
 from app.presentation.telegram.states.purchase import PurchaseForm
 from app.presentation.telegram.view.models import RenderMode, View
@@ -121,12 +127,22 @@ class PurchaseFlow(BaseFlow):
             answers={},
             promo_code=None,
             prev=prev,
+            files=[],
+            group=None,
+            group_open=None,
             editing=False,
             message_id=self.helper.find_message_id(),
         )
         await self._step(prep, current=False)
 
-    async def _step(self, prep: Prepared, *, current: bool, reason: str | None = None) -> None:
+    async def _step(
+        self,
+        prep: Prepared,
+        *,
+        current: bool,
+        reason: str | None = None,
+        prompt: bool = True,
+    ) -> None:
         fsm = self.helper.fsm
         data = await fsm.get_data()
         idx = data["idx"]
@@ -135,11 +151,18 @@ class PurchaseFlow(BaseFlow):
         await fsm.set_state(PurchaseForm.answer)
         await self._render(
             self.presenter.card(
-                prep, data["answers"], idx, data.get("prev", {}), current=current, reason=reason
+                prep,
+                data["answers"],
+                idx,
+                data.get("prev", {}),
+                current=current,
+                reason=reason,
+                files=len(data.get("files", [])),
             )
         )
-        await self._drop_prompt()
-        await self._send_prompt(prep, idx)
+        if prompt:  # collecting files keeps the one already shown
+            await self._drop_prompt()
+            await self._send_prompt(prep, idx)
 
     async def _accept(
         self, prep: Prepared, data: dict[str, Any], value: str, *, current: bool
@@ -148,11 +171,19 @@ class PurchaseFlow(BaseFlow):
         # a changed answer goes straight back to the checkout
         idx = len(prep.form.fields) if data.get("editing") else data["idx"] + 1
         await self.helper.fsm.update_data(
-            answers={**data["answers"], field.key: value}, idx=idx, editing=False
+            answers={**data["answers"], field.key: value},
+            idx=idx,
+            editing=False,
+            files=[],
+            group_open=None,
         )
         await self._step(prep, current=current)
 
     async def answer_message(self, message: Message) -> None:
+        async with chat_lock(self.helper.get_chat_id()):
+            await self._answer_message(message)
+
+    async def _answer_message(self, message: Message) -> None:
         ctx = await self._load(current=True)
         if ctx is None:
             return
@@ -160,13 +191,14 @@ class PurchaseFlow(BaseFlow):
         field = prep.form.fields[data["idx"]]
         reason: str | None = None
         value = ""
+        if is_straggler(message, data):  # the rest of an album that already answered
+            return
         if field.type is FieldType.file:
-            if message.document:
-                value = message.document.file_id
-            elif message.photo:
-                value = message.photo[-1].file_id
-            else:
+            status, value = await take_file(self.helper.fsm, message, field, data)
+            if status == "wrong":
                 reason = self.presenter.reason("not_file")
+            elif status == "more":
+                return await self._step(prep, current=True, prompt=False)
         elif not message.text:
             reason = self.presenter.reason("not_text")
         else:
@@ -215,6 +247,8 @@ class PurchaseFlow(BaseFlow):
             return await self._say("cancelled")
         if cd.action == "pay":
             return await self.pay()
+        if cd.action == "done":
+            return await self._done()
         ctx = await self._load()
         if ctx is None:
             return
@@ -229,10 +263,22 @@ class PurchaseFlow(BaseFlow):
             case "edit":
                 await self._confirm(prep, current=False, pick=True)
             case "field" if 0 <= cd.value < len(fields):
-                await self.helper.fsm.update_data(idx=cd.value, editing=True)
+                await self.helper.fsm.update_data(idx=cd.value, editing=True, files=[])
                 await self._step(prep, current=False)
             case "choice" | "skip" | "prev" if data["idx"] < len(fields):
                 await self._pick(prep, data, cd)
+
+    async def _done(self) -> None:
+        """The "Done" button of a field with several files."""
+        async with chat_lock(self.helper.get_chat_id()):
+            ctx = await self._load()
+            if ctx is None:
+                return
+            prep, data = ctx
+            if data["idx"] >= len(prep.form.fields) or not data.get("files"):
+                return
+            value = await finish_files(self.helper.fsm, data)
+            await self._accept(prep, data, value, current=False)
 
     async def _pick(self, prep: Prepared, data: dict[str, Any], cd: CDPurchase) -> None:
         """An answer given with a button: an option, "skip" or the previous answer."""

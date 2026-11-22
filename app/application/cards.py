@@ -4,6 +4,7 @@ from html import escape
 from typing import Callable
 
 from app.application.i18n_text import country_flag, fmt_usd, pick_i18n
+from app.application.models.form_schema import split_files
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ def render_card(tr: Callable[..., str], locale: str, card: OrderCard) -> str:
         place = f"{country_flag(card.country_code)} {escape(title)}".strip()
     lines = [
         f"{escape(pick_i18n(f.label, locale))}: "
-        + (tr("messages-card-file") if f.is_file else escape(f.value))
+        + (tr("messages-card-file", n=len(split_files(f.value))) if f.is_file else escape(f.value))
         for f in card.fields
     ]
     return tr(

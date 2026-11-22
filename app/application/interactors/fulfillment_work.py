@@ -7,7 +7,7 @@ from app.application.i18n_text import pick_i18n
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, load_context
 from app.application.interactors.catalog import PAGE_SIZE
-from app.application.models.form_schema import FieldType, FormField, FormSchema
+from app.application.models.form_schema import FieldType, FormField, FormSchema, split_files
 from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
@@ -42,7 +42,7 @@ def pack_result(form: FormSchema, values: dict[str, str]) -> dict[str, object]:
         if not value:
             continue
         if f.type is FieldType.file:
-            files.append(value)
+            files.extend(split_files(value))
         elif len(form.fields) == 1:
             lines.append(value)
         else:

@@ -6,7 +6,14 @@ messages-purchase-line_next_optional = ▫️ { $label } (можно пропу�
 messages-purchase-ask = Введите { $label }
 messages-purchase-choose = Выберите { $label }
 messages-purchase-hint_file = 📎 Отправьте фото или файл
-messages-purchase-file_value = 📎 файл
+messages-purchase-files_value =
+    📎 { $n ->
+        [one] { $n } файл
+        [few] { $n } файла
+       *[other] { $n } файлов
+    }
+messages-purchase-hint_files = 📎 Отправьте фото или файлы, до { $max }
+messages-purchase-files_progress = 📎 Файлов: { $n } из { $max }
 messages-purchase-prompt = ✏️ { $label }
 messages-purchase-invalid = ⚠️ { $reason }
 messages-purchase-confirm_title = 🧾 <b>Проверьте заказ</b>
@@ -64,3 +71,4 @@ buttons-topup = 💳 Пополнить
 buttons-topup_missing = 💳 Пополнить на { $amount }
 buttons-edit = ✏️ Изменить ответы
 buttons-prev = ↩️ Как в прошлый раз: { $value }
+buttons-done = ✅ Готово

@@ -155,6 +155,7 @@ export type SchemaField = {
   hint?: I18n;
   placeholder?: I18n;
   max_length?: number;
+  max_files?: number;
 };
 export type FormSchema = { fields?: SchemaField[] };
 export type AdminVariant = {

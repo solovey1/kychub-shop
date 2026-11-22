@@ -13,6 +13,12 @@ from app.domain.user import User
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.executor import CDOrderAct, CDXResult
 from app.presentation.telegram.flows.base import BaseFlow
+from app.presentation.telegram.flows.common.files import (
+    chat_lock,
+    finish_files,
+    is_straggler,
+    take_file,
+)
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
 from app.presentation.telegram.presenters.executor.cabinet import ExecutorPresenter
 from app.presentation.telegram.states.executor import ResultForm
@@ -76,6 +82,8 @@ class ExecutorOrdersFlow(BaseFlow):
             return await self._start(cd.id)
         if cd.action == "cancel":
             return await self.show(cd.id, 0)
+        if cd.action == "done":
+            return await self._done()
         ctx = await self._load()
         if ctx is None:
             return
@@ -91,6 +99,18 @@ class ExecutorOrdersFlow(BaseFlow):
             return
         await self._accept(form, data, value, current=False)
 
+    async def _done(self) -> None:
+        """The "Done" button of a field with several files."""
+        async with chat_lock(self.helper.get_chat_id()):
+            ctx = await self._load()
+            if ctx is None:
+                return
+            form, data = ctx
+            if data["idx"] >= len(form.fields) or not data.get("files"):
+                return
+            value = await finish_files(self.helper.fsm, data)
+            await self._accept(form, data, value, current=False)
+
     async def _start(self, order_id: int) -> None:
         fsm = self.helper.fsm
         await fsm.clear()
@@ -99,7 +119,13 @@ class ExecutorOrdersFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-executor-refuse_failed", order_id)
         await fsm.update_data(
-            order_id=order_id, idx=0, answers={}, message_id=self.helper.find_message_id()
+            order_id=order_id,
+            idx=0,
+            answers={},
+            files=[],
+            group=None,
+            group_open=None,
+            message_id=self.helper.find_message_id(),
         )
         await self._step(form, order_id, current=False)
 
@@ -116,15 +142,27 @@ class ExecutorOrdersFlow(BaseFlow):
             return None
 
     async def _step(
-        self, form: FormSchema, order_id: int, *, current: bool, reason: str | None = None
+        self,
+        form: FormSchema,
+        order_id: int,
+        *,
+        current: bool,
+        reason: str | None = None,
     ) -> None:
         fsm = self.helper.fsm
-        idx = (await fsm.get_data())["idx"]
+        data = await fsm.get_data()
+        idx = data["idx"]
         if idx >= len(form.fields):
             return await self._finish(order_id)
         await fsm.set_state(ResultForm.answer)
         view = self.presenter.result_ask(
-            order_id, form.fields[idx], idx, len(form.fields), current=current, reason=reason
+            order_id,
+            form.fields[idx],
+            idx,
+            len(form.fields),
+            current=current,
+            reason=reason,
+            files=len(data.get("files", [])),
         )
         result = await self.renderer.apply(view)
         if isinstance(result, Message):
@@ -135,10 +173,16 @@ class ExecutorOrdersFlow(BaseFlow):
     ) -> None:
         field = form.fields[data["idx"]]
         answers = {**data["answers"], field.key: value}
-        await self.helper.fsm.update_data(answers=answers, idx=data["idx"] + 1)
+        await self.helper.fsm.update_data(
+            answers=answers, idx=data["idx"] + 1, files=[], group_open=None
+        )
         await self._step(form, data["order_id"], current=current)
 
     async def answer_message(self, message: Message) -> None:
+        async with chat_lock(self.helper.get_chat_id()):
+            await self._answer_message(message)
+
+    async def _answer_message(self, message: Message) -> None:
         ctx = await self._load()
         if ctx is None:
             return
@@ -146,13 +190,14 @@ class ExecutorOrdersFlow(BaseFlow):
         field = form.fields[data["idx"]]
         reason: str | None = None
         value = ""
+        if is_straggler(message, data):  # the rest of an album that already answered
+            return
         if field.type is FieldType.file:
-            if message.document:
-                value = message.document.file_id
-            elif message.photo:
-                value = message.photo[-1].file_id
-            else:
+            status, value = await take_file(self.helper.fsm, message, field, data)
+            if status == "wrong":
                 reason = self.purchase_presenter.reason("not_file")
+            elif status == "more":
+                return await self._step(form, data["order_id"], current=True)
         elif not message.text:
             reason = self.purchase_presenter.reason("not_text")
         else:

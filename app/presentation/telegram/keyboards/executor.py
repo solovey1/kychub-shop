@@ -93,7 +93,7 @@ def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboard
 
 
 def result_ask_keyboard(
-    i18n: I18nContext, order_id: int, field: FormField
+    i18n: I18nContext, order_id: int, field: FormField, files: int = 0
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if field.type is FieldType.choice:
@@ -101,7 +101,11 @@ def result_ask_keyboard(
             [button(option, CDXResult(action="choice", id=order_id, value=i))]
             for i, option in enumerate(field.options or [])
         ]
-    if not field.required:
+    if files:
+        rows.append(
+            [button(i18n.buttons.done(), CDXResult(action="done", id=order_id), style="success")]
+        )
+    elif not field.required:
         rows.append([button(i18n.buttons.skip(), CDXResult(action="skip", id=order_id))])
     rows.append(
         [button(i18n.buttons.cancel(), CDXResult(action="cancel", id=order_id), style="danger")]

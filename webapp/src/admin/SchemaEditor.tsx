@@ -18,6 +18,7 @@ export type Draft = {
   options: string;
   regex: string;
   maxLength: string;
+  maxFiles: string;
   hidden: boolean;
 };
 
@@ -60,6 +61,7 @@ const newDraft = (taken: string[]): Draft => ({
   options: "",
   regex: "",
   maxLength: "",
+  maxFiles: "",
   hidden: false,
 });
 
@@ -76,6 +78,7 @@ export const toDrafts = (schema: FormSchema): Draft[] =>
     options: (f.options ?? []).join("\n"),
     regex: f.regex ?? "",
     maxLength: f.max_length === undefined ? "" : String(f.max_length),
+    maxFiles: f.max_files === undefined ? "" : String(f.max_files),
     hidden: !!f.hidden_from_executor,
   }));
 
@@ -105,6 +108,7 @@ export const toSchema = (drafts: Draft[]): { fields: SchemaField[] } => ({
     options: d.type === "choice" ? lines(d.options) : undefined,
     regex: d.regex.trim() || undefined,
     max_length: d.maxLength.trim() ? Number(d.maxLength) : undefined,
+    max_files: d.type === "file" && d.maxFiles.trim() ? Number(d.maxFiles) : undefined,
     hidden_from_executor: d.hidden || undefined,
   })),
 });
@@ -116,7 +120,8 @@ export const schemaValid = (drafts: Draft[]) =>
       !drafts.some((o, j) => j < i && o.key === d.key) &&
       d.label.ru.trim() !== "" &&
       (d.type !== "choice" || lines(d.options).length > 0) &&
-      (d.maxLength.trim() === "" || (Number(d.maxLength) >= 1 && Number(d.maxLength) <= 4096)),
+      (d.maxLength.trim() === "" || (Number(d.maxLength) >= 1 && Number(d.maxLength) <= 4096)) &&
+      (d.type !== "file" || d.maxFiles.trim() === "" || (Number(d.maxFiles) >= 1 && Number(d.maxFiles) <= 10)),
   );
 
 export function SchemaEditor({
@@ -237,6 +242,16 @@ export function SchemaEditor({
                       onChange={(e) => patch(d.id, { regex: e.target.value })}
                     />
                   </Field>
+                  {d.type === "file" && (
+                    <Field label={t("schema.maxFiles")}>
+                      <input
+                        inputMode="numeric"
+                        placeholder="1"
+                        value={d.maxFiles}
+                        onChange={(e) => patch(d.id, { maxFiles: e.target.value.replace(/\D/g, "") })}
+                      />
+                    </Field>
+                  )}
                   <Field label={t("schema.maxLength")}>
                     <input
                       inputMode="numeric"
