@@ -11,12 +11,15 @@ from aiogram.types import LinkPreviewOptions
 from dishka import Provider, Scope, provide
 
 from app.application.models.config import AppConfig
+from app.providers.telegram.custom_emoji import CustomEmojiMiddleware, load_ids
 from app.utils import mjson
 
 
 def create_bot(config: AppConfig) -> Bot:
     session: AiohttpSession = AiohttpSession(json_loads=mjson.decode, json_dumps=mjson.encode)
     session.middleware(RetryRequestMiddleware())
+    if config.common.custom_emoji:
+        session.middleware(CustomEmojiMiddleware(load_ids()))
     return Bot(
         token=config.telegram.bot_token.get_secret_value(),
         session=session,
