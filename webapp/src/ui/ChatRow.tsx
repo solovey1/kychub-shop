@@ -2,9 +2,12 @@ import type { Message, OrderChat } from "../api";
 import { known, named, t } from "../i18n";
 import { Badge, Row } from "./kit";
 
+/** Staff of every rank is just «Support» to the people in a chat. */
+export const sender = (role: string) => named("role", role === "admin" ? "manager" : role);
+
 function preview(m: Message) {
   const body = m.text ?? (m.media_type ? (known(`media.${m.media_type}`) ? named("media", m.media_type) : t("chat.file", { type: m.media_type })) : "");
-  return `${m.mine ? t("chat.you") : named("role", m.sender_role)}: ${body}`;
+  return `${m.mine ? t("chat.you") : sender(m.sender_role)}: ${body}`;
 }
 
 /** «Write to …» row of an order: unread badge and the last message under the title. */

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { report } from "../action";
 import { ApiError, blobUrl, get, send, upload, type Message, type Messages } from "../api";
-import { fmtDate, named, t } from "../i18n";
+import { fmtDate, t } from "../i18n";
+import { sender } from "./ChatRow";
 import { useLive } from "../live";
 import { alert, success } from "../telegram";
 import { refreshUnread } from "../unread";
@@ -231,7 +232,7 @@ export function Chat({
           const first = !prev || prev.mine !== m.mine || prev.sender_role !== m.sender_role;
           return (
             <div key={m.id} className={`msg${m.mine ? " mine" : ""}${first && i ? " gap" : ""}`}>
-              {!m.mine && first && <span className="who">{named("role", m.sender_role)}</span>}
+              {!m.mine && first && <span className="who">{sender(m.sender_role)}</span>}
               {m.media_type && <Media id={m.id} type={m.media_type} />}
               {m.text && <span className="text">{m.text}</span>}
               <time>{fmtDate(m.created_at, true)}</time>
