@@ -16,6 +16,7 @@ export function Balance() {
         <Money value={data.balance} big />
       </div>
       <Section footer={t("balance.hint")}>
+        {Number(data.hold) > 0 && <Row title={t("balance.held")} right={<Money value={data.hold} />} />}
         <Row title={t("balance.topup")} tone="link" onClick={close} />
       </Section>
       {data.entries.length === 0 ? (

@@ -62,6 +62,9 @@ export const uk: typeof ru = {
   "kind.withdrawal": "Виведення",
   "kind.promo_bonus": "Бонус за промокодом",
   "kind.admin_adjust": "Коригування",
+  "kind.order_hold": "Резерв під замовлення",
+  "kind.order_capture": "Списано за замовлення",
+  "kind.order_release": "Резерв повернено",
 
   "orders.title": "Замовлення",
   "orders.empty": "Замовлень поки немає. Каталог — у боті.",
@@ -82,6 +85,8 @@ export const uk: typeof ru = {
   "order.cancel": "Скасувати замовлення",
   "order.cancelConfirm": "Скасувати замовлення? Гроші повернуться на баланс.",
   "order.cancelled": "Замовлення скасовано, на баланс повернулося {sum}.",
+  "order.reserved": "Зарезервовано",
+  "order.reservedNote": "Спишеться після виконання",
   "order.cancelTooLate": "Замовлення вже взято в роботу, скасувати його не можна.",
 
   "balance.title": "Баланс",
@@ -89,6 +94,7 @@ export const uk: typeof ru = {
   "balance.hint": "Поповнення й покупки — в чаті з ботом.",
   "balance.empty": "Операцій поки немає.",
   "balance.history": "Історія",
+  "balance.held": "У замовленнях",
 
   "chat.order": "Чат за замовленням №{id}",
   "chat.empty": "Повідомлень поки немає. Напишіть першим.",
@@ -520,6 +526,7 @@ export const uk: typeof ru = {
   "stats.liabilities": "Гроші в системі",
   "stats.liabilitiesNote": "Баланси виконавців і покупців на зараз.",
   "stats.buyers": "Баланси покупців",
+  "stats.buyersHold": "У замовленнях покупців",
   "stats.orders": "Замовлення за статусами",
   "stats.top": "Найкращі товари",
   "stats.ordersCount": "{n} замовлення|{n} замовлення|{n} замовлень|{n} замовлення",

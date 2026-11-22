@@ -31,9 +31,12 @@ class CommonMenuFlow(BaseFlow):
 
     async def _card(self, *, new: bool = False) -> Any:
         amount = await self.balance.balance(self.user.id)
+        held = await self.balance.held(self.user.id)
         active = await self.orders.active(self.user.id)
         reorders = await self.orders.reorderable(self.user.id)
-        view = self.presenter.greeting(self.user, amount, active, reorders, self.config.server.url)
+        view = self.presenter.greeting(
+            self.user, amount, held, active, reorders, self.config.server.url
+        )
         if new:
             view.mode = RenderMode.NEW
         return await self.renderer.apply(view)

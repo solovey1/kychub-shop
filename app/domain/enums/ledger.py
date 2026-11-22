@@ -5,6 +5,7 @@ class LedgerAccount(StrEnum):
     main = "main"
     executor_hold = "executor_hold"
     executor_available = "executor_available"
+    buyer_hold = "buyer_hold"
 
 
 class LedgerKind(StrEnum):
@@ -18,6 +19,9 @@ class LedgerKind(StrEnum):
     withdrawal = "withdrawal"
     promo_bonus = "promo_bonus"
     admin_adjust = "admin_adjust"
+    order_hold = "order_hold"
+    order_capture = "order_capture"
+    order_release = "order_release"
 
 
 class WithdrawalStatus(StrEnum):

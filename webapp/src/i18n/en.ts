@@ -62,6 +62,9 @@ export const en: typeof ru = {
   "kind.withdrawal": "Withdrawal",
   "kind.promo_bonus": "Promo bonus",
   "kind.admin_adjust": "Adjustment",
+  "kind.order_hold": "Reserved for an order",
+  "kind.order_capture": "Charged for an order",
+  "kind.order_release": "Reserve released",
 
   "orders.title": "Orders",
   "orders.empty": "No orders yet. The catalog is in the bot.",
@@ -82,6 +85,8 @@ export const en: typeof ru = {
   "order.cancel": "Cancel order",
   "order.cancelConfirm": "Cancel the order? The money returns to your balance.",
   "order.cancelled": "Order cancelled, {sum} returned to your balance.",
+  "order.reserved": "Reserved",
+  "order.reservedNote": "Charged once the order is done",
   "order.cancelTooLate": "The order is already in progress and cannot be cancelled.",
 
   "balance.title": "Balance",
@@ -89,6 +94,7 @@ export const en: typeof ru = {
   "balance.hint": "Top-ups and purchases happen in the bot chat.",
   "balance.empty": "No transactions yet.",
   "balance.history": "History",
+  "balance.held": "In orders",
 
   "chat.order": "Order chat, no. {id}",
   "chat.empty": "No messages yet. Write first.",
@@ -520,6 +526,7 @@ export const en: typeof ru = {
   "stats.liabilities": "Money in the system",
   "stats.liabilitiesNote": "Executor and buyer balances right now.",
   "stats.buyers": "Buyer balances",
+  "stats.buyersHold": "Held in buyers' orders",
   "stats.orders": "Orders by status",
   "stats.top": "Top products",
   "stats.ordersCount": "{n} order|{n} orders",

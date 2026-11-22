@@ -5,6 +5,7 @@ from app.application.errors.shop import InvalidInput, OutOfStock, ProductUnavail
 from app.application.fulfillment import FulfillmentRegistry
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
+from app.application.interactors.payouts import order_ref
 from app.application.interactors.promo import PromoService, discount_for
 from app.application.models.form_schema import FormSchema
 from app.application.ports.repositories.catalog import CatalogGateway
@@ -193,6 +194,16 @@ class PurchaseInteractor(BaseInteractor):
                 ref=ref,
             )
         await handler.on_paid(order, product)
+        if total > 0 and order.status is not OrderStatus.completed:
+            # an executor or manual order: the money stays reserved until it is done
+            await self.ledger.post(
+                user_id,
+                LedgerAccount.buyer_hold,
+                total,
+                LedgerKind.order_hold,
+                order_id=order.id,
+                ref=order_ref(order),
+            )
         return order
 
     @staticmethod

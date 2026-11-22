@@ -1,8 +1,9 @@
 messages-balance =
-    💰 <b>Баланс: { $amount }</b>
+    💰 <b>Баланс: { $amount }</b>{ $held }
 
     Останні операції:
     { $history }
+messages-held = 🔒 У замовленнях: { $amount }
 messages-balance-entry = { $kind } · { $date } · { $amount }
 messages-balance-history_empty = Операцій поки немає.
 messages-balance-credited = ➕ На ваш баланс зараховано { $amount }.
@@ -56,3 +57,6 @@ buttons-provider_cryptobot = CryptoBot
 buttons-provider_binance = Binance Pay
 buttons-provider_nowpayments = NOWPayments
 buttons-provider_test = Тестовий платіж
+ledger-kind-order_hold = 🔒 Резерв під замовлення
+ledger-kind-order_capture = ✅ Списано за виконане замовлення
+ledger-kind-order_release = ↩️ Резерв повернено

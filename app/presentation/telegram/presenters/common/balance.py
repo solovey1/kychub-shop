@@ -27,6 +27,7 @@ class BalancePresenter(BasePresenter):
     def balance(
         self,
         amount: Decimal,
+        held: Decimal,
         entries: list[LedgerEntry],
         *,
         current: bool = False,
@@ -44,7 +45,8 @@ class BalancePresenter(BasePresenter):
             )
         else:
             history = i18n.messages.balance.history_empty()
-        text = i18n.messages.balance(amount=fmt_usd(amount), history=history)
+        line = "\n" + i18n.messages.held(amount=fmt_usd(held)) if held > 0 else ""
+        text = i18n.messages.balance(amount=fmt_usd(amount), held=line, history=history)
         if notice:
             text = f"{notice}\n\n{text}"
         return View(text=text, reply_markup=balance_keyboard(i18n), mode=self._mode(current))

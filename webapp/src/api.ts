@@ -20,6 +20,7 @@ export type Me = {
   language: string;
   roles: string[];
   balance: string;
+  hold: string;
   executor: { hold: string; available: string } | null;
 };
 export type OrderBrief = {
@@ -37,6 +38,7 @@ export type Order = OrderBrief & {
   result: string | null;
   result_files: number;
   can_cancel: boolean;
+  reserved: string | null;
 };
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 export type Entry = {
@@ -47,7 +49,7 @@ export type Entry = {
   order_id: number | null;
   created_at: string;
 };
-export type Balance = { balance: string; entries: Entry[] };
+export type Balance = { balance: string; hold: string; entries: Entry[] };
 export type Message = {
   id: number;
   sender_role: string;
@@ -310,6 +312,7 @@ export type StatsData = {
   hold: string;
   available: string;
   buyers: string;
+  buyers_hold: string;
 };
 export type Tunables = { hold_days: number; review_delay_hours: number; min_withdrawal: string };
 export type AuditRow = {

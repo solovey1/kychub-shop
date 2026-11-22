@@ -5,7 +5,7 @@ messages-welcome =
 messages-greeting =
     🏠 <b>Головна</b>
 
-    💰 Баланс: <b>{ $balance }</b>{ $orders }
+    💰 Баланс: <b>{ $balance }</b>{ $held }{ $orders }
 messages-greeting-orders = 📦 У роботі: { $count }
 messages-greeting-orders_until = 📦 У роботі: { $count }, найближчий термін до { $time }
 messages-language = 🌐 Оберіть мову інтерфейсу.

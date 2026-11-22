@@ -39,4 +39,5 @@ async def stats(
         hold=usd(data.hold),
         available=usd(data.available),
         buyers=usd(data.buyers),
+        buyers_hold=usd(data.buyers_hold),
     )

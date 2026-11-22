@@ -433,6 +433,7 @@ class AdminRepository(AdminGateway):
             hold=await balance(LedgerAccount.executor_hold),
             available=await balance(LedgerAccount.executor_available),
             buyers=await balance(main),
+            buyers_hold=await balance(LedgerAccount.buyer_hold),
         )
 
     async def set_setting(self, key: str, value: Any) -> None:

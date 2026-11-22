@@ -42,6 +42,7 @@ class StatsData:
     hold: Decimal  # now, all executors
     available: Decimal
     buyers: Decimal  # now, all main balances
+    buyers_hold: Decimal  # now, money reserved in unfinished orders
 
 
 class AdminGateway(Protocol):

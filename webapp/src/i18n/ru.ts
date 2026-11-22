@@ -61,6 +61,9 @@ export const ru = {
   "kind.withdrawal": "Вывод",
   "kind.promo_bonus": "Бонус по промокоду",
   "kind.admin_adjust": "Корректировка",
+  "kind.order_hold": "Резерв под заказ",
+  "kind.order_capture": "Списано за заказ",
+  "kind.order_release": "Резерв возвращён",
 
   "orders.title": "Заказы",
   "orders.empty": "Заказов пока нет. Каталог — в боте.",
@@ -81,6 +84,8 @@ export const ru = {
   "order.cancel": "Отменить заказ",
   "order.cancelConfirm": "Отменить заказ? Деньги вернутся на баланс.",
   "order.cancelled": "Заказ отменён, на баланс вернулось {sum}.",
+  "order.reserved": "Зарезервировано",
+  "order.reservedNote": "Спишется после выполнения",
   "order.cancelTooLate": "Заказ уже взят в работу, отменить его нельзя.",
 
   "balance.title": "Баланс",
@@ -88,6 +93,7 @@ export const ru = {
   "balance.hint": "Пополнение и покупки — в чате с ботом.",
   "balance.empty": "Операций пока нет.",
   "balance.history": "История",
+  "balance.held": "В заказах",
 
   "chat.order": "Чат по заказу №{id}",
   "chat.empty": "Сообщений пока нет. Напишите первым.",
@@ -519,6 +525,7 @@ export const ru = {
   "stats.liabilities": "Деньги в системе",
   "stats.liabilitiesNote": "Балансы исполнителей и покупателей на сейчас.",
   "stats.buyers": "Балансы покупателей",
+  "stats.buyersHold": "В заказах у покупателей",
   "stats.orders": "Заказы по статусам",
   "stats.top": "Лучшие товары",
   "stats.ordersCount": "{n} заказ|{n} заказа|{n} заказов|{n} заказа",

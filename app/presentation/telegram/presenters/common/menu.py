@@ -44,6 +44,7 @@ class CommonMenuPresenter(BasePresenter):
         self,
         user: User,
         balance: Decimal,
+        held: Decimal,
         active: list[Order],
         reorders: list[tuple[VariantView, Product]],
         server_url: str,
@@ -58,7 +59,7 @@ class CommonMenuPresenter(BasePresenter):
                 else messages.orders(count=len(active))
             )
         return View(
-            text=messages(balance=fmt_usd(balance), orders=line),
+            text=messages(balance=fmt_usd(balance), held=self._held(held), orders=line),
             reply_markup=main_menu_keyboard(
                 self.i18n,
                 reorders,
@@ -67,6 +68,9 @@ class CommonMenuPresenter(BasePresenter):
                 server_url,
             ),
         )
+
+    def _held(self, held: Decimal) -> str:
+        return "\n" + self.i18n.messages.held(amount=fmt_usd(held)) if held > 0 else ""
 
     def nav(self) -> ReplyKeyboardMarkup:
         return nav_keyboard(self.i18n)

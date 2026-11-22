@@ -45,6 +45,7 @@ function Report({ data }: { data: StatsData }) {
         <Row title={t("wallet.hold")} right={<Money value={data.hold} />} />
         <Row title={t("wallet.available")} right={<Money value={data.available} />} />
         <Row title={t("stats.buyers")} right={<Money value={data.buyers} />} />
+        <Row title={t("stats.buyersHold")} right={<Money value={data.buyers_hold} />} />
       </Section>
       <Section title={t("stats.orders")}>
         {statuses.length === 0 && <Row title={t("none")} />}

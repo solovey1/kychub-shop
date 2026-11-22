@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.catalog import PAGE_SIZE, VariantView
 from app.application.interactors.ledger import LedgerService
-from app.application.interactors.payouts import Refunded, refund_buyer
+from app.application.interactors.payouts import Refunded, open_hold, refund_buyer
 from app.application.ports.repositories.executors import ExecutorsGateway
+from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.catalog import Product
@@ -21,6 +23,7 @@ class OrdersInteractor(BaseInteractor):
     gateway: OrdersGateway
     uow: UnitOfWork
     ledger: LedgerService
+    ledger_gateway: LedgerGateway
     executors: ExecutorsGateway
 
     async def list_orders(self, user_id: int, page: int) -> tuple[list[Order], int, int]:
@@ -43,6 +46,12 @@ class OrdersInteractor(BaseInteractor):
     async def can_reorder(self, variant_id: int) -> bool:
         return await self.gateway.variant_orderable(variant_id)
 
+    async def reserved(self, order: Order) -> Decimal:
+        """What the buyer has reserved in this order: 0 once it is done or closed."""
+        if await open_hold(self.ledger_gateway, order):
+            return order.price - order.discount
+        return Decimal(0)
+
     async def events(self, order_id: int) -> list[OrderEvent]:
         return await self.gateway.events(order_id)
 
@@ -64,7 +73,7 @@ class OrdersInteractor(BaseInteractor):
             ):
                 raise OrderUnavailable(order_id)
             await move(self.gateway, order, OrderStatus.cancelled, user_id)
-            amount = await refund_buyer(self.ledger, order)
+            amount = await refund_buyer(self.ledger, self.ledger_gateway, order)
             await self.uow.commit()
             return Refunded(order.id, user_id, None, amount, OrderStatus.in_queue)
         except BaseException:

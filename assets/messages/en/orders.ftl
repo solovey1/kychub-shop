@@ -4,9 +4,10 @@ messages-orders-not_found = Order not found.
 messages-order =
     📦 <b>Order #{ $id }</b>
     { $product }, { $variant }
-    💵 Total: { $total }
+    💵 Total: { $total }{ $held }
 
     { $steps }{ $executor }
+messages-order-held = 🔒 { $amount } reserved, charged once the order is done
 messages-order-step_done = ✅ { $name }, { $time }
 messages-order-step_done_notime = ✅ { $name }
 messages-order-step_now = ⚙️ { $name }

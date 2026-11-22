@@ -110,6 +110,7 @@ class OrdersPresenter(BasePresenter):
         events: list[OrderEvent],
         alias: str | None,
         reorder: bool = False,
+        reserved: Decimal = Decimal(0),
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -124,6 +125,7 @@ class OrdersPresenter(BasePresenter):
             product=html.quote(pick_i18n(snap.get("product"), i18n.locale)),
             variant=html.quote(variant_name or "-"),
             total=fmt_usd(order.price - order.discount),
+            held="\n" + i18n.messages.order.held(amount=fmt_usd(reserved)) if reserved > 0 else "",
             steps=self._steps(order, events),
             executor="\n\n" + i18n.messages.order.executor(alias=html.quote(alias))
             if alias

@@ -23,10 +23,48 @@ def order_ref(order: Order) -> str:
     return f"order:{order.id}"
 
 
-async def refund_buyer(ledger: LedgerService, order: Order) -> Decimal:
-    """Everything the buyer actually paid goes back to the balance. Idempotent per order."""
+async def open_hold(gateway: LedgerGateway, order: Order) -> bool:
+    """The order holds buyer funds that were neither captured nor released yet."""
+    ref = order_ref(order)
+    uid, acc = order.user_id, LedgerAccount.buyer_hold
+    if await gateway.get_by_ref(uid, acc, LedgerKind.order_hold, ref) is None:
+        return False
+    return (
+        await gateway.get_by_ref(uid, acc, LedgerKind.order_capture, ref) is None
+        and await gateway.get_by_ref(uid, acc, LedgerKind.order_release, ref) is None
+    )
+
+
+async def capture_buyer(ledger: LedgerService, gateway: LedgerGateway, order: Order) -> bool:
+    """The order is done: the held money is spent for good. Under the order lock; a second call
+    (or an order that never held anything) posts nothing."""
+    if not await open_hold(gateway, order):
+        return False
+    await ledger.post(
+        order.user_id,
+        LedgerAccount.buyer_hold,
+        -(order.price - order.discount),
+        LedgerKind.order_capture,
+        order_id=order.id,
+        ref=order_ref(order),
+    )
+    return True
+
+
+async def refund_buyer(ledger: LedgerService, gateway: LedgerGateway, order: Order) -> Decimal:
+    """Everything the buyer actually paid goes back to the balance. Idempotent per order.
+    Money still in the hold is released first; after the capture only the refund is left."""
     total = order.price - order.discount
     if total > 0:
+        if await open_hold(gateway, order):
+            await ledger.post(
+                order.user_id,
+                LedgerAccount.buyer_hold,
+                -total,
+                LedgerKind.order_release,
+                order_id=order.id,
+                ref=order_ref(order),
+            )
         await ledger.post(
             order.user_id,
             LedgerAccount.main,

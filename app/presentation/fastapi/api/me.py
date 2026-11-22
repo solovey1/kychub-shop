@@ -34,5 +34,6 @@ async def me(
         language=user.language,
         roles=[role.name.lower() for role in Role if user.roles & role and role.name],
         balance=usd(await balance.balance(user.id)),
+        hold=usd(await balance.held(user.id)),
         executor=executor,
     )

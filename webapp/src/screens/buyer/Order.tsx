@@ -68,6 +68,7 @@ export function OrderScreen({ id }: { id: number }) {
       </Section>
       <Section>
         <Row title={t("order.total")} right={<Money value={o.total} />} />
+        {o.reserved && <Row title={t("order.reserved")} sub={t("order.reservedNote")} right={<Money value={o.reserved} />} />}
         {o.executor_alias && <Row title={t("order.executor")} right={o.executor_alias} />}
         <Row title={t("order.created")} right={fmtDate(o.created_at)} />
       </Section>

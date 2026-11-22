@@ -10,6 +10,7 @@ from app.application.interactors.cards import CardBuilder, earning_for, load_con
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import (
     Refunded,
+    capture_buyer,
     order_ref,
     refund_buyer,
     reverse_earning,
@@ -98,6 +99,7 @@ class OrderReviewInteractor(BaseInteractor):
             order.hold_until = now + timedelta(days=hold_days)
             order.review_due_at = now + timedelta(hours=delay)
             await move(self.orders, order, OrderStatus.completed, actor_id)
+            await capture_buyer(self.ledger, self.ledger_gateway, order)
             if earning > 0:
                 await self.ledger.post(
                     order.executor_id,
@@ -146,7 +148,7 @@ class OrderReviewInteractor(BaseInteractor):
             if was is not OrderStatus.completed:
                 await move(self.orders, order, OrderStatus.failed, actor_id)
             await move(self.orders, order, OrderStatus.refunded, actor_id)
-            amount = await refund_buyer(self.ledger, order)
+            amount = await refund_buyer(self.ledger, self.ledger_gateway, order)
             if was is OrderStatus.completed:
                 # while the hold is on, the order lock also fences off the hold release job
                 await reverse_earning(self.ledger, self.ledger_gateway, order)

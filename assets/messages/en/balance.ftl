@@ -1,8 +1,9 @@
 messages-balance =
-    💰 <b>Balance: { $amount }</b>
+    💰 <b>Balance: { $amount }</b>{ $held }
 
     Recent activity:
     { $history }
+messages-held = 🔒 In orders: { $amount }
 messages-balance-entry = { $kind } · { $date } · { $amount }
 messages-balance-history_empty = No activity yet.
 messages-balance-credited = ➕ { $amount } has been added to your balance.
@@ -56,3 +57,6 @@ buttons-provider_cryptobot = CryptoBot
 buttons-provider_binance = Binance Pay
 buttons-provider_nowpayments = NOWPayments
 buttons-provider_test = Test payment
+ledger-kind-order_hold = 🔒 Reserved for an order
+ledger-kind-order_capture = ✅ Charged for a completed order
+ledger-kind-order_release = ↩️ Reserve released

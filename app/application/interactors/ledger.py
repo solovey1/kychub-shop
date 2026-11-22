@@ -9,7 +9,7 @@ from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.ledger import LedgerEntry
 from app.domain.money import money
 
-_NON_NEGATIVE = {LedgerAccount.main, LedgerAccount.executor_available}
+_NON_NEGATIVE = {LedgerAccount.main, LedgerAccount.executor_available, LedgerAccount.buyer_hold}
 
 
 @dataclass(frozen=True)

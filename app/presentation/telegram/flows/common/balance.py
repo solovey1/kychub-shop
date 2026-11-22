@@ -44,8 +44,9 @@ class BalanceFlow(BaseFlow):
 
     async def show(self, *, current: bool = False, notice: str | None = None) -> Any:
         amount, entries = await self.interactor.summary(self.user.id, 5)
+        held = await self.interactor.held(self.user.id)
         return await self.renderer.apply(
-            self.presenter.balance(amount, entries, current=current, notice=notice)
+            self.presenter.balance(amount, held, entries, current=current, notice=notice)
         )
 
     async def action(self, cd: CDBalance) -> None:

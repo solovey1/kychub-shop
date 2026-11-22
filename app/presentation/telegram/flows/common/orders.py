@@ -31,7 +31,8 @@ class OrdersFlow(BaseFlow):
         events = await self.interactor.events(order.id)
         alias = await self.interactor.executor_alias(order)
         reorder = await self.interactor.can_reorder(order.variant_id)
-        view, file = self.presenter.order(order, page, events, alias, reorder)
+        reserved = await self.interactor.reserved(order)
+        view, file = self.presenter.order(order, page, events, alias, reorder, reserved)
         await self.renderer.apply(view)
         if file is not None:
             await self.renderer.send_file(f"order-{order.id}.txt", file)

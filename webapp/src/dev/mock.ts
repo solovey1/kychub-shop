@@ -1071,6 +1071,7 @@ function financeRoute(method: string, path: string, body: unknown, q: URLSearchP
       hold: "112.40",
       available: "358.75",
       buyers: "2480.10",
+      buyers_hold: "86.00",
     };
   }
   if (path === "/admin/settings") {
@@ -1102,6 +1103,7 @@ function route(method: string, url: URL, body: unknown): unknown {
       language: query.get("lang") ?? "ru",
       roles,
       balance: "128.40",
+      hold: "12.50",
       executor: roles.includes("executor") ? { hold: "12.40", available: "58.75" } : null,
     };
   if (path === "/unread") return { orders: 2, support: 1, work: 1, tickets: 2, review: 1 };
@@ -1111,7 +1113,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel };
+    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
@@ -1121,6 +1123,7 @@ function route(method: string, url: URL, body: unknown): unknown {
   if (path === "/balance")
     return {
       balance: "128.40",
+      hold: "12.50",
       entries: [
         entry(5, "purchase", "-12.50", "128.40", 1042, 35),
         entry(4, "topup", "100.00", "140.90", null, 700),

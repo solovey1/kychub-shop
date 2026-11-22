@@ -29,6 +29,7 @@ class MeOut(PydanticModel):
     language: str
     roles: list[str]
     balance: str
+    hold: str
     executor: WalletOut | None = None
 
 
@@ -63,6 +64,7 @@ class OrderOut(OrderBrief):
     result: str | None = None  # only once the order is completed
     result_files: int = 0
     can_cancel: bool = False
+    reserved: str | None = None  # still held for this order, not charged yet
 
 
 class OrderListOut(PydanticModel):
@@ -99,6 +101,7 @@ class LedgerEntryOut(PydanticModel):
 
 class BalanceOut(PydanticModel):
     balance: str
+    hold: str
     entries: list[LedgerEntryOut]
 
 

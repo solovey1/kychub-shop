@@ -53,12 +53,14 @@ async def get_order(
         raise HTTPException(404, "Not found")
     done = order.status is OrderStatus.completed and order.result is not None
     result = order.result or {}
+    reserved = await orders.reserved(order)
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
         executor_alias=await orders.executor_alias(order),
         result=str(result.get("text", "")) if done else None,
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
+        reserved=usd(reserved) if reserved > 0 else None,
     )
 
 
@@ -82,4 +84,9 @@ async def cancel_order(
 @inject
 async def balance(user: CurrentUser, interactor: FromDishka[BalanceInteractor]) -> BalanceOut:
     amount, entries = await interactor.summary(user.id, BALANCE_ENTRIES)
-    return BalanceOut(balance=usd(amount), entries=[LedgerEntryOut.of(entry) for entry in entries])
+    held = await interactor.held(user.id)
+    return BalanceOut(
+        balance=usd(amount),
+        hold=usd(held),
+        entries=[LedgerEntryOut.of(entry) for entry in entries],
+    )

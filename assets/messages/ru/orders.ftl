@@ -4,9 +4,10 @@ messages-orders-not_found = Заказ не найден.
 messages-order =
     📦 <b>Заказ №{ $id }</b>
     { $product }, { $variant }
-    💵 Сумма: { $total }
+    💵 Сумма: { $total }{ $held }
 
     { $steps }{ $executor }
+messages-order-held = 🔒 { $amount } зарезервировано, спишется после выполнения
 messages-order-step_done = ✅ { $name }, { $time }
 messages-order-step_done_notime = ✅ { $name }
 messages-order-step_now = ⚙️ { $name }

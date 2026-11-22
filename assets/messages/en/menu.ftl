@@ -5,7 +5,7 @@ messages-welcome =
 messages-greeting =
     🏠 <b>Home</b>
 
-    💰 Balance: <b>{ $balance }</b>{ $orders }
+    💰 Balance: <b>{ $balance }</b>{ $held }{ $orders }
 messages-greeting-orders = 📦 In progress: { $count }
 messages-greeting-orders_until = 📦 In progress: { $count }, nearest deadline at { $time }
 messages-language = 🌐 Choose the interface language.

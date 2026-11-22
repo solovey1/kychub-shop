@@ -489,6 +489,7 @@ class StatsDataOut(PydanticModel):
     hold: str
     available: str
     buyers: str
+    buyers_hold: str
 
 
 # --- settings and log
