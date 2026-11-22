@@ -86,3 +86,6 @@ messages-dispute-reminder = ⏰ Спор по заказу №{ $id }: оста�
 messages-dispute-closed = ✅ Спор по заказу №{ $id } закрыт, заказ продолжается.
 buttons-order_open = 📦 Открыть заказ
 messages-contacts-staff = ⚠️ { $who } пытается передать контакты в заказе №{ $id }.
+
+messages-order-waiting = ⏳ <b>Заказ №{ $id } в очереди</b>: все исполнители заняты. Возьмут, как только освободятся.
+buttons-cancel_refund = ✖️ Отменить и вернуть деньги

@@ -15,6 +15,7 @@ from app.application.storage.keys.impl import OrderOfferKey
 from app.infrastructure.events import EventHub
 from app.infrastructure.telegram.notifier import Notifier, Translate
 from app.presentation.telegram.callbacks.executor import CDOrderAct
+from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder
 from app.presentation.telegram.keyboards.common import button, markup
 
 logger: Final = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ class OfferService:
         if result.kind in ("skipped", "none"):
             if result.kind == "none" and result.first_no_executor:
                 await self.notifier.staff("messages-executor-no_executor", id=str(order_id))
+                await self._tell_buyer_waiting(order_id)
             return
         order = await self.orders.get(order_id)
         if order is None:
@@ -140,6 +142,22 @@ class OfferService:
             if message is not None:
                 sent.append([executor_id, message.message_id])
         await self.kv.set(key, sent, ex=OFFER_TTL)
+
+    async def _tell_buyer_waiting(self, order_id: int) -> None:
+        order = await self.orders.get(order_id)
+        if order is None:
+            return
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-waiting",
+            lambda tr: markup(
+                [
+                    [button(tr("buttons-open_order"), CDOrder(id=order_id), style="primary")],
+                    [button(tr("buttons-cancel_refund"), CDCancel(id=order_id), style="danger")],
+                ]
+            ),
+            id=str(order_id),
+        )
 
     async def close(self, order_id: int, key: str, *, except_chat: int | None = None) -> None:
         """Replace every stored proposal of the order with a short note and drop the buttons."""

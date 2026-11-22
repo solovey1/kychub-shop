@@ -71,3 +71,6 @@ buttons-topup_missing = 💳 Top up { $amount }
 buttons-edit = ✏️ Edit answers
 buttons-prev = ↩️ Same as last time: { $value }
 buttons-done = ✅ Done
+
+messages-purchase-line_online = 🟢 Executors online: { $count }
+messages-purchase-line_offline = 🌙 Everyone is offline right now — your order will be picked up as soon as someone shows up

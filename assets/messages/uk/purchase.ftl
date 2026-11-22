@@ -72,3 +72,6 @@ buttons-topup_missing = 💳 Поповнити на { $amount }
 buttons-edit = ✏️ Змінити відповіді
 buttons-prev = ↩️ Як минулого разу: { $value }
 buttons-done = ✅ Готово
+
+messages-purchase-line_online = 🟢 Виконавців у мережі: { $count }
+messages-purchase-line_offline = 🌙 Зараз усі не в мережі — замовлення візьмуть, щойно хтось з'явиться

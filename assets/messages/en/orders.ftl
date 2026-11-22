@@ -86,3 +86,6 @@ messages-dispute-reminder = ⏰ Dispute on order #{ $id }: { $left } left. Answe
 messages-dispute-closed = ✅ The dispute on order #{ $id } is closed, the order goes on.
 buttons-order_open = 📦 Open the order
 messages-contacts-staff = ⚠️ { $who } keeps trying to pass contacts in order #{ $id }.
+
+messages-order-waiting = ⏳ <b>Order #{ $id } is in the queue</b>: all executors are busy. Someone will take it as soon as they are free.
+buttons-cancel_refund = ✖️ Cancel and refund

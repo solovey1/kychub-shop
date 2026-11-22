@@ -86,3 +86,6 @@ messages-dispute-reminder = ⏰ Спір щодо замовлення №{ $id 
 messages-dispute-closed = ✅ Спір щодо замовлення №{ $id } закрито, замовлення продовжується.
 buttons-order_open = 📦 Відкрити замовлення
 messages-contacts-staff = ⚠️ { $who } намагається передати контакти в замовленні №{ $id }.
+
+messages-order-waiting = ⏳ <b>Замовлення №{ $id } у черзі</b>: усі виконавці зайняті. Візьмуть, щойно звільняться.
+buttons-cancel_refund = ✖️ Скасувати і повернути гроші

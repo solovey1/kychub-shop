@@ -9,6 +9,7 @@ from app.application.interactors.payouts import order_ref
 from app.application.interactors.promo import PromoService, discount_for
 from app.application.models.form_schema import FormSchema
 from app.application.ports.repositories.catalog import CatalogGateway
+from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.promo import PromoGateway
@@ -48,6 +49,7 @@ class PurchaseInteractor(BaseInteractor):
     promo: PromoService
     promo_gateway: PromoGateway
     registry: FulfillmentRegistry
+    executors: ExecutorsGateway
 
     async def _load(self, variant_id: int) -> tuple[ProductVariant, Product]:
         variant = await self.catalog.variant(variant_id)
@@ -72,6 +74,17 @@ class PurchaseInteractor(BaseInteractor):
             )
         form = FormSchema.model_validate(product.input_schema or {"fields": []})
         return Prepared(variant, product, country, form)
+
+    async def online_executors(self, prep: Prepared) -> int | None:
+        """How many executors are online for this product (busy ones too). None: the product is
+        not done by executors."""
+        product = prep.product
+        if product.fulfillment_type != "executor" or product.service_id is None:
+            return None
+        found = await self.executors.candidates(
+            product.service_id, prep.variant.country_code, set(), ignore_load=True
+        )
+        return len(found)
 
     async def previous_answers(self, user_id: int, product_id: int) -> dict[str, str]:
         """What this user answered the last time they ordered this product."""

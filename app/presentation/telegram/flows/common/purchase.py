@@ -238,6 +238,7 @@ class PurchaseFlow(BaseFlow):
                 current=current,
                 promo_error=promo_error,
                 pick=pick,
+                online=await self.interactor.online_executors(prep),
             )
         )
 
