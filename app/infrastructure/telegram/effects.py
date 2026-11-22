@@ -136,6 +136,22 @@ class Effects:
             ),
         )
 
+    async def withdrawal_paid(self, withdrawal: Withdrawal) -> None:
+        await self.notifier.send(
+            withdrawal.executor_id,
+            "messages-executor-withdrawal_paid",
+            amount=fmt_usd(withdrawal.amount),
+            tx=html.quote(withdrawal.tx_hash or ""),
+        )
+
+    async def withdrawal_rejected(self, withdrawal: Withdrawal) -> None:
+        await self.notifier.send(
+            withdrawal.executor_id,
+            "messages-executor-withdrawal_rejected",
+            amount=fmt_usd(withdrawal.amount),
+            reason=html.quote(withdrawal.reject_reason or ""),
+        )
+
     async def message_posted(
         self, posted: Posted, source_message_id: int | None = None
     ) -> Delivery:

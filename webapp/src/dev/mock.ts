@@ -877,12 +877,219 @@ function peopleRoute(method: string, path: string, body: unknown, q: URLSearchPa
   return undefined;
 }
 
+// --- admin: money, promo, broadcasts, stats, settings, audit; stateful in memory
+type MWithdrawal = {
+  id: number;
+  executor_id: number;
+  alias: string;
+  name: string;
+  amount: string;
+  address: string;
+  status: string;
+  tx_hash: string | null;
+  reject_reason: string | null;
+  created_at: string;
+  processed_at: string | null;
+};
+const wd = (id: number, executor: number, alias: string, name: string, amount: string, status: string, m: number, extra: Partial<MWithdrawal> = {}): MWithdrawal => ({
+  id,
+  executor_id: executor,
+  alias,
+  name,
+  amount,
+  address: `TQrZ9sT3xJ4kLw8vUe2Yb7NcMdHfPa6G${id}x`,
+  status,
+  tx_hash: null,
+  reject_reason: null,
+  created_at: ago(m),
+  processed_at: status === "pending" ? null : ago(m - 30),
+  ...extra,
+});
+const mWithdrawals: MWithdrawal[] = [
+  wd(14, 4, "Орион", "Игорь", "58.75", "pending", 120),
+  wd(13, 9, "Фокс", "Фёдор", "21.00", "pending", 600),
+  wd(12, 7, "Ника", "Nika", "140.20", "pending", 1500),
+  wd(11, 4, "Орион", "Игорь", "25.00", "paid", 4000, { tx_hash: "0x9f3a1c5be27d44aa90e1" }),
+  wd(10, 9, "Фокс", "Фёдор", "12.00", "rejected", 6000, { reject_reason: "Неверный адрес кошелька" }),
+];
+
+type MPromo = {
+  id: number;
+  code: string;
+  discount_percent: number | null;
+  discount_amount: string | null;
+  bonus_amount: string | null;
+  usage_limit: number | null;
+  expires_at: string | null;
+  product_id: number | null;
+  min_amount: string | null;
+  new_users_only: boolean;
+  allowed_user_ids: number[];
+  reusable: boolean;
+  active: boolean;
+  usages: { user_id: number; name: string; order_id: number | null; created_at: string }[];
+};
+const promoBase = { usage_limit: null, expires_at: null, product_id: null, min_amount: null, new_users_only: false, allowed_user_ids: [], reusable: false, active: true, discount_percent: null, discount_amount: null, bonus_amount: null };
+const mPromos: MPromo[] = [
+  { ...promoBase, id: 1, code: "WELCOME10", discount_percent: 10, usage_limit: 100, new_users_only: true, usages: [{ user_id: 2, name: "Андрей К.", order_id: 1050, created_at: ago(900) }] },
+  { ...promoBase, id: 2, code: "SUMMER5", discount_amount: "5.00", expires_at: minutes(60 * 24 * 10), usage_limit: 20, usages: [] },
+  { ...promoBase, id: 3, code: "BONUS3", bonus_amount: "3.00", reusable: true, active: false, usages: [] },
+];
+const promoKind = (p: MPromo) =>
+  p.discount_percent !== null
+    ? { kind: "percent", value: String(p.discount_percent) }
+    : p.discount_amount !== null
+      ? { kind: "amount", value: price(p.discount_amount) }
+      : { kind: "bonus", value: price(p.bonus_amount ?? 0) };
+const promoBrief = (p: MPromo) => ({
+  id: p.id,
+  code: p.code,
+  ...promoKind(p),
+  times_used: p.usages.length,
+  usage_limit: p.usage_limit,
+  expires_at: p.expires_at,
+  active: p.active,
+});
+
+type MBroadcast = {
+  id: number;
+  text: string;
+  status: string;
+  sent_count: number;
+  failed_count: number;
+  total_count: number | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+};
+const mBroadcasts: MBroadcast[] = [
+  { id: 3, text: "Новые прокси уже в каталоге. Загляните в раздел «Прокси».", status: "draft", sent_count: 0, failed_count: 0, total_count: null, created_at: ago(30), started_at: null, finished_at: null },
+  { id: 2, text: "Скидка 10% по коду WELCOME10 до конца недели.", status: "sent", sent_count: 412, failed_count: 9, total_count: 421, created_at: ago(3000), started_at: ago(2990), finished_at: ago(2985) },
+  { id: 1, text: "Технические работы сегодня ночью.", status: "stopped", sent_count: 80, failed_count: 1, total_count: 421, created_at: ago(9000), started_at: ago(8990), finished_at: ago(8988) },
+];
+/** Every read of a running broadcast moves it on, so the polling shows progress. */
+function advance(b: MBroadcast) {
+  if (b.status !== "sending" || b.total_count === null) return b;
+  b.sent_count = Math.min(b.total_count, b.sent_count + 60);
+  if (b.sent_count >= b.total_count) (b.status = "sent"), (b.finished_at = ago(0));
+  return b;
+}
+const broadcastById = (id: number) => {
+  const b = mBroadcasts.find((x) => x.id === id);
+  if (!b) throw 404;
+  return b;
+};
+
+let mSettings = { hold_days: 7, review_delay_hours: 24, min_withdrawal: "10.00" };
+const mAudit = [
+  { id: 6, actor_id: 1, actor_name: "Сергей", action: "withdrawal.pay", target: "withdrawal:11", payload: { tx_hash: "0x9f3a…" }, created_at: ago(4000) },
+  { id: 5, actor_id: 3, actor_name: "Maria", action: "catalog.product.update", target: "product:2", payload: { is_active: true }, created_at: ago(3500) },
+  { id: 4, actor_id: 1, actor_name: "Сергей", action: "balance.adjust", target: "user:2", payload: { amount: "25.00", comment: "Компенсация" }, created_at: ago(2000) },
+  { id: 3, actor_id: 6, actor_name: "Дарья", action: "executor.set_permissions", target: "executor:9", payload: { service: "socials", countries: ["us", "pl"] }, created_at: ago(1500) },
+  { id: 2, actor_id: 1, actor_name: "Сергей", action: "settings.update", target: null, payload: { hold_days: 7 }, created_at: ago(900) },
+  { id: 1, actor_id: null, actor_name: null, action: "order.assign", target: "order:1050", payload: { executor_id: 4 }, created_at: ago(90) },
+];
+
+/** undefined: not one of these routes. */
+function financeRoute(method: string, path: string, body: unknown, q: URLSearchParams): unknown {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const ok = { ok: true };
+  let m: RegExpMatchArray | null;
+
+  if (path === "/admin/withdrawals") return mWithdrawals.filter((w) => w.status === (q.get("status") ?? "pending"));
+  if ((m = path.match(/^\/admin\/withdrawals\/(\d+)\/(pay|reject)$/))) {
+    const w = mWithdrawals.find((x) => x.id === Number(m![1]));
+    if (!w) throw 404;
+    if (w.status !== "pending") throw fail(409, "not_pending", "already processed");
+    w.status = m[2] === "pay" ? "paid" : "rejected";
+    w.processed_at = ago(0);
+    if (m[2] === "pay") w.tx_hash = b.tx_hash as string;
+    else w.reject_reason = b.reason as string;
+    return { changed: true };
+  }
+
+  if (path === "/admin/promos") {
+    if (method === "GET") return mPromos.map(promoBrief);
+    if (mPromos.some((p) => p.code === b.code)) throw fail(409, "code_taken", "promo code is taken");
+    const kinds = ["discount_percent", "discount_amount", "bonus_amount"].filter((k) => b[k] !== null && b[k] !== undefined);
+    if (kinds.length !== 1) throw fail(422, "InvalidField", "exactly one of percent, amount or bonus", "kind");
+    const id = nextId++;
+    mPromos.push({ ...promoBase, ...(b as Partial<MPromo>), id, code: b.code as string, usages: [] });
+    return { id };
+  }
+  if ((m = path.match(/^\/admin\/promos\/(\d+)$/))) {
+    const p = mPromos.find((x) => x.id === Number(m![1]));
+    if (!p) throw 404;
+    if (method === "PATCH") {
+      Object.assign(p, b);
+      return ok;
+    }
+    return { ...promoBrief(p), ...p, usages: p.usages };
+  }
+
+  if (path === "/admin/broadcasts/recipients") return { count: 421 };
+  if (path === "/admin/broadcasts/preview") return ok;
+  if (path === "/admin/broadcasts") {
+    if (method === "GET") return [...mBroadcasts].sort((x, y) => y.id - x.id);
+    const id = nextId++;
+    mBroadcasts.push({ id, text: b.text as string, status: "draft", sent_count: 0, failed_count: 0, total_count: null, created_at: ago(0), started_at: null, finished_at: null });
+    return { id };
+  }
+  if ((m = path.match(/^\/admin\/broadcasts\/(\d+)\/(start|stop)$/))) {
+    const x = broadcastById(Number(m[1]));
+    if (m[2] === "start") Object.assign(x, { status: "sending", total_count: 421, started_at: ago(0) });
+    else Object.assign(x, { status: "stopped", finished_at: ago(0) });
+    return x;
+  }
+  if ((m = path.match(/^\/admin\/broadcasts\/(\d+)$/))) {
+    const x = broadcastById(Number(m[1]));
+    if (method === "PUT") return (x.text = b.text as string), ok;
+    return { ...advance(x) };
+  }
+
+  if (path === "/admin/stats") {
+    const days = Number(q.get("days") ?? 7);
+    const k = days === 1 ? 0.15 : days === 7 ? 1 : 4.2;
+    const sum = (n: number) => price(n * k);
+    return {
+      days,
+      revenue: sum(1240),
+      refunds: sum(95),
+      topups: sum(1500),
+      paid_out: sum(410),
+      orders: { completed: Math.round(48 * k), assigned: 6, in_queue: 3, ready: 2, failed: Math.round(2 * k), cancelled: Math.round(4 * k) },
+      top: [
+        { product_id: 2, title: "Аккаунт Instagram, прогретый", orders: Math.round(21 * k), revenue: sum(520) },
+        { product_id: 6, title: "Регистрация Google Ads", orders: Math.round(9 * k), revenue: sum(405) },
+        { product_id: 1, title: "Аккаунт Facebook, старый", orders: Math.round(11 * k), revenue: sum(180) },
+        { product_id: 4, title: "Прокси, 10 штук", orders: Math.round(6 * k), revenue: sum(120) },
+      ],
+      hold: "112.40",
+      available: "358.75",
+      buyers: "2480.10",
+    };
+  }
+  if (path === "/admin/settings") {
+    if (method === "PUT") mSettings = { ...mSettings, ...(b as typeof mSettings) };
+    return mSettings;
+  }
+  if (path === "/admin/audit/actions") return [...new Set(mAudit.map((r) => r.action))];
+  if (path === "/admin/audit") {
+    const actor = q.get("actor_id");
+    const action = q.get("action");
+    return mAudit.filter((r) => (!actor || r.actor_id === Number(actor)) && (!action || r.action === action));
+  }
+  return undefined;
+}
+
 function route(method: string, url: URL, body: unknown): unknown {
   const path = url.pathname.replace(/^\/api/, "");
   const q = url.searchParams;
   let m: RegExpMatchArray | null;
   const people = peopleRoute(method, path, body, q);
   if (people !== undefined) return people;
+  const finance = financeRoute(method, path, body, q);
+  if (finance !== undefined) return finance;
   if (path.startsWith("/admin/")) return adminRoute(method, path, body);
   if (path === "/me")
     return {

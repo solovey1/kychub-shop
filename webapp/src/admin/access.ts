@@ -17,12 +17,12 @@ export const SECTIONS: Section[] = [
   { id: "catalog", path: "/admin/catalog", emoji: "📦", titleKey: "admin.catalog", descKey: "admin.catalog.desc", perm: "catalog", ready: true },
   { id: "people", path: "/admin/people", emoji: "👥", titleKey: "admin.people", descKey: "admin.people.desc", perm: "users", ready: true },
   { id: "orders", path: "/admin/orders", emoji: "🧾", titleKey: "admin.orders", descKey: "admin.orders.desc", perm: "staff", ready: true },
-  { id: "money", path: "/admin/money", emoji: "💸", titleKey: "admin.money", descKey: "admin.money.desc", perm: "finance", ready: false },
-  { id: "promo", path: "/admin/promo", emoji: "🏷️", titleKey: "admin.promo", descKey: "admin.promo.desc", perm: "finance", ready: false },
-  { id: "broadcasts", path: "/admin/broadcasts", emoji: "📣", titleKey: "admin.broadcasts", descKey: "admin.broadcasts.desc", perm: "broadcast", ready: false },
-  { id: "stats", path: "/admin/stats", emoji: "📊", titleKey: "admin.stats", descKey: "admin.stats.desc", perm: "staff-finance", ready: false },
-  { id: "settings", path: "/admin/settings", emoji: "⚙️", titleKey: "admin.settings", descKey: "admin.settings.desc", perm: "admin", ready: false },
-  { id: "audit", path: "/admin/audit", emoji: "📜", titleKey: "admin.audit", descKey: "admin.audit.desc", perm: "admin", ready: false },
+  { id: "money", path: "/admin/money", emoji: "💸", titleKey: "admin.money", descKey: "admin.money.desc", perm: "finance", ready: true },
+  { id: "promo", path: "/admin/promo", emoji: "🏷️", titleKey: "admin.promo", descKey: "admin.promo.desc", perm: "finance", ready: true },
+  { id: "broadcasts", path: "/admin/broadcasts", emoji: "📣", titleKey: "admin.broadcasts", descKey: "admin.broadcasts.desc", perm: "broadcast", ready: true },
+  { id: "stats", path: "/admin/stats", emoji: "📊", titleKey: "admin.stats", descKey: "admin.stats.desc", perm: "staff-finance", ready: true },
+  { id: "settings", path: "/admin/settings", emoji: "⚙️", titleKey: "admin.settings", descKey: "admin.settings.desc", perm: "admin", ready: true },
+  { id: "audit", path: "/admin/audit", emoji: "📜", titleKey: "admin.audit", descKey: "admin.audit.desc", perm: "admin", ready: true },
 ];
 
 const isAdmin = (roles: string[]) => roles.includes("admin") || roles.includes("owner");

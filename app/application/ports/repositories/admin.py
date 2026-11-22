@@ -1,12 +1,18 @@
+from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, NamedTuple, Protocol
 
+from app.domain.audit import AuditLog
 from app.domain.base import Base
+from app.domain.broadcast import Broadcast
 from app.domain.catalog import Category, Country, Product, ProductVariant, Service, StockUnit
+from app.domain.enums.ledger import WithdrawalStatus
 from app.domain.enums.order import OrderStatus
 from app.domain.executor import ExecutorProfile
-from app.domain.ledger import LedgerEntry
+from app.domain.ledger import LedgerEntry, Withdrawal
 from app.domain.order import Order
+from app.domain.promo import PromoCode, PromoCodeUsage
 from app.domain.user import User
 
 
@@ -15,6 +21,27 @@ class ExecutorRow(NamedTuple):
     in_work: int  # assigned + ready
     completed: int
     avg_score: float | None
+
+
+@dataclass(frozen=True)
+class TopProduct:
+    product_id: int
+    title: dict[str, str]
+    orders: int
+    revenue: Decimal
+
+
+@dataclass(frozen=True)
+class StatsData:
+    revenue: Decimal  # purchases in the period
+    refunds: Decimal
+    topups: Decimal
+    paid_out: Decimal  # withdrawals marked paid in the period
+    orders: dict[str, int]  # status -> orders created in the period
+    top: list[TopProduct]
+    hold: Decimal  # now, all executors
+    available: Decimal
+    buyers: Decimal  # now, all main balances
 
 
 class AdminGateway(Protocol):
@@ -109,3 +136,39 @@ class AdminGateway(Protocol):
         self, service_id: int, country_code: str | None
     ) -> list[tuple[ExecutorProfile, int]]:
         """Active executors permitted for the service and country, with their load."""
+
+    # --- money, promo
+    async def withdrawals(self, status: WithdrawalStatus, limit: int) -> list[Withdrawal]:
+        """Oldest first for `pending`, newest first otherwise."""
+
+    async def promos(self) -> list[PromoCode]: ...
+
+    async def promo_by_code(self, code: str) -> PromoCode | None: ...
+
+    async def promo_usages(self, promo_id: int, limit: int) -> list[PromoCodeUsage]: ...
+
+    # --- broadcasts
+    async def broadcasts(self, limit: int) -> list[Broadcast]: ...
+
+    async def recipients_count(self) -> int:
+        """Users who have not blocked the bot."""
+
+    async def next_sending(self) -> Broadcast | None:
+        """The oldest running broadcast."""
+
+    async def broadcast_batch(self, after_id: int, limit: int) -> list[int]:
+        """The next recipients after this user id, who have not blocked the bot."""
+
+    async def mark_blocked(self, user_ids: list[int]) -> None: ...
+
+    # --- statistics, settings, log
+    async def stats(self, since: datetime) -> StatsData: ...
+
+    async def set_setting(self, key: str, value: Any) -> None: ...
+
+    async def audit_rows(
+        self, actor_id: int | None, action: str | None, limit: int
+    ) -> list[tuple[AuditLog, str | None]]:
+        """Newest first, with the actor name; `action` matches the start of the action."""
+
+    async def audit_actions(self) -> list[str]: ...

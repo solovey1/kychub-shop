@@ -1,8 +1,16 @@
 from dishka import Provider, Scope, provide_all
 
+from app.application.interactors.admin.broadcasts import BroadcastAdminInteractor
 from app.application.interactors.admin.catalog import CatalogAdminInteractor
+from app.application.interactors.admin.money import MoneyAdminInteractor
 from app.application.interactors.admin.orders import OrdersAdminInteractor
 from app.application.interactors.admin.people import PeopleAdminInteractor
+from app.application.interactors.admin.promo import PromoAdminInteractor
+from app.application.interactors.admin.system import (
+    AuditAdminInteractor,
+    SettingsAdminInteractor,
+    StatsAdminInteractor,
+)
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
@@ -55,4 +63,10 @@ class InteractorsProvider(Provider):
         CatalogAdminInteractor,
         PeopleAdminInteractor,
         OrdersAdminInteractor,
+        MoneyAdminInteractor,
+        PromoAdminInteractor,
+        BroadcastAdminInteractor,
+        StatsAdminInteractor,
+        SettingsAdminInteractor,
+        AuditAdminInteractor,
     )

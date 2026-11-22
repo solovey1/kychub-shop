@@ -1,13 +1,20 @@
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import String, and_, cast, exists, func, select
+from sqlalchemy import String, and_, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.ports.repositories.admin import AdminGateway, ExecutorRow
+from app.application.ports.repositories.admin import (
+    AdminGateway,
+    ExecutorRow,
+    StatsData,
+    TopProduct,
+)
 from app.domain.audit import AuditLog
 from app.domain.base import Base
+from app.domain.broadcast import Broadcast
 from app.domain.catalog import (
     Category,
     Country,
@@ -16,14 +23,18 @@ from app.domain.catalog import (
     Service,
     StockUnit,
 )
+from app.domain.enums.broadcast import BroadcastStatus
+from app.domain.enums.ledger import LedgerAccount, LedgerKind, WithdrawalStatus
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
 from app.domain.executor import ExecutorPermission, ExecutorProfile
-from app.domain.ledger import LedgerEntry
+from app.domain.ledger import LedgerEntry, Withdrawal
 from app.domain.order import Order
-from app.domain.promo import PromoCode
+from app.domain.promo import PromoCode, PromoCodeUsage
 from app.domain.review import OrderReview
+from app.domain.settings import Setting
 from app.domain.user import User
+from app.utils.time import datetime_now
 
 
 @dataclass
@@ -311,3 +322,143 @@ class AdminRepository(AdminGateway):
             .order_by(ExecutorProfile.alias)
         )
         return [(p, int(n)) for p, n in (await self._session.execute(query)).all()]
+
+    # --- money, promo
+    async def withdrawals(self, status: WithdrawalStatus, limit: int) -> list[Withdrawal]:
+        order = Withdrawal.id if status is WithdrawalStatus.pending else Withdrawal.id.desc()
+        query = select(Withdrawal).where(Withdrawal.status == status).order_by(order).limit(limit)
+        return list(await self._session.scalars(query))
+
+    async def promos(self) -> list[PromoCode]:
+        return list(await self._session.scalars(select(PromoCode).order_by(PromoCode.id.desc())))
+
+    async def promo_by_code(self, code: str) -> PromoCode | None:
+        found: PromoCode | None = await self._session.scalar(
+            select(PromoCode).where(PromoCode.code == code)
+        )
+        return found
+
+    async def promo_usages(self, promo_id: int, limit: int) -> list[PromoCodeUsage]:
+        query = (
+            select(PromoCodeUsage)
+            .where(PromoCodeUsage.promo_code_id == promo_id)
+            .order_by(PromoCodeUsage.id.desc())
+            .limit(limit)
+        )
+        return list(await self._session.scalars(query))
+
+    # --- broadcasts
+    async def broadcasts(self, limit: int) -> list[Broadcast]:
+        query = select(Broadcast).order_by(Broadcast.id.desc()).limit(limit)
+        return list(await self._session.scalars(query))
+
+    async def recipients_count(self) -> int:
+        query = select(func.count()).select_from(User).where(User.blocked_at.is_(None))
+        return int(await self._session.scalar(query) or 0)
+
+    async def next_sending(self) -> Broadcast | None:
+        query = (
+            select(Broadcast)
+            .where(Broadcast.status == BroadcastStatus.sending)
+            .order_by(Broadcast.id)
+            .limit(1)
+        )
+        found: Broadcast | None = await self._session.scalar(query)
+        return found
+
+    async def broadcast_batch(self, after_id: int, limit: int) -> list[int]:
+        query = (
+            select(User.id)
+            .where(User.id > after_id, User.blocked_at.is_(None))
+            .order_by(User.id)
+            .limit(limit)
+        )
+        return [int(i) for i in await self._session.scalars(query)]
+
+    async def mark_blocked(self, user_ids: list[int]) -> None:
+        if user_ids:
+            await self._session.execute(
+                update(User).where(User.id.in_(user_ids)).values(blocked_at=datetime_now())
+            )
+
+    # --- statistics, settings, log
+    async def stats(self, since: datetime) -> StatsData:
+        session = self._session
+
+        async def ledger(kind: LedgerKind, account: LedgerAccount, *, period: bool) -> Decimal:
+            query = select(func.coalesce(func.sum(LedgerEntry.amount), 0)).where(
+                LedgerEntry.kind == kind, LedgerEntry.account == account
+            )
+            if period:
+                query = query.where(LedgerEntry.created_at >= since)
+            return Decimal(await session.scalar(query) or 0)
+
+        async def balance(account: LedgerAccount) -> Decimal:
+            query = select(func.coalesce(func.sum(LedgerEntry.amount), 0)).where(
+                LedgerEntry.account == account
+            )
+            return Decimal(await session.scalar(query) or 0)
+
+        main = LedgerAccount.main
+        paid_out = await session.scalar(
+            select(func.coalesce(func.sum(Withdrawal.amount), 0)).where(
+                Withdrawal.status == WithdrawalStatus.paid, Withdrawal.processed_at >= since
+            )
+        )
+        by_status = await session.execute(
+            select(Order.status, func.count())
+            .where(Order.created_at >= since)
+            .group_by(Order.status)
+        )
+        revenue = func.sum(Order.price - Order.discount)
+        top = await session.execute(
+            select(Product.id, Product.title_i18n, func.count(Order.id), revenue)
+            .join(ProductVariant, ProductVariant.product_id == Product.id)
+            .join(Order, Order.variant_id == ProductVariant.id)
+            .where(
+                Order.created_at >= since,
+                Order.status.not_in((OrderStatus.awaiting_input, OrderStatus.cancelled)),
+            )
+            .group_by(Product.id)
+            .order_by(func.count(Order.id).desc(), revenue.desc())
+            .limit(10)
+        )
+        return StatsData(
+            revenue=-await ledger(LedgerKind.purchase, main, period=True),
+            refunds=await ledger(LedgerKind.refund, main, period=True),
+            topups=await ledger(LedgerKind.topup, main, period=True),
+            paid_out=Decimal(paid_out or 0),
+            orders={status.value: int(n) for status, n in by_status.all()},
+            top=[TopProduct(int(i), t, int(n), Decimal(r or 0)) for i, t, n, r in top.all()],
+            hold=await balance(LedgerAccount.executor_hold),
+            available=await balance(LedgerAccount.executor_available),
+            buyers=await balance(main),
+        )
+
+    async def set_setting(self, key: str, value: Any) -> None:
+        row = await self._session.get(Setting, key)
+        if row is None:
+            self._session.add(Setting(key=key, value=value))
+        else:
+            row.value = value
+        await self._session.flush()
+
+    async def audit_rows(
+        self, actor_id: int | None, action: str | None, limit: int
+    ) -> list[tuple[AuditLog, str | None]]:
+        query = (
+            select(AuditLog, User.name)
+            .outerjoin(User, User.id == AuditLog.actor_id)
+            .order_by(AuditLog.id.desc())
+            .limit(limit)
+        )
+        if actor_id is not None:
+            query = query.where(AuditLog.actor_id == actor_id)
+        if action:
+            escaped = action.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            query = query.where(AuditLog.action.like(f"{escaped}%", escape="\\"))
+        return [(row, name) for row, name in (await self._session.execute(query)).all()]
+
+    async def audit_actions(self) -> list[str]:
+        query = select(AuditLog.action).distinct().order_by(AuditLog.action)
+        return list(await self._session.scalars(query))

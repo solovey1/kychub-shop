@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
-from app.infrastructure.scheduler import executors, payments
+from app.infrastructure.scheduler import broadcasts, executors, payments
 
 
 def create_scheduler(container: AsyncContainer) -> AsyncIOScheduler:
@@ -9,4 +9,5 @@ def create_scheduler(container: AsyncContainer) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC", job_defaults={"misfire_grace_time": 30})
     payments.register(scheduler, container)
     executors.register(scheduler, container)
+    broadcasts.register(scheduler, container)
     return scheduler

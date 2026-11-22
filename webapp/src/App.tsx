@@ -3,6 +3,12 @@ import { Redirect, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { Admin } from "./admin/Admin";
 import { allowed, hasAdminTab } from "./admin/access";
+import { AuditScreen } from "./admin/audit/Audit";
+import { BroadcastForm, BroadcastList } from "./admin/broadcasts/Broadcasts";
+import { MoneyScreen } from "./admin/money/Money";
+import { PromoForm, PromoList } from "./admin/promo/Promo";
+import { SettingsScreen } from "./admin/settings/Settings";
+import { StatsScreen } from "./admin/stats/Stats";
 import { AdminOrderScreen, AssignScreen } from "./admin/orders/Order";
 import { AdminOrders } from "./admin/orders/Orders";
 import { ExecutorScreen, NewExecutor } from "./admin/people/Executor";
@@ -113,6 +119,32 @@ function Shell({ me }: { me: Me }) {
             </Route>
             <Route path="/admin/orders/:id/assign">{(p) => <AssignScreen id={id(p)} />}</Route>
             <Route path="/admin/orders/:id">{(p) => <AdminOrderScreen id={id(p)} viewer={me.roles} />}</Route>
+            <Route path="/admin/money">
+              <MoneyScreen />
+            </Route>
+            <Route path="/admin/promo">
+              <PromoList />
+            </Route>
+            <Route path="/admin/promo/new">
+              <PromoForm id={null} />
+            </Route>
+            <Route path="/admin/promo/:id">{(p) => <PromoForm id={id(p)} />}</Route>
+            <Route path="/admin/broadcasts">
+              <BroadcastList />
+            </Route>
+            <Route path="/admin/broadcasts/new">
+              <BroadcastForm id={null} />
+            </Route>
+            <Route path="/admin/broadcasts/:id">{(p) => <BroadcastForm id={id(p)} />}</Route>
+            <Route path="/admin/stats">
+              <StatsScreen />
+            </Route>
+            <Route path="/admin/settings">
+              <SettingsScreen />
+            </Route>
+            <Route path="/admin/audit">
+              <AuditScreen />
+            </Route>
             <Route path="/admin/catalog">
               <Catalog seg="catalog" />
             </Route>

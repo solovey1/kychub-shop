@@ -19,6 +19,7 @@ const PARENTS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^\/admin\/catalog\/p\/(\d+)\/v\/(\d+)\/stock$/, (m) => `/admin/catalog/p/${m[1]}/v/${m[2]}`],
   [/^\/admin\/catalog\/p\/(\d+)\/v\//, (m) => `/admin/catalog/p/${m[1]}`],
   [/^\/admin\/catalog\/c\/(\d+)\/edit$/, (m) => `/admin/catalog/c/${m[1]}`],
+  [/^\/admin\/(promo|broadcasts)\//, (m) => `/admin/${m[1]}`],
   [/^\/admin\/orders\/(\d+)\/assign$/, (m) => `/admin/orders/${m[1]}`],
   [/^\/admin\/orders\/\d+$/, () => "/admin/orders"],
   [/^\/admin\/people\/e\//, () => "/admin/people/executors"],

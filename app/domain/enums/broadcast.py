@@ -6,3 +6,4 @@ class BroadcastStatus(StrEnum):
     sending = "sending"
     sent = "sent"
     failed = "failed"
+    stopped = "stopped"

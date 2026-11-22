@@ -13,6 +13,7 @@ from app.application.ports.telegram.messages_helper import MessageHelper
 from app.const import DEFAULT_LOCALE
 from app.domain.enums.roles import Role
 from app.domain.user import User
+from app.infrastructure.telegram.broadcast import BroadcastSender
 from app.infrastructure.telegram.effects import Effects
 from app.infrastructure.telegram.notices import OrderNotices
 from app.infrastructure.telegram.notifier import Notifier
@@ -103,5 +104,12 @@ class RequestInfrastructureProvider(Provider):
     scope = Scope.REQUEST
 
     infrastructure = provide_all(
-        Renderer, Notifier, OfferService, OrderNotices, Relay, TicketOffers, Effects
+        Renderer,
+        Notifier,
+        OfferService,
+        OrderNotices,
+        Relay,
+        TicketOffers,
+        Effects,
+        BroadcastSender,
     )

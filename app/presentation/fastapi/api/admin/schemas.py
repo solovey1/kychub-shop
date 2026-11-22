@@ -362,3 +362,144 @@ class RefundIn(PydanticModel):
 
 class HandoverIn(PydanticModel):
     manager_id: int
+
+
+# --- money
+class WithdrawalOut(PydanticModel):
+    id: int
+    executor_id: int
+    alias: str | None
+    name: str
+    amount: str
+    address: str
+    status: str
+    tx_hash: str | None
+    reject_reason: str | None
+    created_at: datetime
+    processed_at: datetime | None
+
+
+class PayIn(PydanticModel):
+    tx_hash: str = Field(min_length=4, max_length=128)
+
+
+class RejectIn(PydanticModel):
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class DecidedOut(PydanticModel):
+    changed: bool  # False: it had been decided already and nothing was done
+
+
+# --- promo
+class PromoFields(PydanticModel):
+    discount_percent: int | None = None
+    discount_amount: str | None = None
+    bonus_amount: str | None = None
+    usage_limit: int | None = None
+    expires_at: datetime | None = None
+    product_id: int | None = None
+    min_amount: str | None = None
+    new_users_only: bool = False
+    allowed_user_ids: list[int] = Field(default_factory=list)
+    reusable: bool = False
+    active: bool = True
+
+
+class PromoIn(PromoFields):
+    code: str
+
+
+class PromoPatch(PydanticModel):
+    discount_percent: int | None = None
+    discount_amount: str | None = None
+    bonus_amount: str | None = None
+    usage_limit: int | None = None
+    expires_at: datetime | None = None
+    product_id: int | None = None
+    min_amount: str | None = None
+    new_users_only: bool | None = None
+    allowed_user_ids: list[int] | None = None
+    reusable: bool | None = None
+    active: bool | None = None
+
+
+class PromoBrief(PydanticModel):
+    id: int
+    code: str
+    kind: Literal["percent", "amount", "bonus"]
+    value: str  # "15" for percent, "5.00" otherwise
+    times_used: int
+    usage_limit: int | None
+    expires_at: datetime | None
+    active: bool
+
+
+class PromoUsageOut(PydanticModel):
+    user_id: int
+    name: str
+    order_id: int | None
+    created_at: datetime
+
+
+class PromoOut(PromoBrief, PromoFields):
+    usages: list[PromoUsageOut]
+
+
+# --- broadcasts
+class BroadcastIn(PydanticModel):
+    text: str = Field(min_length=1, max_length=4096)
+
+
+class BroadcastOut(PydanticModel):
+    id: int
+    text: str
+    status: str
+    sent_count: int
+    failed_count: int
+    total_count: int | None
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class RecipientsOut(PydanticModel):
+    count: int
+
+
+# --- stats
+class TopProductOut(PydanticModel):
+    product_id: int
+    title: str
+    orders: int
+    revenue: str
+
+
+class StatsDataOut(PydanticModel):
+    days: int
+    revenue: str
+    refunds: str
+    topups: str
+    paid_out: str
+    orders: dict[str, int]
+    top: list[TopProductOut]
+    hold: str
+    available: str
+    buyers: str
+
+
+# --- settings and log
+class SettingsBody(PydanticModel):
+    hold_days: int
+    review_delay_hours: int
+    min_withdrawal: str
+
+
+class AuditOut(PydanticModel):
+    id: int
+    actor_id: int | None
+    actor_name: str | None
+    action: str
+    target: str | None
+    payload: dict[str, Any]
+    created_at: datetime

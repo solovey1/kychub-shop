@@ -250,6 +250,74 @@ export type AdminOrder = AdminOrderRow & {
   actions: string[];
 };
 export type Assignable = { id: number; alias: string; load: number; max_parallel: number; current: boolean };
+export type Withdrawal = {
+  id: number;
+  executor_id: number;
+  alias: string | null;
+  name: string;
+  amount: string;
+  address: string;
+  status: "pending" | "paid" | "rejected";
+  tx_hash: string | null;
+  reject_reason: string | null;
+  created_at: string;
+  processed_at: string | null;
+};
+export type PromoKind = "percent" | "amount" | "bonus";
+export type PromoBrief = {
+  id: number;
+  code: string;
+  kind: PromoKind;
+  value: string;
+  times_used: number;
+  usage_limit: number | null;
+  expires_at: string | null;
+  active: boolean;
+};
+export type Promo = PromoBrief & {
+  discount_percent: number | null;
+  discount_amount: string | null;
+  bonus_amount: string | null;
+  product_id: number | null;
+  min_amount: string | null;
+  new_users_only: boolean;
+  allowed_user_ids: number[];
+  reusable: boolean;
+  usages: { user_id: number; name: string; order_id: number | null; created_at: string }[];
+};
+export type Broadcast = {
+  id: number;
+  text: string;
+  status: "draft" | "sending" | "sent" | "stopped";
+  sent_count: number;
+  failed_count: number;
+  total_count: number | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+};
+export type StatsData = {
+  days: number;
+  revenue: string;
+  refunds: string;
+  topups: string;
+  paid_out: string;
+  orders: Record<string, number>;
+  top: { product_id: number; title: string; orders: number; revenue: string }[];
+  hold: string;
+  available: string;
+  buyers: string;
+};
+export type Tunables = { hold_days: number; review_delay_hours: number; min_withdrawal: string };
+export type AuditRow = {
+  id: number;
+  actor_id: number | null;
+  actor_name: string | null;
+  action: string;
+  target: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
 export type StaffMember = { id: number; name: string; admin: boolean };
 
 export class ApiError extends Error {

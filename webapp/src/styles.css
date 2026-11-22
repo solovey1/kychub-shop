@@ -502,6 +502,42 @@ button.row:active {
 .sbody > * + * {
   border-top: 1px solid var(--line);
 }
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--hint) 25%, transparent);
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--usdt);
+}
+.group > .bar {
+  margin: 10px 14px;
+}
+.barrow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 14px;
+}
+.barrow span {
+  overflow-wrap: anywhere;
+}
+.barrow b {
+  font-weight: 500;
+  text-align: right;
+}
+.barrow small {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--hint);
+}
+.barrow .bar {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
 @media (prefers-reduced-motion: reduce) {
   .switch,
   .switch::after {

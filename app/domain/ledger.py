@@ -74,5 +74,15 @@ class Withdrawal(Base, TimestampMixin):
     processed_by: Mapped[Optional[Int64]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
+    tx_hash: Mapped[Optional[str]] = mapped_column()  # set when it is paid
+    reject_reason: Mapped[Optional[str]] = mapped_column()  # set when it is rejected
+    processed_at: Mapped[Optional[datetime]] = mapped_column()
 
-    __table_args__ = (CheckConstraint("amount > 0", name="withdrawal_amount_positive"),)
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="withdrawal_amount_positive"),
+        CheckConstraint("status <> 'paid' OR tx_hash IS NOT NULL", name="withdrawal_paid_has_tx"),
+        CheckConstraint(
+            "status <> 'rejected' OR reject_reason IS NOT NULL",
+            name="withdrawal_rejected_has_reason",
+        ),
+    )
