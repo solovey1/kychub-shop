@@ -224,6 +224,12 @@ class OrdersPresenter(BasePresenter):
             reply_markup=back,
         )
 
+    def dispute_not_accepted(self, order_id: int, page: int) -> View:
+        return View(
+            text=self.i18n.get("messages-dispute-not_accepted", id=str(order_id)),
+            reply_markup=order_back_keyboard(self.i18n, page),
+        )
+
     def executor_back(self, order_id: int) -> View:
         return View(
             text=self.i18n.messages.dispute.cancelled(),

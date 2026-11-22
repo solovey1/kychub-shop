@@ -113,6 +113,8 @@ class DisputeInteractor(BaseInteractor):
                 side = DisputeSide.executor
             else:
                 raise OrderUnavailable(order_id)
+            if order.accept_until is not None:  # auto-assigned, not accepted yet: nothing to argue
+                raise Conflict("not_accepted")
             if await self.disputes.open_for_order(order_id) is not None:
                 raise Conflict("dispute_open")
             awaited = other_side(side)

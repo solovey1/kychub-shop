@@ -78,6 +78,7 @@ messages-order-dispute = 🆘 <b>Dispute open.</b> Support is looking into it.
 messages-order-dispute_wait = 🆘 <b>Dispute open.</b> Waiting for an answer from { $who } until { $time }.
 messages-dispute-ask_reason = 🆘 Order #{ $id }: describe the problem in one line, or tap «No reason».
 messages-dispute-opened = 🆘 The dispute on order #{ $id } is open. Support will join. The other side has to answer in the chat until { $time }.
+messages-dispute-not_accepted = ⏳ Order #{ $id } has not been accepted by the executor yet, so a dispute can't be opened. If nobody accepts it in time, it goes back to the queue.
 messages-dispute-cancelled = Fine, no dispute was opened.
 messages-dispute-staff = 🆘 Dispute on order #{ $id }. Opened by { $who }.
 messages-dispute-reply = 🆘 A dispute is open on order #{ $id }. Answer in the chat until { $time }, or it will be decided against you.

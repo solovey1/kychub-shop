@@ -82,7 +82,9 @@ async def _order(
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
         can_confirm=order.status is OrderStatus.ready,
-        can_dispute=order.status in DISPUTE_STATUSES and dispute is None,
+        can_dispute=order.status in DISPUTE_STATUSES
+        and dispute is None
+        and order.accept_until is None,
         dispute=DisputeOut.of(dispute) if dispute else None,
         confirm_at=await orders.confirm_at(order),
         reserved=usd(reserved) if reserved > 0 else None,

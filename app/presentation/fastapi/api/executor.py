@@ -100,7 +100,9 @@ async def _order(
         )
         if assigned and view.dispute is None and view.cancel.pending is not None
         else None,
-        can_dispute=view.order.status in DISPUTE_STATUSES and view.dispute is None,
+        can_dispute=view.order.status in DISPUTE_STATUSES
+        and view.dispute is None
+        and view.order.accept_until is None,
         dispute=DisputeOut.of(view.dispute) if view.dispute else None,
         chat=OrderChatOut.of(await chat.order_chat_summary(user_id, order_id), user_id),
     )

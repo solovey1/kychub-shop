@@ -98,8 +98,12 @@ class OrdersFlow(BaseFlow):
         await self.helper.fsm.clear()
         try:
             news = await self.disputes.open(self.user.id, order_id, reason)
-        except Conflict:  # one is open already
-            return await self._back(order_id, page)
+        except Conflict as e:
+            if e.code == "not_accepted":  # an auto-assigned order nobody accepted yet
+                return await self.renderer.apply(
+                    self.presenter.dispute_not_accepted(order_id, page)
+                )
+            return await self._back(order_id, page)  # one is open already
         except OrderUnavailable:  # not his order, or it is no longer in work
             return await self._back(order_id, page)
         buyer = news.order.user_id == self.user.id

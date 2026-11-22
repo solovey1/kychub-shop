@@ -220,9 +220,13 @@ class DispatchInteractor(BaseInteractor):
             ):
                 raise OrderUnavailable(order_id)
             if order.accept_until is not None:
-                ctx = await load_context(self.catalog, order)
-                minutes = ctx.service.deadline_minutes if ctx and ctx.service else 0
                 now = datetime_now()
+                if order.accept_until < now:  # too late: the release job takes the order
+                    raise OrderUnavailable(order_id)
+                ctx = await load_context(self.catalog, order)
+                if ctx is None or ctx.service is None:
+                    raise OrderUnavailable(order_id)
+                minutes = ctx.service.deadline_minutes
                 order.accept_until = None
                 order.deadline_at = now + timedelta(minutes=minutes)
                 await self.orders.add_event(

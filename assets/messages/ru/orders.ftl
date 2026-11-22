@@ -78,6 +78,7 @@ messages-order-dispute = 🆘 <b>Спор открыт.</b> Поддержка �
 messages-order-dispute_wait = 🆘 <b>Спор открыт.</b> Ждём ответа от { $who } до { $time }.
 messages-dispute-ask_reason = 🆘 Заказ №{ $id }: опишите проблему одной строкой или нажмите «Без причины».
 messages-dispute-opened = 🆘 Спор по заказу №{ $id } открыт. Подключится поддержка. Вторая сторона должна ответить в чате до { $time }.
+messages-dispute-not_accepted = ⏳ Заказ №{ $id } ещё не принят исполнителем, спор пока открыть нельзя. Если исполнитель не ответит вовремя, заказ вернётся в очередь.
 messages-dispute-cancelled = Хорошо, спор не открыт.
 messages-dispute-staff = 🆘 Спор по заказу №{ $id }. Открыл: { $who }.
 messages-dispute-reply = 🆘 По заказу №{ $id } открыт спор. Ответьте в чате до { $time }, иначе спор решится не в вашу пользу.
