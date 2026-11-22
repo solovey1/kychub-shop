@@ -303,9 +303,7 @@ class ConversationInteractor(BaseInteractor):
             raise
 
     async def unread_counts(self, user_id: int) -> UnreadCounts:
-        return await self.support.unread_counts(
-            user_id, await self._is_staff(user_id), CHAT_STATUSES
-        )
+        return await self.support.unread_counts(user_id, await self._is_staff(user_id))
 
     async def unread_by_order(self, user_id: int, orders: list[Order]) -> dict[int, int]:
         """For a list of his own orders; a chat closed with its order shows nothing."""

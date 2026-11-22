@@ -9,11 +9,10 @@ from app.domain.support import Conversation, Message, Ticket
 
 @dataclass(frozen=True)
 class UnreadCounts:
-    """Chats with something unread per tab (`review`: orders waiting for a check)."""
+    """Support-side counters (`review`: orders waiting for a check); order chats are counted
+    per order, see `unread_order_ids`."""
 
-    orders: int = 0
     support: int = 0
-    work: int = 0
     tickets: int = 0
     review: int = 0
     disputes: int = 0  # open disputes (staff)
@@ -72,8 +71,12 @@ class SupportGateway(Protocol):
     async def unread_by_ticket(self, user_id: int, ticket_ids: Collection[int]) -> dict[int, int]:
         """Unread messages (not his own) per ticket chat; chats with none are absent."""
 
-    async def unread_counts(
-        self, user_id: int, staff: bool, chat_statuses: Collection[OrderStatus]
-    ) -> UnreadCounts:
-        """The tab counters in one query. Order chats count only while `chat_statuses` holds;
-        staff counters (open tickets nobody took + his own, orders to check) only for `staff`."""
+    async def unread_order_ids(
+        self, user_id: int, chat_statuses: Collection[OrderStatus]
+    ) -> tuple[set[int], set[int]]:
+        """Orders with an unread chat message: (his own as a buyer, his own as an executor).
+        A chat counts only while the order is in `chat_statuses`."""
+
+    async def unread_counts(self, user_id: int, staff: bool) -> UnreadCounts:
+        """The ticket counters in one query; staff ones (open tickets nobody took + his own, orders
+        to check, open disputes) only for `staff`."""

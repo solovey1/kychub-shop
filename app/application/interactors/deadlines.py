@@ -23,6 +23,14 @@ HALF_MIN_TOTAL_MINUTES: Final = 60
 _NEW_ASSIGNMENT: Final = ("assigned", "reassigned", "overdue", "refused", "sent_back")
 
 
+EXTENSION_EVENTS: Final = (
+    "extension_requested",
+    "extended",
+    "extension_declined",
+    *_NEW_ASSIGNMENT,
+)
+
+
 @dataclass(frozen=True)
 class Pending:
     request_id: int

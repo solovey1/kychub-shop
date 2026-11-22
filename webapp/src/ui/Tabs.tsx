@@ -9,8 +9,8 @@ export function Tabs({ tabs }: { tabs: { to: string; key: string }[] }) {
   const [path] = useLocation();
   const u = useUnread();
   const count: Record<string, number> = {
-    orders: u.orders + u.support,
-    work: u.work,
+    orders: u.orders + u.support, // `orders` is already distinct per order
+    work: u.offers + u.work,
     support: u.tickets + u.review + u.disputes,
   };
   return (

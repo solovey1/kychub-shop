@@ -45,6 +45,7 @@ export function Orders() {
                 </span>
               }
               unread={o.unread}
+              tag={o.action && t(`action.${o.action}`)}
               onClick={() => go(`/orders/${o.id}`)}
             />
           ))}

@@ -39,6 +39,7 @@ export function Row({
   tone,
   chevron,
   unread,
+  tag,
   dim,
   icon,
   onClick,
@@ -51,6 +52,7 @@ export function Row({
   tone?: "bad" | "link";
   chevron?: boolean;
   unread?: number;
+  tag?: ReactNode; // accent line: the order waits for the reader
   dim?: boolean;
   icon?: ReactNode;
   onClick?: () => void;
@@ -66,6 +68,7 @@ export function Row({
         </span>
         {sub && <span className="row-sub">{sub}</span>}
         {meta && <span className="row-sub">{meta}</span>}
+        {tag && <span className="row-tag">{tag}</span>}
       </span>
       {(right || rightSub) && (
         <span className="row-right">

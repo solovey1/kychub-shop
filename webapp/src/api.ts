@@ -32,6 +32,7 @@ export type OrderBrief = {
   total: string;
   created_at: string;
   unread: number;
+  action?: "confirm" | "extension" | "dispute" | null; // lists only: what waits for the buyer
 };
 export type Dispute = {
   opened_role: "buyer" | "executor";
@@ -119,6 +120,7 @@ export type ExecutorListItem = {
   country: string | null;
   deadline_at: string | null;
   unread: number;
+  action?: "work" | "dispute" | null; // assigned (working) / a dispute waits for him
 };
 export type Stats = {
   completed: number;

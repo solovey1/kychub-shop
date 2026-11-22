@@ -181,19 +181,26 @@ class SupportRepository(SupportGateway):
         rows = await self._helper.session.execute(query)
         return {ticket_id: n for _, ticket_id, n in rows if ticket_id is not None}
 
-    async def unread_counts(
-        self, user_id: int, staff: bool, chat_statuses: Collection[OrderStatus]
-    ) -> UnreadCounts:
+    async def unread_order_ids(
+        self, user_id: int, chat_statuses: Collection[OrderStatus]
+    ) -> tuple[set[int], set[int]]:
         unread = self._unread(user_id).subquery()
-
-        def orders(*where: ColumnElement[bool]) -> ScalarSelect[int]:
-            return (
-                select(func.count())
-                .select_from(unread)
-                .join(Order, Order.id == unread.c.order_id)
-                .where(Order.status.in_(chat_statuses), *where)
-                .scalar_subquery()
+        query = (
+            select(Order.id, Order.user_id, Order.executor_id)
+            .join(unread, unread.c.order_id == Order.id)
+            .where(
+                Order.status.in_(chat_statuses),
+                or_(Order.user_id == user_id, Order.executor_id == user_id),
             )
+        )
+        rows = (await self._helper.session.execute(query)).all()
+        return (
+            {i for i, buyer, _ in rows if buyer == user_id},
+            {i for i, _, executor in rows if executor == user_id},
+        )
+
+    async def unread_counts(self, user_id: int, staff: bool) -> UnreadCounts:
+        unread = self._unread(user_id).subquery()
 
         def tickets(*where: ColumnElement[bool]) -> ScalarSelect[int]:
             return (
@@ -209,12 +216,10 @@ class SupportRepository(SupportGateway):
             and_(Ticket.status == TicketStatus.taken, Ticket.manager_id == user_id),
         )
         query = select(
-            orders(Order.user_id == user_id),
             tickets(
                 Ticket.user_id == user_id,
                 Ticket.status.in_((TicketStatus.open, TicketStatus.taken)),
             ),
-            orders(Order.executor_id == user_id),
             tickets(staff_tickets) if staff else literal(0),
             select(func.count()).where(Order.status == OrderStatus.ready).scalar_subquery()
             if staff

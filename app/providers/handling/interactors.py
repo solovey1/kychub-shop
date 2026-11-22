@@ -11,6 +11,7 @@ from app.application.interactors.admin.system import (
     SettingsAdminInteractor,
     StatsAdminInteractor,
 )
+from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.auto_confirm import AutoConfirmInteractor
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
@@ -54,6 +55,7 @@ class InteractorsProvider(Provider):
         ExecutorCabinetInteractor,
         CardBuilder,
         DispatchInteractor,
+        AttentionInteractor,
         ExtensionInteractor,
         ReminderInteractor,
         FulfillmentWorkInteractor,

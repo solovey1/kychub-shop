@@ -116,6 +116,10 @@ export const ru = {
   "media.document": "📎 Документ",
 
   "work.queue": "Очередь",
+  "action.confirm": "Подтвердите",
+  "action.extension": "Ответьте на продление",
+  "action.dispute": "Ответьте в споре",
+  "action.work": "В работе до {time}",
   "work.mine": "Мои",
   "work.online": "Я в сети",
   "work.onlineNote": "Включено — заказы приходят. Выключите, чтобы не получать новые: уже взятые останутся с вами.",

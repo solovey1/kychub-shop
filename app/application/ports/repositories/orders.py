@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from datetime import datetime
 from typing import Protocol
 
@@ -23,6 +24,14 @@ class OrdersGateway(Protocol):
 
     async def events(self, order_id: int) -> list[OrderEvent]:
         """Oldest first."""
+
+    async def in_work_for_executor(self, executor_id: int) -> list[Order]:
+        """His orders in `assigned` or `ready`."""
+
+    async def extension_events(
+        self, order_ids: Collection[int], types: Collection[str]
+    ) -> dict[int, list[OrderEvent]]:
+        """Events of these types, oldest first, by order id (one query)."""
 
     async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
         """The user's newest order of this product, whatever its status."""

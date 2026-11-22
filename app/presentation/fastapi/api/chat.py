@@ -19,9 +19,11 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 
 from app.application.errors.shop import ChatForbidden, ContactsBlocked
+from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.users import UsersGateway
+from app.domain.enums.roles import Role
 from app.domain.support import Conversation
 from app.infrastructure.events import EventHub, message_view
 from app.infrastructure.telegram.effects import Effects
@@ -199,8 +201,16 @@ async def read(
 
 @router.get("/unread")
 @inject
-async def unread(user: CurrentUser, chat: FromDishka[ConversationInteractor]) -> UnreadOut:
-    return UnreadOut(**vars(await chat.unread_counts(user.id)))
+async def unread(
+    user: CurrentUser,
+    chat: FromDishka[ConversationInteractor],
+    attention: FromDishka[AttentionInteractor],
+) -> UnreadOut:
+    """`orders` / `work` count DISTINCT orders (unread chat or something to do), so the tabs
+    add them to `support` / `offers` without counting an order twice."""
+    counts = await chat.unread_counts(user.id)
+    seen = await attention.counts(user.id, bool(user.roles & Role.EXECUTOR))
+    return UnreadOut(**vars(counts), **vars(seen))
 
 
 @router.get("/files/{message_id}")

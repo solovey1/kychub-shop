@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { SwitchRow } from "../../admin/kit";
 import { send, useFetch, usePaged, type ExecutorListItem, type QueueItem } from "../../api";
-import { named, t } from "../../i18n";
+import { fmtDate, named, t } from "../../i18n";
 import { useUnread } from "../../unread";
 import { Badge, Empty, Failure, Loading, Money, Row, Section, Segments, list, statusTone } from "../../ui/kit";
 import { Left } from "../../ui/Left";
@@ -20,7 +20,13 @@ export function Work({ seg }: { seg: WorkSeg }) {
         value={seg}
         onChange={(s) => go(`/work/${s}`, { replace: true })}
         items={[
-          ["queue", t("work.queue")],
+          [
+            "queue",
+            <>
+              {t("work.queue")}
+              <Badge n={unread.offers} />
+            </>,
+          ],
           [
             "mine",
             <>
@@ -104,6 +110,13 @@ function Mine() {
             }
             rightSub={o.status === "assigned" && o.deadline_at ? <Left until={o.deadline_at} /> : undefined}
             unread={o.unread}
+            tag={
+              o.action === "work" && o.deadline_at
+                ? t("action.work", { time: fmtDate(o.deadline_at, true) })
+                : o.action === "dispute"
+                  ? t("action.dispute")
+                  : undefined
+            }
             onClick={() => go(`/work/order/${o.id}`)}
           />
         ))}

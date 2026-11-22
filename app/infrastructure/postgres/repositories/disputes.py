@@ -28,6 +28,14 @@ class DisputesRepository(DisputesGateway):
         dispute: Dispute | None = await self._helper.session.scalar(query)
         return dispute
 
+    async def open_for_orders(self, order_ids: Collection[int]) -> dict[int, Dispute]:
+        if not order_ids:
+            return {}
+        query = select(Dispute).where(
+            Dispute.order_id.in_(order_ids), Dispute.resolved_at.is_(None)
+        )
+        return {d.order_id: d for d in await self._helper.session.scalars(query)}
+
     async def open_rows(self, limit: int) -> list[tuple[Dispute, Order]]:
         query = (
             select(Dispute, Order)

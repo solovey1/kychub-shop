@@ -125,6 +125,11 @@ button.row:active {
   color: var(--hint);
   overflow-wrap: anywhere;
 }
+.row-tag {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--btn);
+}
 .row.tone-bad .row-title {
   color: var(--bad);
 }

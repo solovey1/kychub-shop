@@ -46,9 +46,16 @@ class OrderBrief(PydanticModel):
     total: str
     created_at: datetime
     unread: int = 0  # messages in the order chat the buyer has not read
+    action: Literal["confirm", "extension", "dispute"] | None = None  # what waits for him (lists)
 
     @classmethod
-    def of(cls, order: Order, locale: str, unread: int = 0) -> "OrderBrief":
+    def of(
+        cls,
+        order: Order,
+        locale: str,
+        unread: int = 0,
+        action: Literal["confirm", "extension", "dispute"] | None = None,
+    ) -> "OrderBrief":
         snap = order.snapshot
         variant = snap.get("variant") or {}
         return cls(
@@ -60,6 +67,7 @@ class OrderBrief(PydanticModel):
             total=usd(order.price - order.discount),
             created_at=order.created_at,
             unread=unread,
+            action=action,
         )
 
 
@@ -205,12 +213,18 @@ class BalanceOut(PydanticModel):
 
 
 class UnreadOut(PydanticModel):
-    orders: int
+    """The tab badges. `orders` and `work` count distinct orders that need the user: an unread
+    chat, or something to do (see `orders_action`, `work_action`)."""
+
+    orders: int  # buyer: orders with an unread chat or waiting for him
     support: int
-    work: int
+    work: int  # executor: own orders with an unread chat or assigned / a dispute to answer
     tickets: int
     review: int
     disputes: int
+    orders_action: int = 0  # buyer: orders to confirm / answer an extension / answer a dispute
+    work_action: int = 0  # executor: assigned orders and disputes to answer
+    offers: int = 0  # executor: queue orders he may take now
 
 
 class ReadIn(PydanticModel):
@@ -287,6 +301,7 @@ class ExecutorOrderListItem(PydanticModel):
     country: str | None
     deadline_at: datetime | None
     unread: int = 0
+    action: Literal["work", "dispute"] | None = None  # assigned: working; a dispute waits for him
 
 
 class ExecutorOrderListOut(PydanticModel):

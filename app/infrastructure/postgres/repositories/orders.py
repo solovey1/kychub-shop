@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -58,6 +59,28 @@ class OrdersRepository(OrdersGateway):
     async def events(self, order_id: int) -> list[OrderEvent]:
         query = select(OrderEvent).where(OrderEvent.order_id == order_id).order_by(OrderEvent.id)
         return list(await self._helper.session.scalars(query))
+
+    async def in_work_for_executor(self, executor_id: int) -> list[Order]:
+        query = select(Order).where(
+            Order.executor_id == executor_id,
+            Order.status.in_((OrderStatus.assigned, OrderStatus.ready)),
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def extension_events(
+        self, order_ids: Collection[int], types: Collection[str]
+    ) -> dict[int, list[OrderEvent]]:
+        found: dict[int, list[OrderEvent]] = {}
+        if not order_ids:
+            return found
+        query = (
+            select(OrderEvent)
+            .where(OrderEvent.order_id.in_(order_ids), OrderEvent.type.in_(types))
+            .order_by(OrderEvent.id)
+        )
+        for event in await self._helper.session.scalars(query):
+            found.setdefault(event.order_id, []).append(event)
+        return found
 
     async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
         query = (

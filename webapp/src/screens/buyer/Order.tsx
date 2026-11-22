@@ -83,6 +83,7 @@ export function OrderScreen({ id }: { id: number }) {
       }
     });
 
+  const awaitsHim = o.dispute?.awaiting_role === "buyer";
   const lines = (o.result ?? "").split("\n").filter((l) => l.trim());
   return (
     <div className="screen">
@@ -90,6 +91,24 @@ export function OrderScreen({ id }: { id: number }) {
         <h1>{o.product}</h1>
         <p>{list(o.variant, o.country?.toUpperCase(), `№${o.id}`)}</p>
       </div>
+      {o.can_confirm && (
+        <Section
+          title={t("order.confirmHint")}
+          footer={o.confirm_at ? t("order.confirmAt", { time: fmtDate(o.confirm_at, true) }) : undefined}
+        >
+          <Row title={t("order.confirm")} tone="link" onClick={confirmOrder} />
+        </Section>
+      )}
+      {o.extension && (
+        <Section
+          title={t("order.extAsk", { d: duration(o.extension.minutes) })}
+          footer={t("order.extUntil", { time: fmtDate(o.extension.until, true) })}
+        >
+          <Row title={t("order.extYes")} tone="link" onClick={() => answer(true)} />
+          <Row title={t("order.extNo")} tone="bad" onClick={() => answer(false)} />
+        </Section>
+      )}
+      {awaitsHim && <DisputeBlock path={`/orders/${id}/dispute`} can={o.can_dispute} dispute={o.dispute} me="buyer" reload={reload} />}
       <Section>
         <Track status={o.status} hasExecutor={!!o.executor_alias} />
       </Section>
@@ -114,24 +133,7 @@ export function OrderScreen({ id }: { id: number }) {
           <Row title={t("order.filesCount", { n: o.result_files })} />
         </Section>
       )}
-      <DisputeBlock path={`/orders/${id}/dispute`} can={o.can_dispute} dispute={o.dispute} me="buyer" reload={reload} />
-      {o.can_confirm && (
-        <Section
-          title={t("order.confirmHint")}
-          footer={o.confirm_at ? t("order.confirmAt", { time: fmtDate(o.confirm_at, true) }) : undefined}
-        >
-          <Row title={t("order.confirm")} tone="link" onClick={confirmOrder} />
-        </Section>
-      )}
-      {o.extension && (
-        <Section
-          title={t("order.extAsk", { d: duration(o.extension.minutes) })}
-          footer={t("order.extUntil", { time: fmtDate(o.extension.until, true) })}
-        >
-          <Row title={t("order.extYes")} tone="link" onClick={() => answer(true)} />
-          <Row title={t("order.extNo")} tone="bad" onClick={() => answer(false)} />
-        </Section>
-      )}
+      {!awaitsHim && <DisputeBlock path={`/orders/${id}/dispute`} can={o.can_dispute} dispute={o.dispute} me="buyer" reload={reload} />}
       <Section>
         {(o.status === "assigned" || o.status === "ready") && (
           <ChatRow

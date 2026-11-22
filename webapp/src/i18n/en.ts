@@ -117,6 +117,10 @@ export const en: typeof ru = {
   "media.document": "📎 Document",
 
   "work.queue": "Queue",
+  "action.confirm": "Please confirm",
+  "action.extension": "Answer the extension",
+  "action.dispute": "Answer in the dispute",
+  "action.work": "In work until {time}",
   "work.mine": "Mine",
   "work.online": "I am online",
   "work.onlineNote": "On: orders come to you. Turn it off to stop getting new ones: orders you already have stay with you.",

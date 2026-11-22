@@ -65,6 +65,8 @@ class CabinetFlow(BaseFlow):
         await self.show()
         if changed and online:  # after the cabinet: the offers arrive below it
             await self.effects.executor_online(self.user.id)
+        elif changed:
+            await self.effects.executor_offline(self.user.id)
 
     async def balance(self, notice: str | None = None) -> Any:
         summary = await self.wallet.summary(self.user.id)

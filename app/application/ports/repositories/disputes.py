@@ -14,6 +14,9 @@ class DisputesGateway(Protocol):
         """The open dispute of the order with fresh column values (decisions are made under the
         order lock, and another transaction may have changed it a moment ago)."""
 
+    async def open_for_orders(self, order_ids: Collection[int]) -> dict[int, Dispute]:
+        """The open disputes of these orders by order id (one query)."""
+
     async def open_rows(self, limit: int) -> list[tuple[Dispute, Order]]:
         """Open disputes with their orders, oldest first."""
 

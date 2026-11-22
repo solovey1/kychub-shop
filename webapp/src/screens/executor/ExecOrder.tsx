@@ -133,12 +133,22 @@ export function ExecOrder({ id }: { id: number }) {
       }
     });
 
+  const awaitsHim = o.dispute?.awaiting_role === "executor";
   return (
     <div className="screen">
       <div className="headline">
         <h1>{o.product}</h1>
         <p>{list(o.country?.toUpperCase(), `№${o.id}`)}</p>
       </div>
+      {awaitsHim && (
+        <DisputeBlock
+          path={`/executor/orders/${id}/dispute`}
+          can={o.can_dispute}
+          dispute={o.dispute}
+          me="executor"
+          reload={reload}
+        />
+      )}
       <Section>
         <Track status={o.status} hasExecutor />
       </Section>
@@ -149,13 +159,15 @@ export function ExecOrder({ id }: { id: number }) {
           <Row title={t("exec.left")} right={<Left until={o.deadline_at} />} />
         )}
       </Section>
-      <DisputeBlock
-        path={`/executor/orders/${id}/dispute`}
-        can={o.can_dispute}
-        dispute={o.dispute}
-        me="executor"
-        reload={reload}
-      />
+      {!awaitsHim && (
+        <DisputeBlock
+          path={`/executor/orders/${id}/dispute`}
+          can={o.can_dispute}
+          dispute={o.dispute}
+          me="executor"
+          reload={reload}
+        />
+      )}
       {o.fields.length > 0 && (
         <Section title={t("exec.fields")}>
           {o.fields.map((f, i) => (

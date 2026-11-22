@@ -3,6 +3,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, Query
 
 from app.application.errors.shop import OrderUnavailable
+from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
@@ -41,12 +42,17 @@ async def list_orders(
     user: CurrentUser,
     orders: FromDishka[OrdersInteractor],
     chat: FromDishka[ConversationInteractor],
+    attention: FromDishka[AttentionInteractor],
     page: int = Query(0, ge=0),
 ) -> OrderListOut:
     items, total, page = await orders.list_orders(user.id, page)
     unread = await chat.unread_by_order(user.id, items)
+    actions = await attention.buyer_actions(items)
     return OrderListOut(
-        items=[OrderBrief.of(order, user.language, unread.get(order.id, 0)) for order in items],
+        items=[
+            OrderBrief.of(order, user.language, unread.get(order.id, 0), actions.get(order.id))
+            for order in items
+        ],
         total=total,
         page=page,
         page_size=PAGE_SIZE,

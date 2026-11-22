@@ -2,7 +2,19 @@ import { useEffect, useSyncExternalStore } from "react";
 import { get } from "./api";
 import { useLive } from "./live";
 
-export type Unread = { orders: number; support: number; work: number; tickets: number; review: number; disputes: number };
+/** `orders` and `work` count DISTINCT orders (unread chat or something to do), so tabs add them
+ * to `support` / `offers` without counting an order twice. `*_action` is the "to do" part alone. */
+export type Unread = {
+  orders: number; // buyer: orders with an unread chat or waiting for him
+  support: number;
+  work: number; // executor: own orders with an unread chat, assigned, or a dispute to answer
+  tickets: number;
+  review: number;
+  disputes: number;
+  orders_action: number;
+  work_action: number;
+  offers: number; // executor: queue orders he may take now
+};
 
 let state: Unread | undefined;
 const watchers = new Set<() => void>();
@@ -29,7 +41,7 @@ export function useUnreadFeed() {
   useLive(["message", "order", "ticket", "queue"], refreshUnread);
 }
 
-const NONE: Unread = { orders: 0, support: 0, work: 0, tickets: 0, review: 0, disputes: 0 };
+const NONE: Unread = { orders: 0, support: 0, work: 0, tickets: 0, review: 0, disputes: 0, orders_action: 0, work_action: 0, offers: 0 };
 export const useUnread = (): Unread =>
   useSyncExternalStore(
     (cb) => (watchers.add(cb), () => void watchers.delete(cb)),

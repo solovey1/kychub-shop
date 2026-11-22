@@ -74,6 +74,11 @@ class Effects:
             return
         for result in results:
             await self.offers.announce(result)
+        await self.executor_offline(executor_id)  # his own badge: the queue is (not) his now
+
+    async def executor_offline(self, executor_id: int) -> None:
+        """His open Mini App drops the offers from the badges (the queue is empty for him)."""
+        await _safe("publishing the queue", self.hub.publish([executor_id], {"type": "queue"}))
 
     async def order_taken(self, order_id: int, executor_id: int) -> None:
         await self.offers.send_files(order_id, executor_id)

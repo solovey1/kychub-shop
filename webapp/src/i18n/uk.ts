@@ -117,6 +117,10 @@ export const uk: typeof ru = {
   "media.document": "📎 Документ",
 
   "work.queue": "Черга",
+  "action.confirm": "Підтвердьте",
+  "action.extension": "Дайте відповідь на продовження",
+  "action.dispute": "Дайте відповідь у спорі",
+  "action.work": "У роботі до {time}",
   "work.mine": "Мої",
   "work.online": "Я в мережі",
   "work.onlineNote": "Увімкнено — замовлення надходять. Вимкніть, щоб не отримувати нові: вже взяті залишаться з вами.",
