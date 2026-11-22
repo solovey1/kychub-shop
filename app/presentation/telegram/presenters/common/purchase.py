@@ -15,13 +15,14 @@ from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 from app.domain.user import User
 from app.presentation.telegram.callbacks.menu import CDMenu
-from app.presentation.telegram.keyboards.catalog import variant_label
+from app.presentation.telegram.keyboards.catalog import variant_name
 from app.presentation.telegram.keyboards.common import button, markup
 from app.presentation.telegram.keyboards.purchase import (
+    accepted_keyboard,
     ask_keyboard,
-    cancel_keyboard,
+    back_keyboard,
     confirm_keyboard,
-    insufficient_keyboard,
+    fields_keyboard,
     menu_keyboard,
 )
 from app.presentation.telegram.presenters.base import BasePresenter
@@ -29,6 +30,8 @@ from app.presentation.telegram.view.models import RenderMode, View
 
 COPY_LIMIT = 256
 FILE_LIMIT = 3500
+SEPARATOR = "──────────"
+DONE_EFFECT = "5046509860389126442"  # 🎉
 
 _REASONS = {
     "value is required": "required",
@@ -50,7 +53,7 @@ def reason_code(error: str) -> str:
 def result_view(
     i18n: I18nContext, header: str, text: str, back: CallbackData | None = None
 ) -> tuple[View, bytes | None]:
-    """Delivery of a finished order: <code> text + copy button, or a .txt file when it is long."""
+    """Delivery of a finished order: quoted text + copy button, or a .txt file when it is long."""
     back_row = [
         button(i18n.buttons.menu() if back is None else i18n.buttons.back(), back or CDMenu())
     ]
@@ -65,54 +68,94 @@ def result_view(
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=i18n.buttons.copy(), copy_text=CopyTextButton(text=text), style="primary"
+                    text=i18n.buttons.copy(), copy_text=CopyTextButton(text=text), style="success"
                 )
             ]
         )
     rows.append(back_row)
-    view = View(text=f"{header}\n\n<code>{html.quote(text)}</code>", reply_markup=markup(rows))
-    return view, None
+    body = f"{header}\n\n<blockquote>{html.quote(text)}</blockquote>"
+    return View(text=body, reply_markup=markup(rows)), None
 
 
 @dataclass(frozen=True)
 class PurchasePresenter(BasePresenter):
     i18n: I18nContext
 
-    def _head(self, prep: Prepared) -> tuple[str, str]:
-        locale = self.i18n.locale
-        product = html.quote(pick_i18n(prep.product.title_i18n, locale))
-        variant = html.quote(variant_label(VariantView(prep.variant, True, prep.country), locale))
-        return product, variant
+    def _variant(self, prep: Prepared) -> str:
+        view = VariantView(prep.variant, True, prep.country)
+        return html.quote(variant_name(view, self.i18n.locale))
+
+    def _product(self, prep: Prepared) -> str:
+        return html.quote(pick_i18n(prep.product.title_i18n, self.i18n.locale))
+
+    def _label(self, field: FormField) -> str:
+        return html.quote(pick_i18n(field.label, self.i18n.locale))
+
+    def _value(self, field: FormField, value: str) -> str:
+        if field.type is FieldType.file:
+            return self.i18n.messages.purchase.file_value()
+        return html.quote(value) if value else "—"
 
     def reason(self, error: str) -> str:
         return self.i18n.get(f"messages-purchase-reason_{reason_code(error)}")
 
-    def ask(
+    def prev_value(self, field: FormField, prev: dict[str, str]) -> str | None:
+        """The answer given last time, if it is still good for this field (files are not)."""
+        value = prev.get(field.key)
+        if not value or field.type is FieldType.file:
+            return None
+        try:
+            return field.validate_value(value)
+        except ValueError:
+            return None
+
+    def card(
         self,
         prep: Prepared,
+        answers: dict[str, str],
         idx: int,
+        prev: dict[str, str],
         *,
         current: bool,
         reason: str | None = None,
     ) -> View:
-        field: FormField = prep.form.fields[idx]
-        product, variant = self._head(prep)
-        text = self.i18n.messages.purchase.ask(
-            product=product,
-            variant=variant,
-            step=idx + 1,
-            total=len(prep.form.fields),
-            label=html.quote(pick_i18n(field.label, self.i18n.locale)),
-        )
-        if field.type is FieldType.file:
-            text += "\n" + self.i18n.messages.purchase.hint_file()
+        """The live questionnaire: every question with its state, then the current prompt."""
+        messages = self.i18n.messages.purchase
+        details = ", ".join(x for x in (self._variant(prep), fmt_usd(prep.variant.price)) if x)
+        lines = [messages.head(product=self._product(prep), details=details), ""]
+        for i, f in enumerate(prep.form.fields):
+            label = self._label(f)
+            if i == idx:
+                lines.append(messages.line_now(label=label))
+            elif f.key in answers:
+                lines.append(messages.line_done(label=label, value=self._value(f, answers[f.key])))
+            elif f.required:
+                lines.append(messages.line_next(label=label))
+            else:
+                lines.append(messages.line_next_optional(label=label))
+        field = prep.form.fields[idx]
+        lines.append(SEPARATOR)
+        if hint := pick_i18n(field.hint, self.i18n.locale):
+            lines.append(html.quote(hint))
+        elif field.type is FieldType.file:
+            lines.append(messages.hint_file())
+        elif field.type is FieldType.choice:
+            lines.append(messages.choose(label=self._label(field)))
+        else:
+            lines.append(messages.ask(label=self._label(field)))
         if reason is not None:
-            text = self.i18n.messages.purchase.invalid(reason=reason) + "\n\n" + text
+            lines.append(messages.invalid(reason=reason))
         return View(
-            text=text,
-            reply_markup=ask_keyboard(self.i18n, field),
+            text="\n".join(lines),
+            reply_markup=ask_keyboard(self.i18n, field, self.prev_value(field, prev)),
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
+
+    def prompt(self, field: FormField) -> tuple[str, str]:
+        """The short message under the card and the placeholder of the input field."""
+        label = pick_i18n(field.label, self.i18n.locale)
+        placeholder = pick_i18n(field.placeholder, self.i18n.locale) or label
+        return self.i18n.messages.purchase.prompt(label=html.quote(label)), placeholder[:64]
 
     def confirm(
         self,
@@ -123,47 +166,49 @@ class PurchasePresenter(BasePresenter):
         *,
         current: bool,
         promo_error: str | None = None,
+        pick: bool = False,
     ) -> View:
-        i18n = self.i18n
-        product, variant = self._head(prep)
-        lines = [i18n.messages.purchase.confirm_title(), "", product, variant]
-        for field in prep.form.fields:
-            if field.type is FieldType.file or field.key not in answers:
-                continue
-            label = html.quote(pick_i18n(field.label, i18n.locale))
-            lines.append(f"{label}: {html.quote(answers[field.key])}")
-        lines.append("")
-        if promo_code and quote.promo_code_id is not None:
-            lines.append(i18n.messages.purchase.line_promo(code=html.quote(promo_code.upper())))
-        lines.append(i18n.messages.purchase.line_price(amount=fmt_usd(quote.price)))
-        if quote.discount:
-            lines.append(i18n.messages.purchase.line_discount(amount=fmt_usd(quote.discount)))
-        lines.append(i18n.messages.purchase.line_total(amount=fmt_usd(quote.total)))
-        lines.append(i18n.messages.purchase.line_balance(amount=fmt_usd(quote.balance)))
+        """The checkout. `pick`: the same text, with the questions as buttons to change one."""
+        messages = self.i18n.messages.purchase
+        what = ", ".join(x for x in (self._product(prep), self._variant(prep)) if x)
+        lines = [messages.confirm_title(), "", what]
+        answered = [
+            f"{self._label(f)}: {self._value(f, answers[f.key])}"
+            for f in prep.form.fields
+            if answers.get(f.key)
+        ]
+        if answered:
+            lines.append("<blockquote>" + "\n".join(answered) + "</blockquote>")
+        lines.append(messages.line_price(amount=fmt_usd(quote.price)))
+        if quote.discount and promo_code:
+            code = html.quote(promo_code.upper())
+            lines.append(messages.line_discount(code=code, amount=fmt_usd(quote.discount)))
+        lines += [
+            SEPARATOR,
+            messages.line_total(total=fmt_usd(quote.total), balance=fmt_usd(quote.balance)),
+        ]
+        if quote.total > quote.balance:
+            lines.append(messages.line_missing(amount=fmt_usd(quote.total - quote.balance)))
         if promo_error:
-            reason = i18n.get(f"messages-promo-reason_{promo_error}")
-            lines += ["", i18n.messages.purchase.promo_error(reason=reason)]
+            reason = self.i18n.get(f"messages-promo-reason_{promo_error}")
+            lines.append(messages.promo_error(reason=reason))
+        if pick:
+            lines += ["", messages.edit_pick()]
+            keyboard = fields_keyboard(self.i18n, prep.form.fields)
+        else:
+            keyboard = confirm_keyboard(
+                self.i18n, quote.total, quote.balance, bool(prep.form.fields)
+            )
         return View(
             text="\n".join(lines),
-            reply_markup=confirm_keyboard(i18n, quote.total),
+            reply_markup=keyboard,
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 
     def ask_promo(self) -> View:
         return View(
             text=self.i18n.messages.purchase.promo_ask(),
-            reply_markup=cancel_keyboard(self.i18n),
-        )
-
-    def insufficient(self, quote: Quote) -> View:
-        missing = quote.total - quote.balance
-        return View(
-            text=self.i18n.messages.purchase.insufficient(
-                total=fmt_usd(quote.total),
-                balance=fmt_usd(quote.balance),
-                missing=fmt_usd(missing),
-            ),
-            reply_markup=insufficient_keyboard(self.i18n),
+            reply_markup=back_keyboard(self.i18n),
         )
 
     def simple(self, key: str) -> View:
@@ -171,15 +216,28 @@ class PurchasePresenter(BasePresenter):
             text=self.i18n.get(f"messages-purchase-{key}"), reply_markup=menu_keyboard(self.i18n)
         )
 
-    def delivered(self, order: Order) -> tuple[View, bytes | None]:
-        if order.status is OrderStatus.completed and order.result:
-            header = self.i18n.messages.purchase.done(id=order.id)
-            return result_view(self.i18n, header, str(order.result.get("text", "")))
-        view = View(
-            text=self.i18n.messages.purchase.accepted(id=order.id),
-            reply_markup=menu_keyboard(self.i18n),
+    def delivered(self, order: Order) -> tuple[View, View | None, bytes | None]:
+        """The card turned into a receipt, and the result as a new message when it is ready."""
+        messages = self.i18n.messages.purchase
+        done = order.status is OrderStatus.completed and bool(order.result)
+        if done:
+            next_ = messages.next_done()
+        elif order.status is OrderStatus.assigned:
+            next_ = messages.next_work()
+        else:
+            next_ = messages.next_queue()
+        receipt = View(
+            text=messages.accepted(id=order.id, next=next_),
+            reply_markup=accepted_keyboard(self.i18n, order.id),
         )
-        return view, None
+        if not done or not order.result:
+            return receipt, None, None
+        result, file = result_view(
+            self.i18n, messages.done(id=order.id), str(order.result.get("text", ""))
+        )
+        result.mode = RenderMode.NEW
+        result.kwargs = {"message_effect_id": DONE_EFFECT}
+        return receipt, result, file
 
     def admin_manual(self, order: Order, user: User, product_title: str) -> str:
         answers = "\n".join(
