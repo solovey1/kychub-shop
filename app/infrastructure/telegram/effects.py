@@ -10,10 +10,12 @@ from app.application.interactors.auto_confirm import confirm_deadline, confirm_h
 from app.application.interactors.conversations import Posted
 from app.application.interactors.deadlines import ExtensionAnswer, ExtensionAsk
 from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
+from app.application.interactors.disputes import AutoResolved, DisputeNews, DisputeReminder
 from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.settings import SettingsGateway
+from app.domain.enums.dispute import DisputeResolution
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import TicketStatus
 from app.domain.ledger import Withdrawal
@@ -152,6 +154,45 @@ class Effects:
             self.notices.extension_answered(answer),
         )
         await self._order_event(answer.order.id, OrderStatus.assigned)
+
+    async def dispute_opened(self, news: DisputeNews) -> None:
+        url = self.config.server.url
+        await _safe(
+            f"announcing the dispute of order {news.order.id}",
+            self.notices.dispute_opened(news, url),
+        )
+        await self._order_event(news.order.id, news.order.status, staff=True)
+
+    async def dispute_reply_requested(self, news: DisputeNews) -> None:
+        await _safe(
+            f"asking for a reply in order {news.order.id}",
+            self.notices.ask_reply(
+                news, self.config.server.url, "messages-dispute-reply_requested"
+            ),
+        )
+        await self._order_event(news.order.id, news.order.status, staff=True)
+
+    async def dispute_closed(self, news: DisputeNews) -> None:
+        await _safe(
+            f"closing the dispute of order {news.order.id}",
+            self.notices.dispute_closed(news.order),
+        )
+        await self._order_event(news.order.id, news.order.status, staff=True)
+
+    async def dispute_reminder(self, reminder: DisputeReminder) -> None:
+        await _safe(
+            f"reminding about the dispute of order {reminder.order.id}",
+            self.notices.dispute_reminder(reminder, self.config.server.url),
+        )
+
+    async def dispute_resolved(self, resolved: AutoResolved) -> None:
+        """A dispute that ended by itself: the same messages as when support does it."""
+        if resolved.refund is not None:
+            await self.order_failed(resolved.refund)
+        elif resolved.resolution is DisputeResolution.completed:
+            await self.order_confirmed(resolved.order)
+        else:
+            await self.dispute_closed(DisputeNews(resolved.order, resolved.dispute))
 
     async def withdrawal_created(self, user: User, withdrawal: Withdrawal) -> None:
         await _safe(

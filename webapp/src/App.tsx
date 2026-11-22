@@ -41,8 +41,8 @@ import { Failure, Hint, Loading } from "./ui/kit";
 import { Tabs } from "./ui/Tabs";
 import { useUnreadFeed } from "./unread";
 
-const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$|^\/admin(\/[A-Za-z0-9/]+)?$/;
-const TOP = /^\/(orders|balance|admin|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
+const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$|^\/support\/review\/[0-9]+$|^\/work\/order\/[0-9]+$|^\/admin(\/[A-Za-z0-9/]+)?$/;
+const TOP = /^\/(orders|balance|admin|work\/(queue|mine|wallet)|support\/(tickets|review|disputes))$/;
 
 function Shell({ me }: { me: Me }) {
   const [path, go] = useLocation();

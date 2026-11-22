@@ -5,6 +5,7 @@ from typing import Final
 
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.uow import UnitOfWork
@@ -31,12 +32,15 @@ def confirm_deadline(order: Order, hours: int) -> datetime | None:
 
 @dataclass(frozen=True)
 class AutoConfirmInteractor(BaseInteractor):
-    """The buyer has `confirm_hours` to check a submitted order; then the system confirms it."""
+    """The buyer has `confirm_hours` to check a submitted order; then the system confirms it.
+    An open dispute stops the clock (the query leaves such orders out, and it is checked again
+    under the order lock)."""
 
     uow: UnitOfWork
     orders: OrdersGateway
     settings: SettingsGateway
     review: OrderReviewInteractor
+    disputes: DisputesGateway
 
     async def confirm_due(self) -> list[Order]:
         """Every order in its own transaction; a broken one does not stop the rest."""
@@ -46,7 +50,12 @@ class AutoConfirmInteractor(BaseInteractor):
             try:
                 order = await self.orders.get_for_update(candidate.id)
                 deadline = confirm_deadline(order, hours) if order else None
-                if order is None or deadline is None or deadline >= datetime_now():
+                if (
+                    order is None
+                    or deadline is None
+                    or deadline >= datetime_now()
+                    or await self.disputes.open_for_order(order.id) is not None
+                ):
                     await self.uow.rollback()  # confirmed, sent back or disputed meanwhile
                     continue
                 await self.review.complete_locked(order, None)
@@ -78,6 +87,7 @@ class AutoConfirmInteractor(BaseInteractor):
                     or deadline is None
                     or deadline - REMIND_BEFORE > now
                     or deadline <= now
+                    or await self.disputes.open_for_order(order.id) is not None
                 ):
                     await self.uow.rollback()
                     continue

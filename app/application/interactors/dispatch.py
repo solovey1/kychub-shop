@@ -9,6 +9,7 @@ from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, OrderContext, load_context
 from app.application.ports.repositories.catalog import CatalogGateway
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import Candidate, ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
@@ -56,6 +57,7 @@ class DispatchInteractor(BaseInteractor):
     executors: ExecutorsGateway
     catalog: CatalogGateway
     cards: CardBuilder
+    disputes: DisputesGateway
 
     async def queue_for(self, executor_id: int) -> list[OrderCard]:
         """The waiting orders this executor may take now (permission, limit, not refused).
@@ -191,6 +193,8 @@ class DispatchInteractor(BaseInteractor):
                 or order.executor_id != executor_id
             ):
                 raise OrderUnavailable(order_id)
+            if await self.disputes.open_for_order(order_id) is not None:
+                raise Conflict("dispute_open")  # no way out of a dispute by refusing
             await self._release(order, "refused", executor_id)
             result = await self._dispatch(order, released=(executor_id, "refused"))
             await self.uow.commit()
@@ -212,6 +216,7 @@ class DispatchInteractor(BaseInteractor):
                     or order.executor_id is None
                     or order.deadline_at is None
                     or order.deadline_at >= now
+                    or await self.disputes.open_for_order(order_id) is not None  # clock stopped
                 ):
                     await self.uow.rollback()
                     continue

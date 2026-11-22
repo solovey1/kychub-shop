@@ -66,3 +66,21 @@ messages-order-check =
 
     Усе гаразд? Натисніть «Все гаразд». Інакше замовлення підтвердиться автоматично { $time }.
 messages-order-confirmed = ✅ Замовлення №{ $id } підтверджено. Дякуємо!
+buttons-deal_ask = 🆘 Покликати підтримку
+buttons-deal_skip = Без причини
+buttons-dispute_open = 🆘 Відкрити спір
+dispute-who-buyer = покупець
+dispute-who-executor = виконавець
+dispute-from-buyer = покупця
+dispute-from-executor = виконавця
+dispute-from-you = вас
+messages-order-dispute = 🆘 <b>Спір відкрито.</b> Підтримка розбирається.
+messages-order-dispute_wait = 🆘 <b>Спір відкрито.</b> Чекаємо відповіді від { $who } до { $time }.
+messages-dispute-ask_reason = 🆘 Замовлення №{ $id }: опишіть проблему одним рядком або натисніть «Без причини».
+messages-dispute-opened = 🆘 Спір щодо замовлення №{ $id } відкрито. Підключиться підтримка. Друга сторона має відповісти в чаті до { $time }.
+messages-dispute-cancelled = Добре, спір не відкрито.
+messages-dispute-staff = 🆘 Спір щодо замовлення №{ $id }. Відкрив: { $who }.
+messages-dispute-reply = 🆘 За замовленням №{ $id } відкрито спір. Відповідайте в чаті до { $time }, інакше спір вирішиться не на вашу користь.
+messages-dispute-reply_requested = 🆘 Підтримка просить відповісти щодо замовлення №{ $id } у чаті до { $time }.
+messages-dispute-reminder = ⏰ Спір щодо замовлення №{ $id }: залишилось { $left }. Відповідайте в чаті до { $time }.
+messages-dispute-closed = ✅ Спір щодо замовлення №{ $id } закрито, замовлення продовжується.

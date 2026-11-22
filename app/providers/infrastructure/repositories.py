@@ -3,6 +3,7 @@ from dishka import Provider, Scope, alias, provide, provide_all
 from app.application.ports.repositories.admin import AdminGateway
 from app.application.ports.repositories.balance import BalanceGateway
 from app.application.ports.repositories.catalog import CatalogGateway
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
@@ -16,6 +17,7 @@ from app.application.ports.uow import UnitOfWork
 from app.infrastructure.postgres.repositories.admin import AdminRepository
 from app.infrastructure.postgres.repositories.balance import BalanceRepository
 from app.infrastructure.postgres.repositories.catalog import CatalogRepository
+from app.infrastructure.postgres.repositories.disputes import DisputesRepository
 from app.infrastructure.postgres.repositories.executors import ExecutorsRepository
 from app.infrastructure.postgres.repositories.ledger import LedgerRepository
 from app.infrastructure.postgres.repositories.orders import OrdersRepository
@@ -39,6 +41,7 @@ class RepositoriesProvider(Provider):
         provide(LedgerRepository, provides=LedgerGateway),
         provide(CatalogRepository, provides=CatalogGateway),
         provide(OrdersRepository, provides=OrdersGateway),
+        provide(DisputesRepository, provides=DisputesGateway),
         provide(StockRepository, provides=StockGateway),
         provide(PromoRepository, provides=PromoGateway),
         provide(BalanceRepository, provides=BalanceGateway),

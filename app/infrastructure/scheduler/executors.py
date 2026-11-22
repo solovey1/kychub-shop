@@ -11,6 +11,7 @@ from app.application.interactors.auto_confirm import (
 )
 from app.application.interactors.deadlines import ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.hold import HoldInteractor
 from app.application.ports.repositories.settings import SettingsGateway
@@ -88,6 +89,24 @@ async def remind_confirm(container: AsyncContainer) -> None:
                 await notices.confirm_reminder(order, until)
 
 
+async def resolve_disputes(container: AsyncContainer) -> None:
+    """Disputes whose silent side missed the reply deadline resolve themselves."""
+    async with container() as request:
+        resolved = await (await request.get(DisputeInteractor)).auto_resolve_due()
+        effects = await request.get(Effects)
+        for item in resolved:
+            await effects.dispute_resolved(item)
+
+
+async def remind_disputes(container: AsyncContainer) -> None:
+    """One message to the side a dispute waits for, an hour before its deadline."""
+    async with container() as request:
+        reminders = await (await request.get(DisputeInteractor)).remind_due()
+        effects = await request.get(Effects)
+        for reminder in reminders:
+            await effects.dispute_reminder(reminder)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -108,6 +127,8 @@ def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
     _job(scheduler, container, auto_confirm, "auto_confirm", 60)
     _job(scheduler, container, remind_confirm, "remind_confirm", 60)
+    _job(scheduler, container, resolve_disputes, "resolve_disputes", 60)
+    _job(scheduler, container, remind_disputes, "remind_disputes", 60)
     _job(scheduler, container, requeue_stale, "requeue_stale", 300)
     _job(scheduler, container, release_holds, "release_holds", 600)
     _job(scheduler, container, request_reviews, "request_reviews", 300)

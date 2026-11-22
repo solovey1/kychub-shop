@@ -11,9 +11,11 @@ from app.application.ports.repositories.settings import SettingsGateway
 from app.application.settings_keys import (
     CONFIRM_HOURS,
     DEFAULT_CONFIRM_HOURS,
+    DEFAULT_DISPUTE_REPLY_HOURS,
     DEFAULT_HOLD_DAYS,
     DEFAULT_MIN_WITHDRAWAL,
     DEFAULT_REVIEW_DELAY_HOURS,
+    DISPUTE_REPLY_HOURS,
     HOLD_DAYS,
     MIN_WITHDRAWAL,
     REVIEW_DELAY_HOURS,
@@ -39,6 +41,7 @@ class Tunables:
     review_delay_hours: int
     min_withdrawal: Decimal
     confirm_hours: int
+    dispute_reply_hours: int
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,7 @@ class SettingsAdminInteractor(AdminInteractor):
             int(await self.settings.get(REVIEW_DELAY_HOURS, DEFAULT_REVIEW_DELAY_HOURS)),
             parse_money(str(await self.settings.get(MIN_WITHDRAWAL, str(DEFAULT_MIN_WITHDRAWAL)))),
             int(await self.settings.get(CONFIRM_HOURS, DEFAULT_CONFIRM_HOURS)),
+            int(await self.settings.get(DISPUTE_REPLY_HOURS, DEFAULT_DISPUTE_REPLY_HOURS)),
         )
 
     async def update(
@@ -60,6 +64,7 @@ class SettingsAdminInteractor(AdminInteractor):
         review_delay_hours: int,
         min_withdrawal: str,
         confirm_hours: int,
+        dispute_reply_hours: int,
     ) -> Tunables:
         if not 0 <= hold_days <= 60:
             raise InvalidField("hold_days", "0..60")
@@ -67,6 +72,8 @@ class SettingsAdminInteractor(AdminInteractor):
             raise InvalidField("review_delay_hours", "0..720")
         if not 1 <= confirm_hours <= 168:
             raise InvalidField("confirm_hours", "1..168")
+        if not 1 <= dispute_reply_hours <= 72:
+            raise InvalidField("dispute_reply_hours", "1..72")
         try:
             minimum = parse_money(min_withdrawal)
         except InvalidAmount as e:
@@ -80,12 +87,14 @@ class SettingsAdminInteractor(AdminInteractor):
                 REVIEW_DELAY_HOURS: review_delay_hours,
                 MIN_WITHDRAWAL: str(minimum),
                 CONFIRM_HOURS: confirm_hours,
+                DISPUTE_REPLY_HOURS: dispute_reply_hours,
             }
             old = {
                 HOLD_DAYS: before.hold_days,
                 REVIEW_DELAY_HOURS: before.review_delay_hours,
                 MIN_WITHDRAWAL: str(before.min_withdrawal),
                 CONFIRM_HOURS: before.confirm_hours,
+                DISPUTE_REPLY_HOURS: before.dispute_reply_hours,
             }
             diff = {k: [old[k], v] for k, v in new.items() if old[k] != v}
             for key, value in new.items():

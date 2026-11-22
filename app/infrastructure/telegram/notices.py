@@ -13,17 +13,36 @@ from app.application.interactors.deadlines import (
     Reminder,
     extended_deadline,
 )
+from app.application.interactors.disputes import DisputeNews, DisputeReminder, side_user
 from app.application.interactors.payouts import Refunded
 from app.domain.order import Order
 from app.infrastructure.telegram.notifier import Notifier, Translate
+from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.executor import CDExt, CDXOrder
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.callbacks.orders import CDOrder
-from app.presentation.telegram.keyboards.common import button, markup
+from app.presentation.telegram.keyboards.common import app_button, button, markup
 from app.presentation.telegram.keyboards.feedback import rate_keyboard
 from app.presentation.telegram.keyboards.orders import deal_rows, extension_keyboard
 from app.presentation.telegram.presenters.common.purchase import COPY_LIMIT, FILE_LIMIT
 from app.utils.time import datetime_now
+
+
+def _app_markup(text: str, url: str, path: str) -> InlineKeyboardMarkup | None:
+    opener = app_button(text, url, path)
+    return markup([[opener]]) if opener else None
+
+
+def _reply_markup(tr: Translate, url: str, order_id: int, buyer: bool) -> InlineKeyboardMarkup:
+    """Under a dispute notice: the chat in the bot, and the order in the Mini App."""
+    chat = button(
+        tr("buttons-chat_executor" if buyer else "buttons-chat_buyer"),
+        CDChat(action="order", id=order_id),
+        style="primary",
+    )
+    path = f"/orders/{order_id}" if buyer else f"/work/order/{order_id}"
+    opener = app_button(tr("buttons-open"), url, path)
+    return markup([[chat], [opener] if opener else []])
 
 
 def _deal_markup(tr: Translate, order_id: int) -> InlineKeyboardMarkup:
@@ -69,6 +88,56 @@ class OrderNotices:
             id=str(order_id),
             time=until.strftime("%d.%m %H:%M") if until else "-",
         )
+
+    async def dispute_opened(self, news: DisputeNews, url: str) -> None:
+        """Support is told; the other side is asked to answer in the order chat."""
+        order_id = news.order.id
+        who = news.dispute.opened_role
+        await self.notifier.staff(
+            lambda tr, _: tr(
+                "messages-dispute-staff", id=str(order_id), who=tr(f"dispute-who-{who}")
+            ),
+            lambda tr: _app_markup(tr("buttons-dispute_open"), url, f"/support/review/{order_id}"),
+        )
+        await self.ask_reply(news, url, "messages-dispute-reply")
+
+    async def ask_reply(self, news: DisputeNews, url: str, key: str) -> None:
+        """To the side the dispute waits for: answer in the chat before the deadline."""
+        order, dispute = news.order, news.dispute
+        user_id = side_user(order, news.side) if news.side else None
+        if user_id is None or dispute.awaiting_until is None:
+            return
+        order_id, buyer = order.id, user_id == order.user_id
+        await self.notifier.send(
+            user_id,
+            key,
+            lambda tr: _reply_markup(tr, url, order_id, buyer),
+            id=str(order_id),
+            time=dispute.awaiting_until.strftime("%d.%m %H:%M"),
+        )
+
+    async def dispute_reminder(self, reminder: DisputeReminder, url: str) -> None:
+        order, dispute = reminder.order, reminder.dispute
+        user_id = side_user(order, dispute.awaiting_role or "")
+        if user_id is None or dispute.awaiting_until is None:
+            return
+        order_id, buyer, left = order.id, user_id == order.user_id, reminder.left_minutes
+        until = dispute.awaiting_until.strftime("%d.%m %H:%M")
+        await self.notifier.send(
+            user_id,
+            lambda tr, _: tr(
+                "messages-dispute-reminder",
+                id=str(order_id),
+                left=fmt_duration(tr, left),
+                time=until,
+            ),
+            lambda tr: _reply_markup(tr, url, order_id, buyer),
+        )
+
+    async def dispute_closed(self, order: Order) -> None:
+        for user_id in (order.user_id, order.executor_id):
+            if user_id is not None:
+                await self.notifier.send(user_id, "messages-dispute-closed", id=str(order.id))
 
     async def confirm_reminder(self, order: Order, until: datetime) -> None:
         order_id = order.id

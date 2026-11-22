@@ -985,7 +985,7 @@ const broadcastById = (id: number) => {
   return b;
 };
 
-let mSettings = { hold_days: 7, review_delay_hours: 24, min_withdrawal: "10.00", confirm_hours: 24 };
+let mSettings = { hold_days: 7, review_delay_hours: 24, min_withdrawal: "10.00", confirm_hours: 24, dispute_reply_hours: 12 };
 const mAudit = [
   { id: 6, actor_id: 1, actor_name: "Сергей", action: "withdrawal.pay", target: "withdrawal:11", payload: { tx_hash: "0x9f3a…" }, created_at: ago(4000) },
   { id: 5, actor_id: 3, actor_name: "Maria", action: "catalog.product.update", target: "product:2", payload: { is_active: true }, created_at: ago(3500) },
@@ -1107,14 +1107,14 @@ function route(method: string, url: URL, body: unknown): unknown {
       hold: "12.50",
       executor: roles.includes("executor") ? { hold: "12.40", available: "58.75" } : null,
     };
-  if (path === "/unread") return { orders: 2, support: 1, work: 1, tickets: 2, review: 1 };
+  if (path === "/unread") return { orders: 2, support: 1, work: 1, tickets: 2, review: 1, disputes: 1 };
   if (path.match(/^\/conversations\/\d+\/read$/)) return { ok: true };
   if (path === "/orders") return { items: orders.map(brief), total: orders.length, page: 0, page_size: 20 };
   if ((m = path.match(/^\/orders\/(\d+)$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null };
+    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
@@ -1192,8 +1192,28 @@ function route(method: string, url: URL, body: unknown): unknown {
       ],
       result: "Аккаунт: ads-4471@example.com\nПароль: Zt9!kLm2\nКлиентский ID: 482-119-7765",
       result_files: 1,
+      dispute:
+        o.id === 1030
+          ? { opened_role: "buyer", awaiting_role: "executor", awaiting_until: minutes(300), opened_at: ago(30), reason: "Не открывается аккаунт" }
+          : null,
     };
   }
+  if (path === "/staff/disputes")
+    return orders
+      .filter((o) => o.status === "ready" || o.status === "assigned")
+      .slice(0, 2)
+      .map((o) => ({
+        order_id: o.id,
+        status: o.status,
+        product: o.product,
+        variant: o.variant,
+        country: o.country,
+        opened_role: "buyer",
+        awaiting_role: "executor",
+        awaiting_until: minutes(300),
+        opened_at: ago(30),
+      }));
+  if (path.match(/^\/staff\/orders\/\d+\/dispute\/(request|close)$/)) return { ok: true };
   if (path.match(/^\/staff\/orders\/\d+\/(confirm|send_back)$/)) return { ok: true };
   if ((m = path.match(/^\/staff\/orders\/(\d+)\/fail$/))) return { order_id: Number(m[1]), refunded: "45.00" };
   throw 404;

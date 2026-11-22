@@ -5,6 +5,7 @@ import { ApiError, send, useFetch, type ExecutorOrder, type ResultField } from "
 import { named, t } from "../../i18n";
 import { alert, confirm, failure, success, useMainButton } from "../../telegram";
 import { Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
+import { DisputeBlock } from "../../ui/Dispute";
 import { Left, duration } from "../../ui/Left";
 import { Track } from "../../ui/Track";
 
@@ -147,6 +148,13 @@ export function ExecOrder({ id }: { id: number }) {
           <Row title={t("exec.left")} right={<Left until={o.deadline_at} />} />
         )}
       </Section>
+      <DisputeBlock
+        path={`/executor/orders/${id}/dispute`}
+        can={o.can_dispute}
+        dispute={o.dispute}
+        me="executor"
+        reload={reload}
+      />
       {o.fields.length > 0 && (
         <Section title={t("exec.fields")}>
           {o.fields.map((f, i) => (

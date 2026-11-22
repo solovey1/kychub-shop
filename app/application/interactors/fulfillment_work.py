@@ -10,8 +10,10 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.deadlines import ExtensionState, extension_state
 from app.application.models.form_schema import FieldType, FormField, FormSchema, split_files
 from app.application.ports.repositories.catalog import CatalogGateway
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
+from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
 from app.utils.time import datetime_now
@@ -33,6 +35,7 @@ class ExecutorOrderView:
     order: Order
     card: OrderCard
     extension: ExtensionState
+    dispute: Dispute | None = None
 
 
 def pack_result(form: FormSchema, values: dict[str, str]) -> dict[str, object]:
@@ -58,6 +61,7 @@ class FulfillmentWorkInteractor(BaseInteractor):
     orders: OrdersGateway
     catalog: CatalogGateway
     cards: CardBuilder
+    disputes: DisputesGateway
 
     async def my_orders(self, executor_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
@@ -75,6 +79,7 @@ class FulfillmentWorkInteractor(BaseInteractor):
             order,
             await self.cards.build(order, executor_id),
             extension_state(await self.orders.events(order_id)),
+            await self.disputes.open_for_order(order_id),
         )
 
     async def result_form(self, executor_id: int, order_id: int) -> FormSchema:
@@ -103,8 +108,13 @@ class FulfillmentWorkInteractor(BaseInteractor):
             ):
                 raise OrderUnavailable(order_id)
             now = datetime_now()
-            # same predicate as the overdue job, evaluated under the same order lock
-            if order.deadline_at is not None and order.deadline_at < now:
+            # same predicate as the overdue job, evaluated under the same order lock; the clock
+            # is stopped while a dispute is open
+            if (
+                order.deadline_at is not None
+                and order.deadline_at < now
+                and await self.disputes.open_for_order(order_id) is None
+            ):
                 raise DeadlineExpired(order_id)
             form = await self._form(order)
             values: dict[str, str] = {}

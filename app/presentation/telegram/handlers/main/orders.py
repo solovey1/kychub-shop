@@ -1,6 +1,6 @@
 from typing import Any, Final
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -14,6 +14,7 @@ from app.presentation.telegram.callbacks.orders import (
     CDOrders,
 )
 from app.presentation.telegram.flows.common.orders import OrdersFlow
+from app.presentation.telegram.states.support import DisputeForm
 
 router: Final[Router] = Router(name=__name__)
 
@@ -52,3 +53,8 @@ async def extension(
 @router.callback_query(CDDeal.filter())
 async def deal(_: CallbackQuery, callback_data: CDDeal, flow: FromDishka[OrdersFlow]) -> Any:
     return await flow.deal(callback_data)
+
+
+@router.message(DisputeForm.reason, F.text)
+async def dispute_reason(message: Message, flow: FromDishka[OrdersFlow]) -> Any:
+    return await flow.dispute_reason(message)

@@ -6,6 +6,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, Query
 
 from app.application.interactors.conversations import ConversationInteractor
+from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
@@ -14,8 +15,11 @@ from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import CurrentUser, StaffUser
 from app.presentation.fastapi.api.schemas import (
     CancelOut,
+    DisputeOut,
+    DisputeRowOut,
     HandoverIn,
     OrderBrief,
+    ReplyRequestIn,
     SendBackIn,
     StaffMemberOut,
     StaffOrderBrief,
@@ -153,11 +157,15 @@ async def staff_orders(
 @router.get("/staff/orders/{order_id}")
 @inject
 async def staff_order(
-    order_id: int, user: StaffUser, review: FromDishka[OrderReviewInteractor]
+    order_id: int,
+    user: StaffUser,
+    review: FromDishka[OrderReviewInteractor],
+    disputes: FromDishka[DisputeInteractor],
 ) -> StaffOrderOut:
     view = await review.get(order_id)
     if view is None:
         raise HTTPException(404, "Not found")
+    dispute = await disputes.current(order_id)
     return StaffOrderOut(
         **OrderBrief.of(view.order, user.language).model_dump(),
         executor_id=view.order.executor_id,
@@ -167,7 +175,61 @@ async def staff_order(
         fields=card_fields(view.card, user.language),
         result=view.text,
         result_files=len(view.files),
+        dispute=DisputeOut.of(dispute, staff=True) if dispute else None,
     )
+
+
+@router.get("/staff/disputes")
+@inject
+async def staff_disputes(
+    user: StaffUser, disputes: FromDishka[DisputeInteractor]
+) -> list[DisputeRowOut]:
+    rows = []
+    for dispute, order in await disputes.open_rows():
+        brief = OrderBrief.of(order, user.language)
+        rows.append(
+            DisputeRowOut(
+                order_id=order.id,
+                status=order.status,
+                product=brief.product,
+                variant=brief.variant,
+                country=brief.country,
+                opened_role=dispute.opened_role,
+                awaiting_role=dispute.awaiting_role,
+                awaiting_until=dispute.awaiting_until,
+                opened_at=dispute.opened_at,
+            )
+        )
+    return rows
+
+
+@router.post("/staff/orders/{order_id}/dispute/request")
+@inject
+async def request_reply(
+    order_id: int,
+    body: ReplyRequestIn,
+    user: StaffUser,
+    disputes: FromDishka[DisputeInteractor],
+    effects: FromDishka[Effects],
+) -> dict[str, bool]:
+    """Ask the buyer or the executor to answer in the chat: the wait starts again."""
+    news = await disputes.request_reply(user.id, order_id, body.side)  # no dispute: 404
+    await effects.dispute_reply_requested(news)
+    return {"ok": True}
+
+
+@router.post("/staff/orders/{order_id}/dispute/close")
+@inject
+async def close_dispute(
+    order_id: int,
+    user: StaffUser,
+    disputes: FromDishka[DisputeInteractor],
+    effects: FromDishka[Effects],
+) -> dict[str, bool]:
+    """Close the dispute without touching the order, which goes on."""
+    news = await disputes.close(user.id, order_id)  # already closed: 404
+    await effects.dispute_closed(news)
+    return {"ok": True}
 
 
 @router.post("/staff/orders/{order_id}/confirm")

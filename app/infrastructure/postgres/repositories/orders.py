@@ -5,12 +5,18 @@ from sqlalchemy import ColumnElement, exists, func, select
 
 from app.application.ports.repositories.orders import OrdersGateway
 from app.domain.catalog import Category, Country, Product, ProductVariant
+from app.domain.dispute import Dispute
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
 from app.domain.ledger import LedgerEntry
 from app.domain.order import Order, OrderEvent
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
+
+
+def _no_dispute() -> ColumnElement[bool]:
+    """The order has no open dispute: its clocks (deadline, auto-confirm) run."""
+    return ~exists().where(Dispute.order_id == Order.id, Dispute.resolved_at.is_(None))
 
 
 @dataclass
@@ -136,7 +142,7 @@ class OrdersRepository(OrdersGateway):
     async def overdue_ids(self, now: datetime) -> list[int]:
         query = (
             select(Order.id)
-            .where(Order.status == OrderStatus.assigned, Order.deadline_at < now)
+            .where(Order.status == OrderStatus.assigned, Order.deadline_at < now, _no_dispute())
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))
@@ -144,7 +150,7 @@ class OrdersRepository(OrdersGateway):
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
         query = (
             select(Order)
-            .where(Order.status == OrderStatus.assigned, Order.deadline_at >= now)
+            .where(Order.status == OrderStatus.assigned, Order.deadline_at >= now, _no_dispute())
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))
@@ -152,7 +158,7 @@ class OrdersRepository(OrdersGateway):
     async def ready_before(self, cutoff: datetime) -> list[Order]:
         query = (
             select(Order)
-            .where(Order.status == OrderStatus.ready, Order.ready_at < cutoff)
+            .where(Order.status == OrderStatus.ready, Order.ready_at < cutoff, _no_dispute())
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))

@@ -11,7 +11,7 @@ export function Tabs({ tabs }: { tabs: { to: string; key: string }[] }) {
   const count: Record<string, number> = {
     orders: u.orders + u.support,
     work: u.work,
-    support: u.tickets + u.review,
+    support: u.tickets + u.review + u.disputes,
   };
   return (
     <nav className="tabs">

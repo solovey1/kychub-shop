@@ -15,6 +15,7 @@ def _out(t: Tunables) -> SettingsBody:
         review_delay_hours=t.review_delay_hours,
         min_withdrawal=usd(t.min_withdrawal),
         confirm_hours=t.confirm_hours,
+        dispute_reply_hours=t.dispute_reply_hours,
     )
 
 
@@ -38,5 +39,6 @@ async def put_settings(
             body.review_delay_hours,
             body.min_withdrawal,
             body.confirm_hours,
+            body.dispute_reply_hours,
         )
     )

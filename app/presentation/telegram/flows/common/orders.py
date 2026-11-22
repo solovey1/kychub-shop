@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
 from app.application.errors.shop import Conflict, OrderUnavailable
 from app.application.interactors.deadlines import ExtensionInteractor
+from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.application.ports.telegram.messages_helper import MessageHelper
@@ -14,6 +15,7 @@ from app.infrastructure.telegram.effects import Effects
 from app.presentation.telegram.callbacks.orders import CDCancel, CDDeal, CDExtAnswer
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.orders import OrdersPresenter
+from app.presentation.telegram.states.support import DisputeForm
 from app.presentation.telegram.view.renderer import Renderer
 
 
@@ -26,6 +28,7 @@ class OrdersFlow(BaseFlow):
     effects: Effects
     extension: ExtensionInteractor
     review: OrderReviewInteractor
+    disputes: DisputeInteractor
     helper: MessageHelper
 
     async def list(self, page: int) -> Any:
@@ -43,8 +46,9 @@ class OrdersFlow(BaseFlow):
         reserved = await self.interactor.reserved(order)
         pending = await self.interactor.pending_extension(order)
         confirm_at = await self.interactor.confirm_at(order)
+        dispute = await self.interactor.dispute(order)
         view, file = self.presenter.order(
-            order, page, events, alias, reorder, reserved, pending, confirm_at
+            order, page, events, alias, reorder, reserved, pending, confirm_at, dispute
         )
         await self.renderer.apply(view)
         if file is not None:
@@ -53,15 +57,52 @@ class OrdersFlow(BaseFlow):
             await self.effects.notices.files(self.user.id, list(order.result.get("files", [])))
 
     async def deal(self, cd: CDDeal) -> None:
-        """The buyer answers a submitted order."""
-        if cd.action != "ok":
+        """The buyer answers a submitted order; the buyer or the executor calls support."""
+        match cd.action:
+            case "ok":
+                await self._ok(cd)
+            case "ask":
+                await self.helper.fsm.set_state(DisputeForm.reason)
+                await self.helper.fsm.update_data(order_id=cd.id, page=cd.page)
+                await self.renderer.apply(self.presenter.dispute_ask(cd.id, cd.page))
+            case "skip":
+                await self._open_dispute(cd.id, cd.page, None)
+            case "cancel":
+                await self.helper.fsm.clear()
+                await self._back(cd.id, cd.page)
+
+    async def dispute_reason(self, message: Message) -> None:
+        data = await self.helper.fsm.get_data()
+        order_id = data.get("order_id")
+        if order_id is None or not (message.text or "").strip():
             return
+        await self._open_dispute(order_id, int(data.get("page", 0)), message.text)
+
+    async def _ok(self, cd: CDDeal) -> None:
         try:
             order = await self.review.confirm_by_buyer(self.user.id, cd.id)
         except OrderUnavailable:  # confirmed already (by him, support or the timer), or not his
             return await self.show(cd.id, cd.page)
         await self.renderer.apply(self.presenter.confirmed(order.id, cd.page))
         await self.effects.order_confirmed(order)
+
+    async def _open_dispute(self, order_id: int, page: int, reason: str | None) -> None:
+        await self.helper.fsm.clear()
+        try:
+            news = await self.disputes.open(self.user.id, order_id, reason)
+        except Conflict:  # one is open already
+            return await self._back(order_id, page)
+        except OrderUnavailable:  # not his order, or it is no longer in work
+            return await self._back(order_id, page)
+        buyer = news.order.user_id == self.user.id
+        await self.renderer.apply(self.presenter.dispute_opened(news, page, buyer=buyer))
+        await self.effects.dispute_opened(news)
+
+    async def _back(self, order_id: int, page: int) -> None:
+        """To the order card: the buyer's here, the executor's is in his cabinet."""
+        if await self.interactor.get(self.user.id, order_id) is not None:
+            return await self.show(order_id, page)
+        await self.renderer.apply(self.presenter.executor_back(order_id))
 
     async def answer_extension(self, cd: CDExtAnswer) -> None:
         try:

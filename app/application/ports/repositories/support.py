@@ -16,6 +16,7 @@ class UnreadCounts:
     work: int = 0
     tickets: int = 0
     review: int = 0
+    disputes: int = 0  # open disputes (staff)
 
 
 class SupportGateway(Protocol):

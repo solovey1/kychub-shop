@@ -8,11 +8,16 @@ from aiogram_i18n import I18nContext
 from app.application.cards import fmt_duration
 from app.application.i18n_text import country_flag, fmt_usd, pick_i18n
 from app.application.interactors.deadlines import ExtensionAnswer, Pending, extended_deadline
+from app.application.interactors.disputes import DisputeNews
+from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
+from app.presentation.telegram.callbacks.executor import CDXOrder
 from app.presentation.telegram.callbacks.orders import CDOrders
+from app.presentation.telegram.keyboards.common import button, markup
 from app.presentation.telegram.keyboards.orders import (
     cancel_confirm_keyboard,
+    dispute_ask_keyboard,
     order_back_keyboard,
     order_keyboard,
     orders_keyboard,
@@ -43,6 +48,20 @@ def _times(events: list[OrderEvent]) -> dict[str, datetime]:
         elif e.type == "status":
             at[str(e.payload.get("to"))] = e.created_at
     return at
+
+
+def dispute_line(i18n: I18nContext, dispute: Dispute, me: str) -> str:
+    """The banner of an open dispute for the buyer (`me`="buyer") or the executor."""
+    if dispute.awaiting_role is None or dispute.awaiting_until is None:
+        return i18n.messages.order.dispute()
+    who = i18n.get(
+        "dispute-from-you"
+        if dispute.awaiting_role == me
+        else f"dispute-from-{dispute.awaiting_role}"
+    )
+    return i18n.messages.order.dispute_wait(
+        who=who, time=dispute.awaiting_until.strftime("%d.%m %H:%M")
+    )
 
 
 @dataclass(frozen=True)
@@ -118,6 +137,7 @@ class OrdersPresenter(BasePresenter):
         reserved: Decimal = Decimal(0),
         pending: Pending | None = None,
         confirm_at: datetime | None = None,
+        dispute: Dispute | None = None,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -143,6 +163,8 @@ class OrdersPresenter(BasePresenter):
             text += "\n\n" + i18n.messages.order.extension(
                 duration=fmt_duration(i18n.get, pending.minutes), time=until.strftime("%H:%M")
             )
+        if dispute is not None:
+            text += "\n\n" + dispute_line(i18n, dispute, "buyer")
         if order.status is OrderStatus.ready and order.result:
             shown = html.quote(str(order.result.get("text", ""))[:RESULT_SHOWN])
             text += "\n\n" + i18n.messages.order.check(
@@ -159,8 +181,36 @@ class OrdersPresenter(BasePresenter):
                 reorder_row(i18n, order) if reorder else None,
             )
         return View(
-            text=text, reply_markup=order_keyboard(i18n, order, page, reorder, pending)
+            text=text,
+            reply_markup=order_keyboard(i18n, order, page, reorder, pending, dispute is not None),
         ), None
+
+    def dispute_ask(self, order_id: int, page: int) -> View:
+        return View(
+            text=self.i18n.messages.dispute.ask_reason(id=str(order_id)),
+            reply_markup=dispute_ask_keyboard(self.i18n.get, order_id, page),
+        )
+
+    def dispute_opened(self, news: DisputeNews, page: int, *, buyer: bool) -> View:
+        order = news.order
+        until = news.dispute.awaiting_until
+        back = (
+            order_back_keyboard(self.i18n, page)
+            if buyer
+            else markup([[button(self.i18n.buttons.back(), CDXOrder(id=order.id))]])
+        )
+        return View(
+            text=self.i18n.messages.dispute.opened(
+                id=str(order.id), time=until.strftime("%d.%m %H:%M") if until else "-"
+            ),
+            reply_markup=back,
+        )
+
+    def executor_back(self, order_id: int) -> View:
+        return View(
+            text=self.i18n.messages.dispute.cancelled(),
+            reply_markup=markup([[button(self.i18n.buttons.back(), CDXOrder(id=order_id))]]),
+        )
 
     def confirmed(self, order_id: int, page: int) -> View:
         return View(

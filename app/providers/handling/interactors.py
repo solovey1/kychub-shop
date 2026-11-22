@@ -18,6 +18,7 @@ from app.application.interactors.catalog import CatalogInteractor
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import (
     ExecutorAdminInteractor,
@@ -58,6 +59,7 @@ class InteractorsProvider(Provider):
         FulfillmentWorkInteractor,
         OrderReviewInteractor,
         AutoConfirmInteractor,
+        DisputeInteractor,
         HoldInteractor,
         ReviewInteractor,
         TipInteractor,

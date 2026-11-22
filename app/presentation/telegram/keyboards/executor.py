@@ -21,6 +21,7 @@ from app.presentation.telegram.callbacks.executor import (
 )
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.keyboards.common import button, markup, pager
+from app.presentation.telegram.keyboards.orders import deal_rows
 
 
 def cabinet_keyboard(i18n: I18nContext, online: bool) -> InlineKeyboardMarkup:
@@ -81,7 +82,7 @@ def extension_options_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboa
 
 
 def order_keyboard(
-    i18n: I18nContext, order: Order, page: int, can_extend: bool = False
+    i18n: I18nContext, order: Order, page: int, can_extend: bool = False, dispute: bool = False
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if can_extend:
@@ -105,6 +106,8 @@ def order_keyboard(
         )
     if order.status in CHAT_STATUSES:
         rows.append([button(i18n.buttons.chat_buyer(), CDChat(action="order", id=order.id))])
+        if not dispute:
+            rows += deal_rows(i18n.get, order.id, ok=False)
     rows.append([button(i18n.buttons.back(), CDXOrders(page=page))])
     return markup(rows)
 

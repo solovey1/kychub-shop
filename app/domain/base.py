@@ -8,6 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, registry
 
 from app.domain.enums.broadcast import BroadcastStatus
 from app.domain.enums.catalog import AssignMode
+from app.domain.enums.dispute import DisputeResolution
 from app.domain.enums.ledger import LedgerAccount, LedgerKind, PaymentStatus, WithdrawalStatus
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
@@ -52,6 +53,7 @@ class Base(DeclarativeBase):
                     TicketStatus,
                     ChatRole,
                     BroadcastStatus,
+                    DisputeResolution,
                 )
             },
         }

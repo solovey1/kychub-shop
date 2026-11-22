@@ -10,12 +10,14 @@ from app.application.interactors.catalog import PAGE_SIZE, VariantView
 from app.application.interactors.deadlines import Pending, extension_state
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import Refunded, open_hold, refund_buyer
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.catalog import Product
+from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
 
@@ -30,6 +32,7 @@ class OrdersInteractor(BaseInteractor):
     ledger_gateway: LedgerGateway
     executors: ExecutorsGateway
     settings: SettingsGateway
+    disputes: DisputesGateway
 
     async def list_orders(self, user_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
@@ -63,8 +66,14 @@ class OrdersInteractor(BaseInteractor):
             return None
         return extension_state(await self.gateway.events(order.id)).pending
 
+    async def dispute(self, order: Order) -> Dispute | None:
+        return await self.disputes.open_for_order(order.id)
+
     async def confirm_at(self, order: Order) -> datetime | None:
-        """When a `ready` order confirms itself if the buyer says nothing."""
+        """When a `ready` order confirms itself if the buyer says nothing (None: not ready, or
+        a dispute has stopped the clock)."""
+        if await self.dispute(order) is not None:
+            return None
         return confirm_deadline(order, await confirm_hours(self.settings))
 
     async def events(self, order_id: int) -> list[OrderEvent]:

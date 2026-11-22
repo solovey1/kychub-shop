@@ -64,16 +64,26 @@ def extension_keyboard(tr: Callable[..., str], order_id: int, rid: int) -> Inlin
 
 
 def deal_rows(
-    tr: Callable[..., str], order_id: int, page: int = 0
+    tr: Callable[..., str], order_id: int, page: int = 0, *, ok: bool = True, ask: bool = True
 ) -> list[list[InlineKeyboardButton]]:
-    """The buyer of a `ready` order: everything is fine / call support."""
-    return [
+    """What a side of an order in work may do: «all good» (a submitted order, the buyer) and
+    «call support»."""
+    rows = []
+    if ok:
+        ok_data = CDDeal(action="ok", id=order_id, page=page)
+        rows.append([button(tr("buttons-deal_ok"), ok_data, style="success")])
+    if ask:
+        rows.append([button(tr("buttons-deal_ask"), CDDeal(action="ask", id=order_id, page=page))])
+    return rows
+
+
+def dispute_ask_keyboard(tr: Callable[..., str], order_id: int, page: int) -> InlineKeyboardMarkup:
+    return markup(
         [
-            button(
-                tr("buttons-deal_ok"), CDDeal(action="ok", id=order_id, page=page), style="success"
-            )
+            [button(tr("buttons-deal_skip"), CDDeal(action="skip", id=order_id, page=page))],
+            [button(tr("buttons-cancel"), CDDeal(action="cancel", id=order_id, page=page))],
         ]
-    ]
+    )
 
 
 def order_keyboard(
@@ -82,10 +92,13 @@ def order_keyboard(
     page: int,
     reorder: bool = False,
     pending: Pending | None = None,
+    dispute: bool = False,
 ) -> InlineKeyboardMarkup:
     rows = []
-    if order.status is OrderStatus.ready:
-        rows += deal_rows(i18n.get, order.id, page)
+    if order.status is OrderStatus.ready or (order.status in CHAT_STATUSES and not dispute):
+        rows += deal_rows(
+            i18n.get, order.id, page, ok=order.status is OrderStatus.ready, ask=not dispute
+        )
     if pending is not None:
         rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard
     if order.status in CHAT_STATUSES:

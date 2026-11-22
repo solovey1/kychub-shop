@@ -3,6 +3,7 @@ from . import (  # noqa: F401
     audit,
     broadcast,
     catalog,
+    dispute,
     executor,
     ledger,
     order,

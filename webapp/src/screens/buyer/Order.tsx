@@ -6,6 +6,7 @@ import { fmtDate, fmtMoney, t } from "../../i18n";
 import { alert, confirm, success } from "../../telegram";
 import { Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
 import { duration } from "../../ui/Left";
+import { DisputeBlock } from "../../ui/Dispute";
 import { Track } from "../../ui/Track";
 import { openSupport } from "./Orders";
 
@@ -112,6 +113,7 @@ export function OrderScreen({ id }: { id: number }) {
           <Row title={t("order.filesCount", { n: o.result_files })} />
         </Section>
       )}
+      <DisputeBlock path={`/orders/${id}/dispute`} can={o.can_dispute} dispute={o.dispute} me="buyer" reload={reload} />
       {o.can_confirm && (
         <Section
           title={t("order.confirmHint")}

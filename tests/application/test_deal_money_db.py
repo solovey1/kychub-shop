@@ -8,16 +8,19 @@ from decimal import Decimal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.auto_confirm import AutoConfirmInteractor
 from app.application.interactors.cards import CardBuilder
+from app.application.interactors.dispute_state import reply_seen
+from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.payouts import order_ref
 from app.domain.catalog import Category, Product, ProductVariant, Service
+from app.domain.dispute import Dispute
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
 from app.domain.executor import ExecutorProfile
@@ -26,6 +29,7 @@ from app.domain.order import Order
 from app.domain.settings import Setting
 from app.domain.user import User
 from app.infrastructure.postgres.repositories.catalog import CatalogRepository
+from app.infrastructure.postgres.repositories.disputes import DisputesRepository
 from app.infrastructure.postgres.repositories.executors import ExecutorsRepository
 from app.infrastructure.postgres.repositories.ledger import LedgerRepository
 from app.infrastructure.postgres.repositories.orders import OrdersRepository
@@ -44,7 +48,7 @@ class Rig:
     """The interactors of one request: one session, one transaction."""
 
     def __init__(self, session: AsyncSession) -> None:
-        def helper[T: Setting | Order | LedgerEntry | Category | ExecutorProfile](
+        def helper[T: Setting | Order | LedgerEntry | Category | ExecutorProfile | Dispute](
             model: type[T],
         ) -> SqlRepositoryHelper[T]:
             return SqlRepositoryHelper(session, model)
@@ -57,6 +61,7 @@ class Rig:
         self.catalog = CatalogRepository(helper(Category))
         self.executors = ExecutorsRepository(uow, helper(ExecutorProfile))
         self.settings = SettingsRepository(helper(Setting))
+        self.disputes = DisputesRepository(uow, helper(Dispute))
         self.ledger = LedgerService(self.ledger_gateway)
         self.review = OrderReviewInteractor(
             uow,
@@ -67,8 +72,14 @@ class Rig:
             self.ledger_gateway,
             self.settings,
             CardBuilder(self.catalog, self.executors),
+            self.disputes,
         )
-        self.auto = AutoConfirmInteractor(uow, self.orders, self.settings, self.review)
+        self.auto = AutoConfirmInteractor(
+            uow, self.orders, self.settings, self.review, self.disputes
+        )
+        self.dispute = DisputeInteractor(
+            uow, self.orders, self.disputes, self.settings, self.review
+        )
 
 
 class Env:
@@ -204,4 +215,77 @@ async def test_somebody_else_cannot_confirm(env: Env) -> None:
     async with AsyncSession(env.engine) as s:
         with pytest.raises(OrderUnavailable):
             await Rig(s).review.confirm_by_buyer(EXECUTOR, env.order_id)
+    assert await env.status() is OrderStatus.ready
+
+
+async def _open_dispute(env: Env, *, expired: bool) -> None:
+    """The buyer calls support (the executor is asked to answer); `expired`: his time is up."""
+    async with AsyncSession(env.engine) as s:
+        await Rig(s).dispute.open(BUYER, env.order_id, "no result")
+        if expired:
+            await s.execute(
+                text("UPDATE disputes SET awaiting_until = now() - interval '1 minute'")
+            )
+            await s.commit()
+
+
+async def _resolve_by_timer(engine: AsyncEngine) -> int:
+    async with AsyncSession(engine) as s:
+        return len(await Rig(s).dispute.auto_resolve_due())
+
+
+@pytest.mark.db
+async def test_auto_resolve_for_the_buyer_twice_refunds_once(env: Env) -> None:
+    await _open_dispute(env, expired=True)
+    counts = await asyncio.gather(_resolve_by_timer(env.engine), _resolve_by_timer(env.engine))
+    assert sorted(counts) == [0, 1]
+    assert await _resolve_by_timer(env.engine) == 0
+    assert await env.status() is OrderStatus.refunded
+    assert await env.count(BUYER, LedgerKind.refund) == 1
+    assert await env.count(BUYER, LedgerKind.order_release) == 1
+    assert await env.count(BUYER, LedgerKind.order_capture) == 0
+    assert await env.count(EXECUTOR, LedgerKind.executor_earning) == 0
+    assert await env.balance(BUYER, LedgerAccount.main) == Decimal("10.00")
+    assert await env.balance(BUYER, LedgerAccount.buyer_hold) == 0
+
+
+@pytest.mark.db
+async def test_support_confirms_while_the_timer_resolves_one_outcome(env: Env) -> None:
+    await _open_dispute(env, expired=True)
+
+    async def support_confirms() -> bool:
+        async with AsyncSession(env.engine) as s:
+            try:
+                await Rig(s).review.confirm(BUYER, env.order_id)
+            except OrderUnavailable:
+                return False
+            return True
+
+    confirmed, resolved = await asyncio.gather(support_confirms(), _resolve_by_timer(env.engine))
+    assert int(confirmed) + resolved == 1
+    captured = await env.count(BUYER, LedgerKind.order_capture)
+    refunded = await env.count(BUYER, LedgerKind.refund)
+    assert captured + refunded == 1  # never both: the money was either spent or given back
+    assert await env.count(EXECUTOR, LedgerKind.executor_earning) == captured
+    async with AsyncSession(env.engine) as s:
+        open_left = await s.scalar(select(func.count()).where(Dispute.resolved_at.is_(None)))
+    assert open_left == 0
+
+
+@pytest.mark.db
+async def test_a_reply_before_the_deadline_stops_the_auto_resolve(env: Env) -> None:
+    await _open_dispute(env, expired=False)
+    async with AsyncSession(env.engine) as s:
+        # the executor writes in the chat; his time had run out a moment later
+        await reply_seen(Rig(s).disputes, Rig(s).orders, env.order_id, "executor")
+        await s.execute(text("UPDATE disputes SET awaiting_until = now() - interval '1 minute'"))
+        await s.commit()
+    assert await _resolve_by_timer(env.engine) == 0
+    assert await env.status() is OrderStatus.ready
+
+
+@pytest.mark.db
+async def test_an_open_dispute_stops_the_auto_confirm(env: Env) -> None:
+    await _open_dispute(env, expired=False)
+    assert await _timer_confirms(env.engine) == 0
     assert await env.status() is OrderStatus.ready

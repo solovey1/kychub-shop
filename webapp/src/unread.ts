@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { get } from "./api";
 import { useLive } from "./live";
 
-export type Unread = { orders: number; support: number; work: number; tickets: number; review: number };
+export type Unread = { orders: number; support: number; work: number; tickets: number; review: number; disputes: number };
 
 let state: Unread | undefined;
 const watchers = new Set<() => void>();
@@ -29,7 +29,7 @@ export function useUnreadFeed() {
   useLive(["message", "order", "ticket", "queue"], refreshUnread);
 }
 
-const NONE: Unread = { orders: 0, support: 0, work: 0, tickets: 0, review: 0 };
+const NONE: Unread = { orders: 0, support: 0, work: 0, tickets: 0, review: 0, disputes: 0 };
 export const useUnread = (): Unread =>
   useSyncExternalStore(
     (cb) => (watchers.add(cb), () => void watchers.delete(cb)),

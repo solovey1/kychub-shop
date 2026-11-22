@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useFetch, type StaffOrderBrief, type Ticket } from "../../api";
+import { useFetch, type DisputeRow, type StaffOrderBrief, type Ticket } from "../../api";
 import { fmtDate, named, t } from "../../i18n";
 import { useUnread } from "../../unread";
 import { Badge, Empty, Failure, Loading, Row, Section, Segments, list } from "../../ui/kit";
 
-export type SupportSeg = "tickets" | "review";
+export type SupportSeg = "tickets" | "review" | "disputes";
 type Scope = "open" | "mine" | "all";
 
 export function Support({ seg, admin }: { seg: SupportSeg; admin: boolean }) {
@@ -31,9 +31,16 @@ export function Support({ seg, admin }: { seg: SupportSeg; admin: boolean }) {
               <Badge n={unread.review} />
             </>,
           ],
+          [
+            "disputes",
+            <>
+              {t("support.disputes")}
+              <Badge n={unread.disputes} />
+            </>,
+          ],
         ]}
       />
-      {seg === "tickets" ? <Tickets admin={admin} /> : <Review />}
+      {seg === "tickets" ? <Tickets admin={admin} /> : seg === "review" ? <Review /> : <Disputes />}
     </div>
   );
 }
@@ -90,6 +97,29 @@ function Review() {
           rightSub={o.ready_at ? fmtDate(o.ready_at, true) : undefined}
           chevron
           onClick={() => go(`/support/review/${o.id}`)}
+        />
+      ))}
+    </Section>
+  );
+}
+
+function Disputes() {
+  const [, go] = useLocation();
+  const { data, error, reload } = useFetch<DisputeRow[]>("/staff/disputes", ["order", "message"]);
+  if (error && !data) return <Failure error={error} retry={reload} />;
+  if (!data) return <Loading />;
+  if (!data.length) return <Empty text={t("disputes.empty")} />;
+  return (
+    <Section>
+      {data.map((d) => (
+        <Row
+          key={d.order_id}
+          title={d.product}
+          sub={list(d.variant, d.country?.toUpperCase())}
+          meta={`№${d.order_id}`}
+          rightSub={d.awaiting_until ? fmtDate(d.awaiting_until, true) : undefined}
+          chevron
+          onClick={() => go(`/support/review/${d.order_id}`)}
         />
       ))}
     </Section>

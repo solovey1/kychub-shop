@@ -10,6 +10,8 @@ from app.application.errors.shop import (
     TicketUnavailable,
 )
 from app.application.interactors.base import BaseInteractor
+from app.application.interactors.dispute_state import reply_seen
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.support import SupportGateway, UnreadCounts
@@ -69,6 +71,7 @@ class ConversationInteractor(BaseInteractor):
     orders: OrdersGateway
     users: UsersGateway
     executors: ExecutorsGateway
+    disputes: DisputesGateway
 
     async def current_ticket(
         self, user_id: int, order_id: int | None
@@ -209,12 +212,13 @@ class ConversationInteractor(BaseInteractor):
             raise
 
     async def order_conversation(self, actor_id: int, order_id: int) -> Conversation:
-        """Only for the buyer, the current executor, a manager or an admin."""
+        """Only for the buyer, the current executor, an admin, or a manager while a dispute is
+        open."""
         try:
             order = await self.orders.get(order_id)
             if order is None or (
                 actor_id not in (order.user_id, order.executor_id)
-                and not await self._is_staff(actor_id)
+                and await self._staff_role(actor_id, order) is None
             ):
                 raise OrderUnavailable(order_id)
             conversation = await self.support.order_conversation(order_id)
@@ -235,7 +239,8 @@ class ConversationInteractor(BaseInteractor):
 
     async def reader_role(self, user_id: int, conversation: Conversation) -> ChatRole | None:
         """The capacity in which the user may read here (a closed ticket stays readable):
-        the buyer, the counterpart, any admin, a manager for an order or an untaken ticket."""
+        the buyer, the counterpart, any admin, a manager for an untaken ticket or an order with
+        an open dispute."""
         ctx = await self._load(conversation)
         if ctx is None:
             return None
@@ -244,12 +249,14 @@ class ConversationInteractor(BaseInteractor):
             return ChatRole.buyer
         if user_id == participants.counterpart_id:
             return participants.counterpart_role
+        if order is not None:
+            return await self._staff_role(user_id, order)
         user = await self.users.get(user_id)
         if user is None:
             return None
         if user.roles & Role.ADMIN:
             return ChatRole.admin
-        if user.roles & Role.MANAGER and (order is not None or (ticket and not ticket.manager_id)):
+        if user.roles & Role.MANAGER and ticket and not ticket.manager_id:
             return ChatRole.manager
         return None
 
@@ -325,6 +332,8 @@ class ConversationInteractor(BaseInteractor):
             if conversation is None or ctx is None or role is None:
                 raise ChatForbidden(conversation_id)
             participants, ticket, order = ctx
+            if order is not None and role in (ChatRole.buyer, ChatRole.executor):
+                await reply_seen(self.disputes, self.orders, order.id, role.value)
             message = Message(
                 conversation_id=conversation.id,
                 sender_id=sender_id,
@@ -390,6 +399,17 @@ class ConversationInteractor(BaseInteractor):
         user = await self.users.get(user_id)
         return user is not None and bool(user.roles & (Role.ADMIN | Role.MANAGER))
 
+    async def _staff_role(self, user_id: int, order: Order) -> ChatRole | None:
+        """Support in an order chat: an admin any time, a manager while a dispute is open."""
+        user = await self.users.get(user_id)
+        if user is None:
+            return None
+        if user.roles & Role.ADMIN:
+            return ChatRole.admin
+        if user.roles & Role.MANAGER and await self.disputes.open_for_order(order.id):
+            return ChatRole.manager
+        return None
+
     async def _is_admin(self, user_id: int) -> bool:
         user = await self.users.get(user_id)
         return user is not None and bool(user.roles & Role.ADMIN)
@@ -417,4 +437,6 @@ class ConversationInteractor(BaseInteractor):
             return ChatRole.buyer
         if user_id == participants.counterpart_id:
             return participants.counterpart_role
+        if order is not None:
+            return await self._staff_role(user_id, order)
         return ChatRole.admin if await self._is_admin(user_id) else None

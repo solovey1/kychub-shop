@@ -48,13 +48,14 @@ class OrdersGateway(Protocol):
         """Executors who refused the order or let its deadline pass."""
 
     async def overdue_ids(self, now: datetime) -> list[int]:
-        """`assigned` orders whose deadline has passed."""
+        """`assigned` orders whose deadline has passed (not while a dispute is open)."""
 
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
-        """`assigned` orders whose deadline is still ahead, oldest first."""
+        """`assigned` orders whose deadline is still ahead, oldest first (no open dispute)."""
 
     async def ready_before(self, cutoff: datetime) -> list[Order]:
-        """`ready` orders submitted before `cutoff` (nobody confirmed them yet), oldest first."""
+        """`ready` orders submitted before `cutoff` (nobody confirmed them yet), oldest first. Not
+        while a dispute is open: it stops the auto-confirm clock."""
 
     async def stale_ids(self, cutoff: datetime) -> list[int]:
         """Unassigned `in_queue` orders with no dispatch attempt since `cutoff`."""

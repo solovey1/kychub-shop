@@ -33,6 +33,24 @@ export type OrderBrief = {
   created_at: string;
   unread: number;
 };
+export type Dispute = {
+  opened_role: "buyer" | "executor";
+  awaiting_role: "buyer" | "executor" | null;
+  awaiting_until: string | null;
+  opened_at: string;
+  reason: string | null; // support only
+};
+export type DisputeRow = {
+  order_id: number;
+  status: Status;
+  product: string;
+  variant: string;
+  country: string | null;
+  opened_role: "buyer" | "executor";
+  awaiting_role: "buyer" | "executor" | null;
+  awaiting_until: string | null;
+  opened_at: string;
+};
 export type Order = OrderBrief & {
   executor_alias: string | null;
   result: string | null;
@@ -40,6 +58,8 @@ export type Order = OrderBrief & {
   can_cancel: boolean;
   can_confirm: boolean;
   confirm_at: string | null;
+  can_dispute: boolean;
+  dispute: Dispute | null;
   reserved: string | null;
   extension: { request_id: number; minutes: number; until: string } | null;
 };
@@ -85,6 +105,8 @@ export type ExecutorOrder = QueueItem & {
   result_form: ResultField[] | null;
   result: Record<string, string> | null;
   extension: { pending_minutes: number | null; can_request: boolean; options: number[] } | null;
+  can_dispute: boolean;
+  dispute: Dispute | null;
 };
 export type ExecutorListItem = {
   id: number;
@@ -127,6 +149,7 @@ export type StaffOrder = StaffOrderBrief & {
   fields: CardField[];
   result: string;
   result_files: number;
+  dispute: Dispute | null;
 };
 
 // The admin API (app/presentation/fastapi/api/admin/schemas.py). Texts are {ru, en, uk}, `ru` required.
@@ -323,6 +346,7 @@ export type Tunables = {
   review_delay_hours: number;
   min_withdrawal: string;
   confirm_hours: number;
+  dispute_reply_hours: number;
 };
 export type AuditRow = {
   id: number;

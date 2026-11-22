@@ -7,6 +7,7 @@ from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, earning_for, load_context, percent_for
+from app.application.interactors.dispute_state import close_dispute
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import (
     Refunded,
@@ -16,6 +17,7 @@ from app.application.interactors.payouts import (
     reverse_earning,
 )
 from app.application.ports.repositories.catalog import CatalogGateway
+from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
@@ -27,6 +29,7 @@ from app.application.settings_keys import (
     HOLD_DAYS,
     REVIEW_DELAY_HOURS,
 )
+from app.domain.enums.dispute import DisputeResolution
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
@@ -62,6 +65,7 @@ class OrderReviewInteractor(BaseInteractor):
     ledger_gateway: LedgerGateway
     settings: SettingsGateway
     cards: CardBuilder
+    disputes: DisputesGateway
 
     async def get(self, order_id: int) -> ReviewView | None:
         order = await self.orders.get(order_id)
@@ -130,6 +134,9 @@ class OrderReviewInteractor(BaseInteractor):
                 order_id=order.id,
                 ref=order_ref(order),
             )
+        await close_dispute(
+            self.disputes, self.orders, order, DisputeResolution.completed, actor_id
+        )
 
     async def send_back(self, actor_id: int, order_id: int, comment: str) -> Order:
         """ready -> assigned with a fresh deadline and the reviewer comment."""
@@ -148,6 +155,9 @@ class OrderReviewInteractor(BaseInteractor):
                     payload={"comment": comment},
                 )
             )
+            await close_dispute(
+                self.disputes, self.orders, order, DisputeResolution.sent_back, actor_id
+            )
             await self.uow.commit()
             return order
         except BaseException:
@@ -158,29 +168,40 @@ class OrderReviewInteractor(BaseInteractor):
         """paid | in_queue | assigned | ready -> failed -> refunded; completed -> refunded."""
         try:
             order = await self.orders.get_for_update(order_id)
-            if order is None or order.status not in _REFUNDABLE:
+            if order is None:
                 raise OrderUnavailable(order_id)
-            was = order.status
-            if was is not OrderStatus.completed:
-                await move(self.orders, order, OrderStatus.failed, actor_id)
-            await move(self.orders, order, OrderStatus.refunded, actor_id)
-            amount = await refund_buyer(self.ledger, self.ledger_gateway, order)
-            if was is OrderStatus.completed:
-                # while the hold is on, the order lock also fences off the hold release job
-                await reverse_earning(self.ledger, self.ledger_gateway, order)
-            await self.orders.add_event(
-                OrderEvent(
-                    order_id=order.id,
-                    actor_id=actor_id,
-                    type="refund",
-                    payload={"reason": reason, "amount": str(amount), "was": str(was)},
-                )
-            )
+            refund = await self.refund_locked(order, actor_id, reason)
             await self.uow.commit()
-            return Refunded(order.id, order.user_id, order.executor_id, amount, was)
+            return refund
         except BaseException:
             await self.uow.rollback()
             raise
+
+    async def refund_locked(self, order: Order, actor_id: int | None, reason: str) -> Refunded:
+        """The body of `fail_and_refund` under the order lock, commits nothing (the dispute job
+        uses it too). A second call finds the order already refunded and stops."""
+        if order.status not in _REFUNDABLE:
+            raise OrderUnavailable(order.id)
+        was = order.status
+        if was is not OrderStatus.completed:
+            await move(self.orders, order, OrderStatus.failed, actor_id)
+        await move(self.orders, order, OrderStatus.refunded, actor_id)
+        amount = await refund_buyer(self.ledger, self.ledger_gateway, order)
+        if was is OrderStatus.completed:
+            # while the hold is on, the order lock also fences off the hold release job
+            await reverse_earning(self.ledger, self.ledger_gateway, order)
+        await self.orders.add_event(
+            OrderEvent(
+                order_id=order.id,
+                actor_id=actor_id,
+                type="refund",
+                payload={"reason": reason, "amount": str(amount), "was": str(was)},
+            )
+        )
+        await close_dispute(
+            self.disputes, self.orders, order, DisputeResolution.refunded, actor_id
+        )
+        return Refunded(order.id, order.user_id, order.executor_id, amount, was)
 
     async def _locked(self, order_id: int, status: OrderStatus) -> Order:
         order = await self.orders.get_for_update(order_id)

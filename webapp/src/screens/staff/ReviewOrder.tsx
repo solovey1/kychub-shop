@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { ApiError, send, useFetch, type StaffOrder } from "../../api";
-import { fmtDate, fmtMoney, t } from "../../i18n";
+import { fmtDate, fmtMoney, named, t } from "../../i18n";
 import { alert, confirm, success, useMainButton } from "../../telegram";
+import { waitLine } from "../../ui/Dispute";
 import { Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
 
 export function ReviewOrder({ id }: { id: number }) {
@@ -38,6 +39,37 @@ export function ReviewOrder({ id }: { id: number }) {
     if (!o || !(await confirm(t("review.failConfirm", { sum: fmtMoney(o.total) })))) return;
     await act(() => send("POST", `/staff/orders/${id}/fail`));
   };
+  const ask = (side: string) =>
+    run(async () => {
+      try {
+        await send("POST", `/staff/orders/${id}/dispute/request`, { side });
+        success();
+        await alert(t("dispute.asked"));
+        reload();
+      } catch (e) {
+        await report(e);
+      }
+    });
+  const closeDispute = () =>
+    run(async () => {
+      if (!(await confirm(t("dispute.closeConfirm")))) return;
+      try {
+        await send("POST", `/staff/orders/${id}/dispute/close`);
+        success();
+        reload();
+      } catch (e) {
+        await report(e);
+      }
+    });
+  const orderChat = () =>
+    run(async () => {
+      try {
+        const r = await send<{ conversation_id: number }>("POST", `/orders/${id}/chat`);
+        go(`/orders/${id}/chat/${r.conversation_id}`);
+      } catch (e) {
+        await report(e);
+      }
+    });
   useMainButton(o ? t("review.confirm") : null, confirmOrder, { busy });
 
   if (error && !o) return <Failure error={error} retry={reload} />;
@@ -54,6 +86,16 @@ export function ReviewOrder({ id }: { id: number }) {
         <Row title={t("offer.earning")} right={<Money value={o.earning} />} />
         {o.ready_at && <Row title={t("review.ready")} right={fmtDate(o.ready_at)} />}
       </Section>
+      {o.dispute && (
+        <Section title={t("dispute.title")} footer={waitLine(o.dispute, "staff")}>
+          <Row title={t("dispute.openedBy")} right={named("dispute.by", o.dispute.opened_role)} />
+          {o.dispute.reason && <Row title={o.dispute.reason} sub={t("dispute.reasonIs")} />}
+          <Row title={t("dispute.chat")} chevron onClick={orderChat} />
+          <Row title={t("dispute.askBuyer")} tone="link" onClick={() => ask("buyer")} />
+          {o.executor_id !== null && <Row title={t("dispute.askExecutor")} tone="link" onClick={() => ask("executor")} />}
+          <Row title={t("dispute.close")} tone="bad" onClick={closeDispute} />
+        </Section>
+      )}
       {o.fields.length > 0 && (
         <Section title={t("exec.fields")}>
           {o.fields.map((f, i) => (

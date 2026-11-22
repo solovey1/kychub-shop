@@ -7,6 +7,7 @@ from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
+from app.application.interactors.disputes import DISPUTE_STATUSES, DisputeInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
@@ -16,6 +17,8 @@ from app.presentation.fastapi.api.auth import CurrentUser
 from app.presentation.fastapi.api.schemas import (
     BalanceOut,
     CancelOut,
+    DisputeIn,
+    DisputeOut,
     ExtensionAnswerIn,
     ExtensionAskOut,
     LedgerEntryOut,
@@ -57,6 +60,7 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
     done = order.status in (OrderStatus.ready, OrderStatus.completed) and order.result is not None
     result = order.result or {}
     reserved = await orders.reserved(order)
+    dispute = await orders.dispute(order)
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
         executor_alias=await orders.executor_alias(order),
@@ -64,6 +68,8 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
         can_confirm=order.status is OrderStatus.ready,
+        can_dispute=order.status in DISPUTE_STATUSES and dispute is None,
+        dispute=DisputeOut.of(dispute) if dispute else None,
         confirm_at=await orders.confirm_at(order),
         reserved=usd(reserved) if reserved > 0 else None,
         extension=ExtensionAskOut(
@@ -112,6 +118,23 @@ async def confirm_order(
     """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404."""
     order = await review.confirm_by_buyer(user.id, order_id)
     await effects.order_confirmed(order)
+    return await _order(order_id, user, orders)
+
+
+@router.post("/orders/{order_id}/dispute")
+@inject
+async def open_dispute(
+    order_id: int,
+    body: DisputeIn,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    disputes: FromDishka[DisputeInteractor],
+    effects: FromDishka[Effects],
+) -> OrderOut:
+    """Call support. Conflict `dispute_open` (409); somebody else's order, or one that is not
+    assigned / submitted: 404."""
+    news = await disputes.open(user.id, order_id, body.reason)
+    await effects.dispute_opened(news)
     return await _order(order_id, user, orders)
 
 

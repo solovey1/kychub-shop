@@ -8,6 +8,7 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import EXTENSION_MINUTES, ExtensionInteractor
 from app.application.interactors.dispatch import DispatchInteractor
+from app.application.interactors.disputes import DISPUTE_STATUSES, DisputeInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import ExecutorCabinetInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
@@ -17,6 +18,8 @@ from app.domain.enums.order import OrderStatus
 from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import ExecutorUser
 from app.presentation.fastapi.api.schemas import (
+    DisputeIn,
+    DisputeOut,
     ExecutorOrderBrief,
     ExecutorOrderListItem,
     ExecutorOrderListOut,
@@ -82,6 +85,8 @@ async def _order(
         )
         if assigned
         else None,
+        can_dispute=view.order.status in DISPUTE_STATUSES and view.dispute is None,
+        dispute=DisputeOut.of(view.dispute) if view.dispute else None,
     )
 
 
@@ -202,6 +207,22 @@ async def submit_result(
     """Text fields only: a file field of the result form cannot be filled from the Mini App."""
     order = await work.submit(user.id, order_id, body.fields)  # OrderUnavailable -> 404
     await effects.result_submitted(order)
+    return await _order(order_id, user.id, user.language, work)
+
+
+@router.post("/orders/{order_id}/dispute")
+@inject
+async def open_dispute(
+    order_id: int,
+    body: DisputeIn,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    disputes: FromDishka[DisputeInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """Call support. Conflict `dispute_open` (409); not his order, or one not in work: 404."""
+    news = await disputes.open(user.id, order_id, body.reason)
+    await effects.dispute_opened(news)
     return await _order(order_id, user.id, user.language, work)
 
 

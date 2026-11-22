@@ -26,6 +26,7 @@ from app.presentation.telegram.keyboards.executor import (
     wallet_keyboard,
 )
 from app.presentation.telegram.presenters.base import BasePresenter
+from app.presentation.telegram.presenters.common.orders import dispute_line
 from app.presentation.telegram.view.models import RenderMode, View
 from app.utils.time import datetime_now
 
@@ -96,7 +97,12 @@ class ExecutorPresenter(BasePresenter):
         if order.status is OrderStatus.assigned and ext.pending is not None:
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
-        return View(text=text, reply_markup=order_keyboard(i18n, order, page, can_extend))
+        if view.dispute is not None:
+            text += "\n\n" + dispute_line(i18n, view.dispute, "executor")
+        return View(
+            text=text,
+            reply_markup=order_keyboard(i18n, order, page, can_extend, view.dispute is not None),
+        )
 
     def extension_options(self, order_id: int) -> View:
         return View(

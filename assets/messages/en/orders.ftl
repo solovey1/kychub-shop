@@ -66,3 +66,21 @@ messages-order-check =
 
     All in order? Tap «All good». Otherwise the order confirms itself on { $time }.
 messages-order-confirmed = ✅ Order #{ $id } confirmed. Thank you!
+buttons-deal_ask = 🆘 Call support
+buttons-deal_skip = No reason
+buttons-dispute_open = 🆘 Open the dispute
+dispute-who-buyer = the buyer
+dispute-who-executor = the executor
+dispute-from-buyer = the buyer
+dispute-from-executor = the executor
+dispute-from-you = you
+messages-order-dispute = 🆘 <b>Dispute open.</b> Support is looking into it.
+messages-order-dispute_wait = 🆘 <b>Dispute open.</b> Waiting for an answer from { $who } until { $time }.
+messages-dispute-ask_reason = 🆘 Order #{ $id }: describe the problem in one line, or tap «No reason».
+messages-dispute-opened = 🆘 The dispute on order #{ $id } is open. Support will join. The other side has to answer in the chat until { $time }.
+messages-dispute-cancelled = Fine, no dispute was opened.
+messages-dispute-staff = 🆘 Dispute on order #{ $id }. Opened by { $who }.
+messages-dispute-reply = 🆘 A dispute is open on order #{ $id }. Answer in the chat until { $time }, or it will be decided against you.
+messages-dispute-reply_requested = 🆘 Support asks you to answer about order #{ $id } in the chat until { $time }.
+messages-dispute-reminder = ⏰ Dispute on order #{ $id }: { $left } left. Answer in the chat until { $time }.
+messages-dispute-closed = ✅ The dispute on order #{ $id } is closed, the order goes on.

@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.application.errors.base import UserNotFound
 from app.application.ports.repositories.support import SupportGateway, UnreadCounts
+from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import ConversationKind, TicketStatus
 from app.domain.order import Order
@@ -209,6 +210,9 @@ class SupportRepository(SupportGateway):
             orders(Order.executor_id == user_id),
             tickets(staff_tickets) if staff else literal(0),
             select(func.count()).where(Order.status == OrderStatus.ready).scalar_subquery()
+            if staff
+            else literal(0),
+            select(func.count()).where(Dispute.resolved_at.is_(None)).scalar_subquery()
             if staff
             else literal(0),
         )

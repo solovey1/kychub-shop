@@ -3,12 +3,14 @@ Nothing here carries the buyer's id, name or username: executors read these too.
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import Field
 
 from app.application.cards import OrderCard
 from app.application.i18n_text import pick_i18n
 from app.application.models.base import PydanticModel
+from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.ledger import LedgerEntry
 from app.domain.order import Order
@@ -82,11 +84,53 @@ class ExtensionStateOut(PydanticModel):
     options: list[int]
 
 
+class DisputeOut(PydanticModel):
+    """An open dispute. `reason` is for support only: the other side never reads it."""
+
+    opened_role: str
+    awaiting_role: str | None
+    awaiting_until: datetime | None
+    opened_at: datetime
+    reason: str | None = None
+
+    @classmethod
+    def of(cls, dispute: Dispute, *, staff: bool = False) -> "DisputeOut":
+        return cls(
+            opened_role=dispute.opened_role,
+            awaiting_role=dispute.awaiting_role,
+            awaiting_until=dispute.awaiting_until,
+            opened_at=dispute.opened_at,
+            reason=dispute.reason if staff else None,
+        )
+
+
+class DisputeIn(PydanticModel):
+    reason: str | None = Field(None, max_length=500)
+
+
+class ReplyRequestIn(PydanticModel):
+    side: Literal["buyer", "executor"]
+
+
+class DisputeRowOut(PydanticModel):
+    order_id: int
+    status: OrderStatus
+    product: str
+    variant: str
+    country: str | None
+    opened_role: str
+    awaiting_role: str | None
+    awaiting_until: datetime | None
+    opened_at: datetime
+
+
 class OrderOut(OrderBrief):
     executor_alias: str | None = None
     result: str | None = None  # from the moment the executor is done (ready) on
     result_files: int = 0
     can_confirm: bool = False  # ready: the buyer may say «everything is fine»
+    can_dispute: bool = False  # assigned or ready, no open dispute
+    dispute: DisputeOut | None = None
     confirm_at: datetime | None = None  # ready: when it confirms itself
     can_cancel: bool = False
     reserved: str | None = None  # still held for this order, not charged yet
@@ -137,6 +181,7 @@ class UnreadOut(PydanticModel):
     work: int
     tickets: int
     review: int
+    disputes: int
 
 
 class ReadIn(PydanticModel):
@@ -211,6 +256,8 @@ class ExecutorOrderOut(ExecutorOrderBrief):
     result_form: list[ResultFieldOut] | None = None  # while the order waits for a result
     result: dict[str, str] | None = None  # what the executor handed in
     extension: ExtensionStateOut | None = None  # only while the order is assigned
+    can_dispute: bool = False
+    dispute: DisputeOut | None = None
 
 
 class ExecutorOrderListItem(PydanticModel):
@@ -295,6 +342,7 @@ class StaffOrderOut(StaffOrderBrief):
     fields: list[CardFieldOut]  # includes the fields hidden from executors
     result: str
     result_files: int
+    dispute: DisputeOut | None = None
 
 
 def card_fields(card: OrderCard, locale: str) -> list[CardFieldOut]:
