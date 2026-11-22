@@ -15,8 +15,8 @@ export type Section = {
 
 export const SECTIONS: Section[] = [
   { id: "catalog", path: "/admin/catalog", emoji: "📦", titleKey: "admin.catalog", descKey: "admin.catalog.desc", perm: "catalog", ready: true },
-  { id: "people", path: "/admin/people", emoji: "👥", titleKey: "admin.people", descKey: "admin.people.desc", perm: "users", ready: false },
-  { id: "orders", path: "/admin/orders", emoji: "🧾", titleKey: "admin.orders", descKey: "admin.orders.desc", perm: "staff", ready: false },
+  { id: "people", path: "/admin/people", emoji: "👥", titleKey: "admin.people", descKey: "admin.people.desc", perm: "users", ready: true },
+  { id: "orders", path: "/admin/orders", emoji: "🧾", titleKey: "admin.orders", descKey: "admin.orders.desc", perm: "staff", ready: true },
   { id: "money", path: "/admin/money", emoji: "💸", titleKey: "admin.money", descKey: "admin.money.desc", perm: "finance", ready: false },
   { id: "promo", path: "/admin/promo", emoji: "🏷️", titleKey: "admin.promo", descKey: "admin.promo.desc", perm: "finance", ready: false },
   { id: "broadcasts", path: "/admin/broadcasts", emoji: "📣", titleKey: "admin.broadcasts", descKey: "admin.broadcasts.desc", perm: "broadcast", ready: false },
@@ -46,4 +46,4 @@ export const visibleSections = (roles: string[]) =>
   SECTIONS.filter((s) => s.ready && allowed(roles, s.perm));
 
 /** The Admin tab is for anyone with an admin right, even before their section is built. */
-export const hasAdminTab = (roles: string[]) => isAdmin(roles) || roles.some((r) => r.startsWith("can_"));
+export const hasAdminTab = (roles: string[]) => isAdmin(roles) || roles.includes("manager") || roles.some((r) => r.startsWith("can_"));

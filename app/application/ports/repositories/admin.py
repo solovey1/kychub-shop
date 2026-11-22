@@ -1,8 +1,20 @@
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import Any, NamedTuple, Protocol
 
 from app.domain.base import Base
 from app.domain.catalog import Category, Country, Product, ProductVariant, Service, StockUnit
+from app.domain.enums.order import OrderStatus
+from app.domain.executor import ExecutorProfile
+from app.domain.ledger import LedgerEntry
+from app.domain.order import Order
+from app.domain.user import User
+
+
+class ExecutorRow(NamedTuple):
+    profile: ExecutorProfile
+    in_work: int  # assigned + ready
+    completed: int
+    avg_score: float | None
 
 
 class AdminGateway(Protocol):
@@ -63,3 +75,37 @@ class AdminGateway(Protocol):
 
     async def stock_payloads(self, variant_id: int, payloads: list[str]) -> set[str]:
         """Which of these payloads are already waiting unsold."""
+
+    # --- people
+    async def users_search(self, text: str, limit: int) -> list[User]:
+        """By Telegram id (digits) or part of the name, newest first."""
+
+    async def orders_of_user(self, user_id: int, limit: int) -> list[Order]: ...
+
+    async def executor_rows(self) -> list[ExecutorRow]: ...
+
+    async def managers(self) -> list[User]:
+        """Everybody with the manager role."""
+
+    async def user_names(self, ids: list[int]) -> dict[int, str]: ...
+
+    async def executor_aliases(self, ids: list[int]) -> dict[int, str]: ...
+
+    # --- orders
+    async def orders_filtered(
+        self,
+        status: OrderStatus | None,
+        product_id: int | None,
+        user_id: int | None,
+        executor_id: int | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[Order], int]:
+        """Newest first, and the total that matches."""
+
+    async def entries_for_order(self, order_id: int) -> list[LedgerEntry]: ...
+
+    async def assignable(
+        self, service_id: int, country_code: str | None
+    ) -> list[tuple[ExecutorProfile, int]]:
+        """Active executors permitted for the service and country, with their load."""

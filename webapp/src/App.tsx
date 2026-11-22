@@ -2,7 +2,12 @@ import { useEffect } from "react";
 import { Redirect, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { Admin } from "./admin/Admin";
-import { hasAdminTab } from "./admin/access";
+import { allowed, hasAdminTab } from "./admin/access";
+import { AdminOrderScreen, AssignScreen } from "./admin/orders/Order";
+import { AdminOrders } from "./admin/orders/Orders";
+import { ExecutorScreen, NewExecutor } from "./admin/people/Executor";
+import { People } from "./admin/people/People";
+import { UserScreen } from "./admin/people/User";
 import { Catalog } from "./admin/catalog/Catalog";
 import { CategoryForm } from "./admin/catalog/Category";
 import { CountryForm } from "./admin/catalog/Country";
@@ -20,6 +25,7 @@ import { Orders } from "./screens/buyer/Orders";
 import { ExecOrder } from "./screens/executor/ExecOrder";
 import { Offer } from "./screens/executor/Offer";
 import { Work, type WorkSeg } from "./screens/executor/Work";
+import { Handover } from "./screens/staff/Handover";
 import { ReviewOrder } from "./screens/staff/ReviewOrder";
 import { Support, type SupportSeg } from "./screens/staff/Support";
 import { TicketChat } from "./screens/staff/TicketChat";
@@ -79,14 +85,34 @@ function Shell({ me }: { me: Me }) {
         <Route path="/support/:seg">
           {(p) => <Support seg={p.seg as SupportSeg} admin={me.roles.includes("admin")} />}
         </Route>
+        <Route path="/ticket/:id/handover">{(p) => <Handover tid={id(p)} me={me.id} />}</Route>
         <Route path="/ticket/:id/:cid">
-          {(p) => <TicketChat tid={id(p)} cid={Number(p.cid)} />}
+          {(p) => <TicketChat tid={id(p)} cid={Number(p.cid)} admin={allowed(me.roles, "admin")} />}
         </Route>
         {staff && (
           <>
             <Route path="/admin">
               <Admin roles={me.roles} />
             </Route>
+            <Route path="/admin/people">
+              <People seg="users" roles={me.roles} />
+            </Route>
+            <Route path="/admin/people/executors">
+              <People seg="executors" roles={me.roles} />
+            </Route>
+            <Route path="/admin/people/managers">
+              <People seg="managers" roles={me.roles} />
+            </Route>
+            <Route path="/admin/people/u/:id">{(p) => <UserScreen id={id(p)} viewer={me.roles} />}</Route>
+            <Route path="/admin/people/e/new">
+              <NewExecutor />
+            </Route>
+            <Route path="/admin/people/e/:id">{(p) => <ExecutorScreen id={id(p)} />}</Route>
+            <Route path="/admin/orders">
+              <AdminOrders />
+            </Route>
+            <Route path="/admin/orders/:id/assign">{(p) => <AssignScreen id={id(p)} />}</Route>
+            <Route path="/admin/orders/:id">{(p) => <AdminOrderScreen id={id(p)} viewer={me.roles} />}</Route>
             <Route path="/admin/catalog">
               <Catalog seg="catalog" />
             </Route>

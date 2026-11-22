@@ -279,3 +279,13 @@ def card_brief(card: OrderCard, status: OrderStatus, locale: str) -> dict[str, o
         "earning": usd(card.earning),
         "deadline_minutes": card.deadline_minutes,
     }
+
+
+class StaffMemberOut(PydanticModel):
+    id: int
+    name: str
+    admin: bool
+
+
+class HandoverIn(PydanticModel):
+    manager_id: int

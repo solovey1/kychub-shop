@@ -7,7 +7,7 @@ import { t } from "../../i18n";
 import { Chat } from "../../ui/Chat";
 import { TicketOrder } from "./TicketOrder";
 
-export function TicketChat({ tid, cid }: { tid: number; cid: number }) {
+export function TicketChat({ tid, cid, admin }: { tid: number; cid: number; admin: boolean }) {
   const [, go] = useLocation();
   const [version, setVersion] = useState(0);
   const { data: ticket, reload } = useFetch<Ticket>(`/tickets/${tid}`, ["ticket"]);
@@ -45,6 +45,7 @@ export function TicketChat({ tid, cid }: { tid: number; cid: number }) {
       cid={cid}
       version={version}
       title={t("ticket.title", { id: tid })}
+      onHandover={ticket && ticket.status !== "closed" && (admin || ticket.mine) ? () => go(`/ticket/${tid}/handover`) : undefined}
       onClose={ticket?.mine && ticket.status === "taken" ? close : undefined}
       header={ticket?.order_id ? <TicketOrder id={ticket.order_id} /> : undefined}
     />

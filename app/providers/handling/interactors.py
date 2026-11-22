@@ -1,6 +1,8 @@
 from dishka import Provider, Scope, provide_all
 
 from app.application.interactors.admin.catalog import CatalogAdminInteractor
+from app.application.interactors.admin.orders import OrdersAdminInteractor
+from app.application.interactors.admin.people import PeopleAdminInteractor
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
@@ -51,4 +53,6 @@ class InteractorsProvider(Provider):
         ManagerAdminInteractor,
         ConversationInteractor,
         CatalogAdminInteractor,
+        PeopleAdminInteractor,
+        OrdersAdminInteractor,
     )

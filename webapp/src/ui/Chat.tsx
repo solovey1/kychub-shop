@@ -51,12 +51,14 @@ export function Chat({
   title,
   version = 0,
   onClose,
+  onHandover,
   header,
 }: {
   cid: number;
   title?: string;
   version?: number;
   onClose?: () => void;
+  onHandover?: () => void;
   header?: ReactNode;
 }) {
   const [items, setItems] = useState<Message[]>();
@@ -150,6 +152,11 @@ export function Chat({
       {title && (
         <div className="chat-bar">
           <span>{title}</span>
+          {onHandover && (
+            <button className="link" onClick={onHandover}>
+              {t("ticket.handover")}
+            </button>
+          )}
           {onClose && (
             <button className="link" onClick={onClose}>
               {t("ticket.close")}

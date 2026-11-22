@@ -195,6 +195,63 @@ export type AdminService = {
 };
 export type AdminCountry = { code: string; title: I18n };
 
+export type UserBrief = { id: number; name: string; language: string; roles: string[] };
+export type UserCard = UserBrief & {
+  created_at: string;
+  blocked: boolean;
+  /** null: the viewer may not see money */
+  balance: string | null;
+  orders: { id: number; status: Status; product: string; total: string; created_at: string }[];
+};
+export type ExecutorRow = {
+  id: number;
+  alias: string;
+  is_active: boolean;
+  in_work: number;
+  completed: number;
+  avg_score: number | null;
+};
+export type ExecutorDetail = {
+  id: number;
+  alias: string;
+  name: string;
+  is_active: boolean;
+  max_parallel: number;
+  percent_override: number | null;
+  permissions: { service_id: number; countries: string[] }[];
+  stats: Stats;
+  wallet: { hold: string; available: string; wallet: string | null };
+};
+export type AdminOrderRow = {
+  id: number;
+  status: Status;
+  product: string;
+  variant: string;
+  country: string | null;
+  total: string;
+  created_at: string;
+  buyer_id: number;
+  executor_alias: string | null;
+};
+export type AdminOrder = AdminOrderRow & {
+  buyer_name: string;
+  executor_id: number | null;
+  price: string;
+  discount: string;
+  assigned_at: string | null;
+  deadline_at: string | null;
+  ready_at: string | null;
+  completed_at: string | null;
+  fields: CardField[];
+  result: string;
+  result_files: number;
+  events: { id: number; type: string; actor_id: number | null; payload: Record<string, unknown>; created_at: string }[];
+  entries: { id: number; user_id: number; account: string; kind: string; amount: string; created_at: string }[];
+  actions: string[];
+};
+export type Assignable = { id: number; alias: string; load: number; max_parallel: number; current: boolean };
+export type StaffMember = { id: number; name: string; admin: boolean };
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -286,7 +343,7 @@ export function usePaged<T extends { id: number }>(path: string, live: string[])
   const next = useRef(1);
   const load = useCallback(
     (page: number) =>
-      get<Page<T>>(`${path}?page=${page}`).then(
+      get<Page<T>>(`${path}${path.includes("?") ? "&" : "?"}page=${page}`).then(
         (r) => {
           setTotal(r.total);
           setError(undefined);

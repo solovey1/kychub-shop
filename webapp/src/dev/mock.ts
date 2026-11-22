@@ -579,10 +579,310 @@ function adminRoute(method: string, path: string, body: unknown): unknown {
   throw 404;
 }
 
+// --- admin: people and orders, stateful in memory
+type MUser = { id: number; name: string; language: string; roles: string[]; created_at: string; balance: string };
+const mUsers: MUser[] = [
+  { id: 1, name: "Сергей", language: "ru", roles: ["admin"], created_at: ago(90000), balance: "128.40" },
+  { id: 2, name: "Андрей К.", language: "ru", roles: [], created_at: ago(40000), balance: "42.00" },
+  { id: 3, name: "Maria", language: "en", roles: ["manager", "can_catalog"], created_at: ago(60000), balance: "0.00" },
+  { id: 4, name: "Игорь", language: "ru", roles: ["executor"], created_at: ago(50000), balance: "5.00" },
+  { id: 5, name: "Олег", language: "uk", roles: ["manager"], created_at: ago(30000), balance: "17.25" },
+  { id: 6, name: "Дарья", language: "ru", roles: ["manager", "can_users", "can_finance"], created_at: ago(20000), balance: "0.00" },
+  { id: 7, name: "Nika", language: "en", roles: ["executor"], created_at: ago(15000), balance: "0.00" },
+  { id: 8, name: "Кеша", language: "ru", roles: ["executor"], created_at: ago(12000), balance: "0.00" },
+  { id: 9, name: "Фёдор", language: "ru", roles: ["executor"], created_at: ago(9000), balance: "3.10" },
+];
+const sees = (rs: string[]) => rs.includes("admin") || rs.includes("owner") || rs.includes("can_finance");
+const brief2 = (u: MUser) => ({ id: u.id, name: u.name, language: u.language, roles: u.roles });
+
+type MExecutor = {
+  id: number;
+  alias: string;
+  is_active: boolean;
+  max_parallel: number;
+  percent_override: number | null;
+  permissions: { service_id: number; countries: string[] }[];
+};
+const mExecutors: MExecutor[] = [
+  { id: 4, alias: "Орион", is_active: true, max_parallel: 5, percent_override: null, permissions: [{ service_id: 1, countries: ["us", "de"] }, { service_id: 2, countries: ["us"] }] },
+  { id: 9, alias: "Фокс", is_active: true, max_parallel: 3, percent_override: 45, permissions: [{ service_id: 1, countries: ["us", "pl"] }] },
+  { id: 7, alias: "Ника", is_active: true, max_parallel: 10, percent_override: null, permissions: [{ service_id: 2, countries: ["de", "pl", "us"] }] },
+  { id: 8, alias: "Кеша", is_active: false, max_parallel: 2, percent_override: null, permissions: [] },
+];
+
+type MOrder = {
+  id: number;
+  status: string;
+  product: string;
+  variant: string;
+  country: string | null;
+  price: string;
+  discount: string;
+  created_at: string;
+  buyer_id: number;
+  executor_id: number | null;
+  result: string;
+  events: { id: number; type: string; actor_id: number | null; payload: Record<string, unknown>; created_at: string }[];
+  entries: { id: number; user_id: number; account: string; kind: string; amount: string; created_at: string }[];
+  /** the first assignment loses a race: someone else takes the order meanwhile */
+  race?: boolean;
+};
+let nextEvent = 1;
+const aOrder = (
+  id: number,
+  status: string,
+  product: string,
+  variant: string,
+  country: string | null,
+  price: string,
+  buyer: number,
+  executor: number | null,
+  minutesAgo: number,
+  extra: Partial<MOrder> = {},
+): MOrder => ({
+  id,
+  status,
+  product,
+  variant,
+  country,
+  price,
+  discount: "0.00",
+  created_at: ago(minutesAgo),
+  buyer_id: buyer,
+  executor_id: executor,
+  result: "",
+  events: [
+    { id: nextEvent++, type: "paid", actor_id: buyer, payload: {}, created_at: ago(minutesAgo) },
+    ...(executor ? [{ id: nextEvent++, type: "assigned", actor_id: null, payload: { executor_id: executor, mode: "queue" }, created_at: ago(minutesAgo - 5) }] : []),
+  ],
+  entries: [{ id: nextEvent++, user_id: buyer, account: "main", kind: "purchase", amount: `-${price}`, created_at: ago(minutesAgo) }],
+  ...extra,
+});
+const mOrders: MOrder[] = [
+  aOrder(1052, "in_queue", "Регистрация Google Ads", "С верификацией", null, "45.00", 2, null, 20, { race: true }),
+  aOrder(1051, "in_queue", "Аккаунт Instagram, прогретый", "30 дней", "us", "12.50", 5, null, 40),
+  aOrder(1050, "assigned", "Аккаунт Instagram, прогретый", "30 дней", "us", "12.50", 2, 4, 90),
+  aOrder(1049, "assigned", "Прокси, 10 штук", "Residential", "pl", "20.00", 5, 9, 150),
+  aOrder(1048, "ready", "Регистрация Google Ads", "С верификацией", null, "45.00", 2, 7, 300, { result: "Аккаунт: ads-4471@example.com\nПароль: Zt9!kLm2" }),
+  aOrder(1047, "awaiting_input", "Аккаунт Instagram, прогретый", "7 дней", "pl", "8.00", 5, null, 330),
+  aOrder(1046, "paid", "Гайд по прогреву", "—", null, "3.00", 2, null, 400),
+  aOrder(1045, "completed", "Аккаунт Facebook, старый", "С почтой", "de", "18.50", 2, null, 2000, { result: "fb_de_201:Kx19!" }),
+  aOrder(1044, "completed", "Регистрация Google Ads", "С верификацией", null, "45.00", 5, 7, 3000, { result: "Аккаунт: ads-1200@example.com" }),
+  aOrder(1043, "failed", "Прокси, 10 штук", "Residential", "pl", "20.00", 2, 9, 4000),
+  aOrder(1042, "cancelled", "Аккаунт Facebook, старый", "—", "us", "15.00", 5, null, 5000),
+  aOrder(1041, "refunded", "Аккаунт Instagram, прогретый", "30 дней", "us", "12.50", 2, 4, 6000),
+];
+const aliasOf = (id: number | null) => mExecutors.find((e) => e.id === id)?.alias ?? null;
+const orderTotal = (o: MOrder) => price(Number(o.price) - Number(o.discount));
+const ACTIONS: Record<string, string[]> = {
+    in_queue: ["assign", "cancel"],
+    assigned: ["assign", "refund", "cancel"],
+    ready: ["confirm", "send_back", "refund"],
+    awaiting_input: ["cancel"],
+    paid: ["cancel"],
+};
+const actionsOf = (o: MOrder) => ACTIONS[o.status] ?? [];
+const orderRow = (o: MOrder) => ({
+  id: o.id,
+  status: o.status,
+  product: o.product,
+  variant: o.variant,
+  country: o.country,
+  total: orderTotal(o),
+  created_at: o.created_at,
+  buyer_id: o.buyer_id,
+  executor_alias: aliasOf(o.executor_id),
+});
+const orderEvent = (o: MOrder, type: string, payload: Record<string, unknown> = {}) =>
+  o.events.push({ id: nextEvent++, type, actor_id: 1, payload, created_at: ago(0) });
+const orderById = (id: number) => {
+  const o = mOrders.find((x) => x.id === id);
+  if (!o) throw 404;
+  return o;
+};
+const userById = (id: number) => {
+  const u = mUsers.find((x) => x.id === id);
+  if (!u) throw 404;
+  return u;
+};
+
+const mManagers = () => mUsers.filter((u) => u.roles.includes("manager"));
+
+/** undefined: not one of these routes. */
+function peopleRoute(method: string, path: string, body: unknown, q: URLSearchParams): unknown {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const ok = { ok: true };
+  let m: RegExpMatchArray | null;
+
+  if (path === "/admin/users") {
+    const needle = (q.get("q") ?? "").trim().toLowerCase();
+    return mUsers.filter((u) => String(u.id) === needle || u.name.toLowerCase().includes(needle)).map(brief2);
+  }
+  if ((m = path.match(/^\/admin\/users\/(\d+)\/roles$/))) {
+    const u = userById(Number(m[1]));
+    if (u.roles.includes("admin") || u.roles.includes("owner")) throw fail(409, "protected", "protected role");
+    for (const [flag, on] of Object.entries(b.flags as Record<string, boolean>))
+      u.roles = on ? [...new Set([...u.roles, flag])] : u.roles.filter((r) => r !== flag);
+    return brief2(u);
+  }
+  if ((m = path.match(/^\/admin\/users\/(\d+)\/balance$/))) {
+    const u = userById(Number(m[1]));
+    const next = Number(u.balance) + Number(b.amount);
+    if (next < 0) throw fail(422, "InsufficientFunds", "Insufficient funds");
+    u.balance = price(next);
+    return { balance: u.balance };
+  }
+  if ((m = path.match(/^\/admin\/users\/(\d+)$/))) {
+    const u = userById(Number(m[1]));
+    return {
+      ...brief2(u),
+      created_at: u.created_at,
+      blocked: u.id === 8,
+      balance: sees(roles) ? u.balance : null,
+      orders: mOrders
+        .filter((o) => o.buyer_id === u.id)
+        .map((o) => ({ id: o.id, status: o.status, product: o.product, total: orderTotal(o), created_at: o.created_at })),
+    };
+  }
+
+  if (path === "/admin/executors") {
+    if (method === "POST") {
+      if (mExecutors.some((e) => e.alias === b.alias)) throw fail(409, "AliasTaken", "alias is taken");
+      if (mExecutors.some((e) => e.id === b.tg_id)) throw fail(409, "ExecutorExists", "already an executor");
+      mExecutors.push({ id: b.tg_id as number, alias: b.alias as string, is_active: true, max_parallel: 3, percent_override: null, permissions: [] });
+      return ok;
+    }
+    return mExecutors.map((e) => ({
+      id: e.id,
+      alias: e.alias,
+      is_active: e.is_active,
+      in_work: mOrders.filter((o) => o.executor_id === e.id && o.status === "assigned").length,
+      completed: mOrders.filter((o) => o.executor_id === e.id && o.status === "completed").length,
+      avg_score: e.id === 8 ? null : 4.6,
+    }));
+  }
+  if ((m = path.match(/^\/admin\/executors\/(\d+)\/permissions$/))) {
+    const e = mExecutors.find((x) => x.id === Number(m![1]));
+    if (!e) throw 404;
+    e.permissions = [...e.permissions.filter((p) => p.service_id !== b.service_id), { service_id: b.service_id as number, countries: b.countries as string[] }];
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/executors\/(\d+)$/))) {
+    const e = mExecutors.find((x) => x.id === Number(m![1]));
+    if (!e) throw 404;
+    if (method === "PATCH") return Object.assign(e, b), ok;
+    return {
+      ...e,
+      name: userById(e.id).name,
+      stats: { completed: 41, failed: 1, overdue: 2, refused: 3, avg_minutes: 54.4, avg_score: 4.8 },
+      wallet: { hold: "12.40", available: "58.75", wallet: "TQrZ9sT3xJ4kLw8vUe2Yb7NcMdHfPa6GhV" },
+    };
+  }
+
+  if (path === "/admin/managers") {
+    if (method === "POST") {
+      const id = b.tg_id as number;
+      const u = mUsers.find((x) => x.id === id);
+      if (u?.roles.includes("manager")) throw fail(409, "ManagerExists", "already a manager");
+      if (u) u.roles = [...u.roles, "manager"];
+      else mUsers.push({ id, name: `User ${id}`, language: "ru", roles: ["manager"], created_at: ago(1), balance: "0.00" });
+      return ok;
+    }
+    return mManagers().map(brief2);
+  }
+  if ((m = path.match(/^\/admin\/managers\/(\d+)$/))) {
+    const u = userById(Number(m[1]));
+    u.roles = u.roles.filter((r) => r !== "manager" && !r.startsWith("can_"));
+    return ok;
+  }
+  if (path === "/staff/managers") return mManagers().map((u) => ({ id: u.id, name: u.name, admin: false })).concat([{ id: 1, name: "Сергей", admin: true }]);
+  if ((m = path.match(/^\/tickets\/(\d+)\/handover$/))) {
+    const tk = tickets.find((x) => x.id === Number(m![1]));
+    if (!tk || tk.status === "closed") throw 404;
+    tk.mine = false;
+    return ok;
+  }
+
+  if (path === "/admin/orders") {
+    const status = q.get("status");
+    const buyer = q.get("buyer_id");
+    const rows = mOrders.filter((o) => (!status || o.status === status) && (!buyer || o.buyer_id === Number(buyer)));
+    return { items: rows.map(orderRow), total: rows.length, page: Number(q.get("page") ?? 0), page_size: 20 };
+  }
+  if ((m = path.match(/^\/admin\/orders\/(\d+)\/executors$/))) {
+    const o = orderById(Number(m[1]));
+    return mExecutors
+      .filter((e) => e.is_active)
+      .map((e) => ({
+        id: e.id,
+        alias: e.alias,
+        load: mOrders.filter((x) => x.executor_id === e.id && x.status === "assigned").length,
+        max_parallel: e.max_parallel,
+        current: e.id === o.executor_id,
+      }));
+  }
+  if ((m = path.match(/^\/admin\/orders\/(\d+)\/assign$/))) {
+    const o = orderById(Number(m[1]));
+    if (o.race) {
+      o.race = false;
+      o.executor_id = 7;
+      o.status = "assigned";
+      orderEvent(o, "assigned", { executor_id: 7 });
+      throw fail(409, "changed", "the order changed");
+    }
+    if (b.expected_executor_id !== o.executor_id) throw fail(409, "changed", "the order changed");
+    if (b.executor_id === o.executor_id) throw fail(409, "same_executor", "same executor");
+    orderEvent(o, o.executor_id ? "reassigned" : "assigned", { executor_id: b.executor_id, from: o.executor_id });
+    o.executor_id = b.executor_id as number;
+    o.status = "assigned";
+    return ok;
+  }
+  if ((m = path.match(/^\/admin\/orders\/(\d+)\/refund$/))) {
+    const o = orderById(Number(m[1]));
+    o.status = b.reason === "cancel" ? "cancelled" : "failed";
+    o.entries.push({ id: nextEvent++, user_id: o.buyer_id, account: "main", kind: "refund", amount: orderTotal(o), created_at: ago(0) });
+    orderEvent(o, "refund", { reason: b.reason });
+    return { order_id: o.id, refunded: orderTotal(o) };
+  }
+  if ((m = path.match(/^\/admin\/orders\/(\d+)$/))) {
+    const o = orderById(Number(m[1]));
+    return {
+      ...orderRow(o),
+      buyer_name: userById(o.buyer_id).name,
+      executor_id: o.executor_id,
+      price: o.price,
+      discount: o.discount,
+      assigned_at: o.executor_id ? ago(30) : null,
+      deadline_at: o.status === "assigned" ? minutes(60) : null,
+      ready_at: o.status === "ready" || o.status === "completed" ? ago(20) : null,
+      completed_at: o.status === "completed" ? ago(10) : null,
+      fields: [
+        { label: "Почта для регистрации", value: "buyer.mail@example.com", is_file: false },
+        { label: "Паспорт", value: null, is_file: true },
+      ],
+      result: o.result,
+      result_files: o.status === "ready" ? 1 : 0,
+      events: o.events,
+      entries: o.entries,
+      actions: actionsOf(o),
+    };
+  }
+  if ((m = path.match(/^\/staff\/orders\/(\d+)\/(confirm|send_back)$/))) {
+    const o = mOrders.find((x) => x.id === Number(m![1]));
+    if (!o) return undefined;
+    o.status = m[2] === "confirm" ? "completed" : "assigned";
+    orderEvent(o, m[2] === "confirm" ? "status" : "sent_back", m[2] === "confirm" ? { to: "completed" } : { comment: (b.comment as string) ?? "" });
+    return ok;
+  }
+  return undefined;
+}
+
 function route(method: string, url: URL, body: unknown): unknown {
   const path = url.pathname.replace(/^\/api/, "");
   const q = url.searchParams;
   let m: RegExpMatchArray | null;
+  const people = peopleRoute(method, path, body, q);
+  if (people !== undefined) return people;
   if (path.startsWith("/admin/")) return adminRoute(method, path, body);
   if (path === "/me")
     return {

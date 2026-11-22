@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import and_, exists, func, select
+from sqlalchemy import String, and_, cast, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.ports.repositories.admin import AdminGateway
+from app.application.ports.repositories.admin import AdminGateway, ExecutorRow
 from app.domain.audit import AuditLog
 from app.domain.base import Base
 from app.domain.catalog import (
@@ -16,9 +16,14 @@ from app.domain.catalog import (
     Service,
     StockUnit,
 )
-from app.domain.executor import ExecutorPermission
+from app.domain.enums.order import OrderStatus
+from app.domain.enums.roles import Role
+from app.domain.executor import ExecutorPermission, ExecutorProfile
+from app.domain.ledger import LedgerEntry
 from app.domain.order import Order
 from app.domain.promo import PromoCode
+from app.domain.review import OrderReview
+from app.domain.user import User
 
 
 @dataclass
@@ -182,3 +187,127 @@ class AdminRepository(AdminGateway):
             StockUnit.payload.in_(payloads),
         )
         return set(await self._session.scalars(query))
+
+    # --- people
+    async def users_search(self, text: str, limit: int) -> list[User]:
+        text = text.strip().lstrip("@")
+        escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        match = (
+            cast(User.id, String) == text
+            if text.isdigit()
+            else User.name.ilike(f"%{escaped}%", escape="\\")
+        )
+        query = select(User).where(match).order_by(User.id.desc()).limit(limit)
+        return list(await self._session.scalars(query))
+
+    async def orders_of_user(self, user_id: int, limit: int) -> list[Order]:
+        query = (
+            select(Order).where(Order.user_id == user_id).order_by(Order.id.desc()).limit(limit)
+        )
+        return list(await self._session.scalars(query))
+
+    async def executor_rows(self) -> list[ExecutorRow]:
+        mine = Order.executor_id == ExecutorProfile.user_id
+        in_work = (
+            select(func.count())
+            .where(mine, Order.status.in_((OrderStatus.assigned, OrderStatus.ready)))
+            .correlate(ExecutorProfile)
+            .scalar_subquery()
+        )
+        done = (
+            select(func.count())
+            .where(mine, Order.status == OrderStatus.completed)
+            .correlate(ExecutorProfile)
+            .scalar_subquery()
+        )
+        score = (
+            select(func.avg(OrderReview.score))
+            .where(OrderReview.executor_id == ExecutorProfile.user_id)
+            .correlate(ExecutorProfile)
+            .scalar_subquery()
+        )
+        query = select(ExecutorProfile, in_work, done, score).order_by(ExecutorProfile.alias)
+        return [
+            ExecutorRow(p, int(w), int(d), None if a is None else float(a))
+            for p, w, d, a in (await self._session.execute(query)).all()
+        ]
+
+    async def managers(self) -> list[User]:
+        query = select(User).where(User.roles.op("&")(int(Role.MANAGER)) != 0).order_by(User.id)
+        return list(await self._session.scalars(query))
+
+    async def user_names(self, ids: list[int]) -> dict[int, str]:
+        if not ids:
+            return {}
+        query = select(User.id, User.name).where(User.id.in_(ids))
+        return {int(i): n for i, n in (await self._session.execute(query)).all()}
+
+    async def executor_aliases(self, ids: list[int]) -> dict[int, str]:
+        if not ids:
+            return {}
+        query = select(ExecutorProfile.user_id, ExecutorProfile.alias).where(
+            ExecutorProfile.user_id.in_(ids)
+        )
+        return {int(i): a for i, a in (await self._session.execute(query)).all()}
+
+    # --- orders
+    async def orders_filtered(
+        self,
+        status: OrderStatus | None,
+        product_id: int | None,
+        user_id: int | None,
+        executor_id: int | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[Order], int]:
+        conditions = []
+        if status is not None:
+            conditions.append(Order.status == status)
+        if user_id is not None:
+            conditions.append(Order.user_id == user_id)
+        if executor_id is not None:
+            conditions.append(Order.executor_id == executor_id)
+        if product_id is not None:
+            conditions.append(
+                Order.variant_id.in_(
+                    select(ProductVariant.id).where(ProductVariant.product_id == product_id)
+                )
+            )
+        count = select(func.count()).select_from(Order).where(*conditions)
+        query = (
+            select(Order).where(*conditions).order_by(Order.id.desc()).offset(offset).limit(limit)
+        )
+        return list(await self._session.scalars(query)), int(
+            await self._session.scalar(count) or 0
+        )
+
+    async def entries_for_order(self, order_id: int) -> list[LedgerEntry]:
+        query = (
+            select(LedgerEntry).where(LedgerEntry.order_id == order_id).order_by(LedgerEntry.id)
+        )
+        return list(await self._session.scalars(query))
+
+    async def assignable(
+        self, service_id: int, country_code: str | None
+    ) -> list[tuple[ExecutorProfile, int]]:
+        permitted = select(ExecutorPermission.executor_id).where(
+            ExecutorPermission.executor_id == ExecutorProfile.user_id,
+            ExecutorPermission.service_id == service_id,
+        )
+        if country_code is not None:
+            permitted = permitted.where(ExecutorPermission.country_code == country_code)
+        load = (
+            select(func.count())
+            .where(
+                Order.executor_id == ExecutorProfile.user_id,
+                Order.status.in_((OrderStatus.assigned, OrderStatus.ready)),
+            )
+            .correlate(ExecutorProfile)
+            .scalar_subquery()
+        )
+        query = (
+            select(ExecutorProfile, load)
+            .where(ExecutorProfile.is_active, exists(permitted.correlate(ExecutorProfile)))
+            .order_by(ExecutorProfile.alias)
+        )
+        return [(p, int(n)) for p, n in (await self._session.execute(query)).all()]

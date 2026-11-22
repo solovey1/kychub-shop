@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from sqlalchemy import select
+
 from app.application.ports.repositories.users import UsersGateway
+from app.domain.enums.roles import Role
 from app.domain.user import User
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -36,6 +39,11 @@ class UsersRepository(UsersGateway):
 
     async def count(self) -> int:
         return await self._helper.count()
+
+    async def staff(self) -> list[User]:
+        mask = int(Role.MANAGER | Role.ADMIN)
+        query = select(User).where(User.roles.op("&")(mask) != 0).order_by(User.id)
+        return list(await self._helper.session.scalars(query))
 
     async def add(self, user: User) -> None:
         await self._uow.flush(user)

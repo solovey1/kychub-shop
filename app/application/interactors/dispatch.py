@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import Final, Literal
 
 from app.application.cards import OrderCard
-from app.application.errors.shop import OrderUnavailable
+from app.application.errors.shop import Conflict, OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, OrderContext, load_context
@@ -38,6 +38,15 @@ class DispatchResult:
     first_no_executor: bool = False
     released_executor_id: int | None = None  # who lost the order just before this dispatch
     release_reason: Literal["refused", "overdue"] | None = None
+
+
+@dataclass(frozen=True)
+class Assigned:
+    """A manual assignment: who got the order, who lost it (None: it was in the queue)."""
+
+    order_id: int
+    executor_id: int
+    previous_id: int | None
 
 
 @dataclass(frozen=True)
@@ -99,6 +108,50 @@ class DispatchInteractor(BaseInteractor):
             await self._assign(order, ctx, executor_id, "queue")
             await self.uow.commit()
             return True
+        except BaseException:
+            await self.uow.rollback()
+            raise
+
+    async def assign(
+        self, actor_id: int, order_id: int, executor_id: int, expected_id: int | None
+    ) -> Assigned:
+        """A manager picks the executor. Under the order lock, like `take`, but the load limit is
+        not checked. `expected_id` is the executor the caller saw (None: in the queue): somebody
+        else got there first -> OrderChanged (409)."""
+        try:
+            order = await self.orders.get_for_update(order_id)
+            if order is None or order.status not in (OrderStatus.in_queue, OrderStatus.assigned):
+                raise OrderUnavailable(order_id)
+            if order.executor_id != expected_id:
+                raise Conflict("changed")
+            if order.executor_id == executor_id:
+                raise Conflict("same_executor")
+            await self.executors.get_profile_for_update(executor_id)
+            ctx = await load_context(self.catalog, order)
+            if ctx is None or ctx.service is None:
+                raise Conflict("not_permitted")
+            if not await self.executors.candidates(
+                ctx.service.id, ctx.variant.country_code, set(), executor_id, ignore_load=True
+            ):
+                raise Conflict("not_permitted")
+            previous = order.executor_id
+            if previous is None:
+                await self._assign(order, ctx, executor_id, "queue")
+            else:
+                now = datetime_now()
+                order.executor_id = executor_id
+                order.assigned_at = now
+                order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
+            await self.orders.add_event(
+                OrderEvent(
+                    order_id=order.id,
+                    actor_id=actor_id,
+                    type="reassigned",
+                    payload={"executor_id": executor_id, "from": previous, "by": actor_id},
+                )
+            )
+            await self.uow.commit()
+            return Assigned(order_id, executor_id, previous)
         except BaseException:
             await self.uow.rollback()
             raise

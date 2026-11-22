@@ -18,5 +18,8 @@ class UsersGateway(Protocol):
 
     async def count(self) -> int: ...
 
+    async def staff(self) -> list[User]:
+        """Everybody with the manager or admin role."""
+
     async def add(self, user: User) -> None:
         """Insert and flush; the caller owns the transaction."""

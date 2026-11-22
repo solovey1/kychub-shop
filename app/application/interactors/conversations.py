@@ -3,7 +3,9 @@ from typing import Any
 
 from app.application.errors.shop import (
     ChatForbidden,
+    Conflict,
     InvalidInput,
+    ManagerNotFound,
     OrderUnavailable,
     TicketUnavailable,
 )
@@ -13,11 +15,13 @@ from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.support import SupportGateway, UnreadCounts
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.uow import UnitOfWork
+from app.domain.audit import AuditLog
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
 from app.domain.order import Order
 from app.domain.support import Conversation, Message, Ticket
+from app.domain.user import User
 from app.utils.time import datetime_now
 
 CHAT_STATUSES = frozenset({OrderStatus.assigned, OrderStatus.ready})
@@ -119,6 +123,10 @@ class ConversationInteractor(BaseInteractor):
             rows.append((ticket, user.name if user else "", conversation.id))
         return rows
 
+    async def staff(self) -> list[User]:
+        """Managers and admins: whom a ticket can be handed to."""
+        return await self.users.staff()
+
     async def ticket_card(self, ticket_id: int) -> tuple[Ticket, str] | None:
         """The ticket and its owner's name, for the manager."""
         ticket = await self.support.ticket(ticket_id)
@@ -143,6 +151,41 @@ class ConversationInteractor(BaseInteractor):
             ticket.taken_at = datetime_now()
             await self.uow.commit()
             return True
+        except BaseException:
+            await self.uow.rollback()
+            raise
+
+    async def hand_over(
+        self, actor_id: int, ticket_id: int, manager_id: int
+    ) -> tuple[Ticket, int | None]:
+        """An admin passes any live ticket, a manager only his own, to another manager or admin.
+        Returns the ticket and the manager who had it (None: nobody)."""
+        try:
+            ticket = await self.support.ticket_for_update(ticket_id)
+            actor = await self.users.get(actor_id)
+            if ticket is None or ticket.status is TicketStatus.closed or actor is None:
+                raise TicketUnavailable(ticket_id)
+            if not actor.roles & Role.ADMIN and ticket.manager_id != actor_id:
+                raise TicketUnavailable(ticket_id)
+            target = await self.users.get(manager_id)
+            if target is None or not target.roles & (Role.MANAGER | Role.ADMIN):
+                raise ManagerNotFound(manager_id)
+            if ticket.manager_id == manager_id:
+                raise Conflict("same_manager")
+            previous = ticket.manager_id
+            ticket.manager_id = manager_id
+            ticket.status = TicketStatus.taken
+            ticket.taken_at = datetime_now()
+            await self.executors.add_audit(
+                AuditLog(
+                    actor_id=actor_id,
+                    action="ticket.handover",
+                    target=f"ticket:{ticket_id}",
+                    payload={"from": previous, "to": manager_id},
+                )
+            )
+            await self.uow.commit()
+            return ticket, previous
         except BaseException:
             await self.uow.rollback()
             raise

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from sqlalchemy import delete, exists, func, select
+from sqlalchemy import delete, exists, func, select, true
 
 from app.application.ports.repositories.executors import Candidate, ExecutorsGateway, StatsRow
 from app.domain.audit import AuditLog
@@ -79,6 +79,7 @@ class ExecutorsRepository(ExecutorsGateway):
         country_code: str | None,
         exclude: set[int],
         only: int | None = None,
+        ignore_load: bool = False,
     ) -> list[Candidate]:
         mine = Order.executor_id == ExecutorProfile.user_id
         load = (
@@ -104,7 +105,7 @@ class ExecutorsRepository(ExecutorsGateway):
             .where(
                 ExecutorProfile.is_active,
                 exists(permitted.correlate(ExecutorProfile)),
-                load < ExecutorProfile.max_parallel_orders,
+                true() if ignore_load else load < ExecutorProfile.max_parallel_orders,
             )
             .order_by(load, completed.desc(), ExecutorProfile.user_id)
         )

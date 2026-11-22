@@ -7,7 +7,7 @@ from aiogram import html
 
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.conversations import Posted
-from app.application.interactors.dispatch import DispatchInteractor, DispatchResult
+from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
 from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
@@ -64,6 +64,36 @@ class Effects:
             self.offers.close(order_id, "messages-executor-offer_taken", except_chat=executor_id),
         )
         await self._order_event(order_id, OrderStatus.assigned, queue=True, extra=[executor_id])
+
+    async def order_assigned(self, assigned: Assigned) -> None:
+        """A manager gave the order to an executor: the new one gets the card, the old one (or
+        the other executors still holding the offer) lose it."""
+        if assigned.previous_id is None:
+            await _safe(
+                f"closing the offers of order {assigned.order_id}",
+                self.offers.close(
+                    assigned.order_id,
+                    "messages-executor-offer_taken",
+                    except_chat=assigned.executor_id,
+                ),
+            )
+        else:
+            await self.notifier.send(
+                assigned.previous_id,
+                "messages-executor-reassigned_away",
+                id=str(assigned.order_id),
+            )
+        await self.offers.announce(
+            DispatchResult(assigned.order_id, "assigned", [assigned.executor_id])
+        )
+        extra = [assigned.executor_id, *([assigned.previous_id] if assigned.previous_id else [])]
+        await self._order_event(
+            assigned.order_id,
+            OrderStatus.assigned,
+            queue=assigned.previous_id is None,
+            staff=True,
+            extra=extra,
+        )
 
     async def order_refused(self, result: DispatchResult) -> None:
         """The order is back in the queue: offers (and live events) go out as for any dispatch."""
@@ -153,6 +183,25 @@ class Effects:
             self.ticket_offers.close(ticket.id, "messages-ticket-closed"),
         )
         await self._ticket_event(ticket.id, TicketStatus.closed, [ticket.user_id])
+
+    async def ticket_handed_over(
+        self, ticket: Ticket, conversation_id: int, previous_id: int | None
+    ) -> None:
+        url = self.config.server.url
+        assert ticket.manager_id is not None
+        await self.notifier.send(
+            ticket.manager_id,
+            "messages-ticket-handed",
+            lambda tr: ticket_keyboard(tr, url, conversation_id, ticket.id, staff=True),
+            id=str(ticket.id),
+        )
+        if previous_id is not None:
+            await self.notifier.send(previous_id, "messages-ticket-handed_away", id=str(ticket.id))
+        await self._ticket_event(
+            ticket.id,
+            TicketStatus.taken,
+            [ticket.user_id, *([previous_id] if previous_id else [])],
+        )
 
     async def _ticket_event(
         self, ticket_id: int, status: TicketStatus, users: Iterable[int]

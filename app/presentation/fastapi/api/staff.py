@@ -14,8 +14,10 @@ from app.infrastructure.telegram.effects import Effects
 from app.presentation.fastapi.api.auth import CurrentUser, StaffUser
 from app.presentation.fastapi.api.schemas import (
     CancelOut,
+    HandoverIn,
     OrderBrief,
     SendBackIn,
+    StaffMemberOut,
     StaffOrderBrief,
     StaffOrderOut,
     TicketOut,
@@ -103,6 +105,31 @@ async def close_ticket(
 ) -> dict[str, bool]:
     ticket = await chat.close_ticket(user.id, ticket_id)  # TicketUnavailable -> 404
     await effects.ticket_closed(ticket, user.id)
+    return {"ok": True}
+
+
+@router.get("/staff/managers")
+@inject
+async def managers(_: StaffUser, chat: FromDishka[ConversationInteractor]) -> list[StaffMemberOut]:
+    """Who a ticket can be handed to."""
+    return [
+        StaffMemberOut(id=u.id, name=unescape(u.name), admin=bool(u.roles & Role.ADMIN))
+        for u in await chat.staff()
+    ]
+
+
+@router.post("/tickets/{ticket_id}/handover")
+@inject
+async def hand_over(
+    ticket_id: int,
+    body: HandoverIn,
+    user: StaffUser,
+    chat: FromDishka[ConversationInteractor],
+    effects: FromDishka[Effects],
+) -> dict[str, bool]:
+    ticket, previous = await chat.hand_over(user.id, ticket_id, body.manager_id)
+    conversation = await chat.ticket_conversation(ticket_id)
+    await effects.ticket_handed_over(ticket, conversation.id, previous)
     return {"ok": True}
 
 
