@@ -1,3 +1,15 @@
+messages-support =
+    💬 <b>Поддержка</b>
+
+    { $order }Опишите вопрос, и менеджер ответит. Обычно в течение часа.
+messages-support-open =
+    💬 <b>Поддержка</b>
+
+    { $order }У вас открыт тикет №{ $id }.
+messages-support-order = 📦 Заказ №{ $id }
+messages-support-write = ✍️ Напишите вопрос одним сообщением, можно с фото или файлом.
+buttons-support_write = ✍️ Написать в поддержку
+
 messages-manager-done = Готово.
 messages-manager-usage = Использование: /manager_add &lt;tg_id&gt; или /manager_del &lt;tg_id&gt;
 messages-manager-err_exists = Этот пользователь уже менеджер.
@@ -26,8 +38,6 @@ buttons-chat_executor = 💬 Написать исполнителю
 buttons-chat_buyer = Написать покупателю
 
 messages-chat-order_missing = Заказ не найден.
-messages-chat-support_new = Тикет № { $id } создан. Напишите вопрос одним сообщением, можно с фото или файлом.
-messages-chat-support_again = У вас уже есть открытый тикет № { $id }. Пишите сюда.
 messages-chat-no_executor = Исполнитель ещё не назначен.
 messages-chat-order_buyer = Всё, что вы напишете сейчас, получит исполнитель заказа № { $id }. Он не увидит ваше имя.
 messages-chat-order_executor = Всё, что вы напишете сейчас, получит покупатель заказа № { $id }.
@@ -58,5 +68,5 @@ messages-ticket-notice =
 
     { $text }
 messages-ticket-joined = 🎧 Поддержка подключилась
-messages-chat-tip = ✅ Отправлено. Отвечать удобнее в приложении.
+messages-chat-tip = ✅ Отправлено. Ответ придёт сюда, переписка — в приложении.
 messages-chat-use_app = Отвечайте в приложении: сообщение из бота в тикет не уйдёт.

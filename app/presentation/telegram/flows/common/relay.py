@@ -63,8 +63,11 @@ class RelayFlow(BaseFlow):
 
     async def route(self, message: Message) -> None:
         conversation = await self._target(message)
-        if conversation is None:
-            return
+        if conversation is not None:
+            await self.send(conversation, message)
+
+    async def send(self, conversation: Conversation, message: Message) -> None:
+        """Puts the user's message into the conversation and delivers the copies."""
         text, media, supported = extract(message)
         if not supported:
             return await self._say("messages-chat-unsupported")
