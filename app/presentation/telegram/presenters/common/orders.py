@@ -10,6 +10,7 @@ from app.application.i18n_text import country_flag, fmt_time, fmt_usd, pick_i18n
 from app.application.interactors.cancel_request import CancelState
 from app.application.interactors.deadlines import ExtensionAnswer, Pending, extended_deadline
 from app.application.interactors.disputes import DisputeNews
+from app.application.interactors.info_state import InfoPending
 from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
@@ -154,6 +155,7 @@ class OrdersPresenter(BasePresenter):
         dispute: Dispute | None = None,
         cancel: CancelState | None = None,
         rating: tuple[float | None, int] = (None, 0),
+        info: InfoPending | None = None,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -180,6 +182,10 @@ class OrdersPresenter(BasePresenter):
         if cancel is not None and cancel.pending is not None and dispute is None:
             text += "\n\n" + i18n.messages.order.cancel_wait(
                 time=self._time(cancel.pending.agrees_at)
+            )
+        if info is not None and dispute is None:
+            text += "\n\n" + i18n.messages.order.info_wait(
+                question=html.quote(info.question), time=self._time(info.until)
             )
         if dispute is not None:
             text += "\n\n" + dispute_line(i18n, dispute, "buyer", self.user.timezone)
@@ -209,6 +215,7 @@ class OrdersPresenter(BasePresenter):
                 dispute is not None,
                 bool(cancel and cancel.can_request and dispute is None)
                 and order.status is OrderStatus.assigned,
+                info is not None and dispute is None,
             ),
         ), None
 

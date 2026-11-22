@@ -174,6 +174,7 @@ class DispatchInteractor(BaseInteractor):
                 order.assigned_at = now
                 order.accept_until = None  # a manager's choice needs no confirmation
                 order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
+                order.paused_at = None
             await self.orders.add_event(
                 OrderEvent(
                     order_id=order.id,
@@ -282,6 +283,7 @@ class DispatchInteractor(BaseInteractor):
                     or order.executor_id is None
                     or order.deadline_at is None
                     or order.deadline_at >= now
+                    or order.paused_at is not None  # asked the buyer for data a moment ago
                     or await self.disputes.open_for_order(order_id) is not None  # clock stopped
                 ):
                     await self.uow.rollback()

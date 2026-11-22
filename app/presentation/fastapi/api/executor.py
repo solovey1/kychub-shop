@@ -2,7 +2,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, Query
 
-from app.application.errors.shop import ExecutorNotFound, OrderUnavailable
+from app.application.errors.shop import ContactsBlocked, ExecutorNotFound, OrderUnavailable
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.attention import AttentionInteractor
 from app.application.interactors.cancel_request import CancelRequestInteractor
@@ -14,6 +14,7 @@ from app.application.interactors.disputes import DISPUTE_STATUSES, DisputeIntera
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.executors import ExecutorCabinetInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
+from app.application.interactors.info_request import InfoRequestInteractor
 from app.application.interactors.stats import ExecutorStats
 from app.application.models.form_schema import FormSchema
 from app.domain.enums.order import OrderStatus
@@ -31,6 +32,8 @@ from app.presentation.fastapi.api.schemas import (
     ExtensionRequestIn,
     ExtensionStateOut,
     HoldDayOut,
+    InfoIn,
+    InfoOut,
     LedgerEntryOut,
     OnlineIn,
     OnlineOut,
@@ -90,6 +93,7 @@ async def _order(
         extension=ExtensionStateOut(
             pending_minutes=ext.pending.minutes if ext.pending else None,
             can_request=ext.can_request
+            and view.order.paused_at is None
             and view.order.deadline_at is not None
             and view.order.deadline_at > datetime_now(),
             options=list(EXTENSION_MINUTES),
@@ -101,6 +105,12 @@ async def _order(
         )
         if assigned and view.dispute is None and view.cancel.pending is not None
         else None,
+        info=InfoOut(
+            question=view.info.question, asked_at=view.info.asked_at, until=view.info.until
+        )
+        if view.info
+        else None,
+        can_ask_info=view.can_ask_info,
         can_dispute=view.order.status in DISPUTE_STATUSES
         and view.dispute is None
         and view.order.accept_until is None,
@@ -290,6 +300,29 @@ async def request_extension(
     """Conflict `extension_pending` / `extension_limit` (409); a passed deadline is a 400."""
     ask = await extension.request(user.id, order_id, body.minutes)
     await effects.extension_asked(ask)
+    return await _order(order_id, user.id, user.language, work, chat)
+
+
+@router.post("/orders/{order_id}/info")
+@inject
+async def ask_info(
+    order_id: int,
+    body: InfoIn,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
+    info: FromDishka[InfoRequestInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """«Need data»: the question goes to the buyer through the contacts filter and the order is
+    paused. 422 `contacts_blocked` / `InvalidInput`; Conflict `info_pending` / `info_limit` /
+    `dispute_open` / `not_accepted` (409); a passed deadline is a 400; not his order: 404."""
+    try:
+        ask = await info.ask(user.id, order_id, body.question)
+    except ContactsBlocked as blocked:
+        await effects.contacts_blocked(blocked)
+        raise
+    await effects.info_asked(ask)
     return await _order(order_id, user.id, user.language, work, chat)
 
 

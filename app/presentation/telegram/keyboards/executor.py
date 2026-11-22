@@ -90,6 +90,7 @@ def order_keyboard(
     dispute: bool = False,
     cancel_request: int | None = None,
     accept: bool = False,
+    can_ask_info: bool = False,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if accept:  # auto-assigned: he has to confirm first
@@ -115,6 +116,8 @@ def order_keyboard(
         )
     if can_extend:
         rows.append([button(i18n.buttons.ext_ask(), CDExt(action="ask", id=order.id))])
+    if can_ask_info:
+        rows.append([button(i18n.buttons.info_ask(), CDOrderAct(action="info", id=order.id))])
     if order.status is OrderStatus.assigned:
         rows.append(
             [

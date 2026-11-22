@@ -98,10 +98,15 @@ class ExecutorPresenter(BasePresenter):
             and order.deadline_at is not None
             and order.deadline_at > datetime_now()
             and ext.can_request
+            and order.paused_at is None
         )
         if order.status is OrderStatus.assigned and ext.pending is not None:
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
+        if view.info is not None:
+            text += "\n" + i18n.messages.executor.info_wait(
+                time=fmt_time(view.info.until, self.user.timezone)
+            )
         accept = order.status is OrderStatus.assigned and order.accept_until is not None
         if accept and order.accept_until is not None:
             text += "\n" + i18n.messages.executor.accept_wait(
@@ -127,7 +132,19 @@ class ExecutorPresenter(BasePresenter):
                 view.dispute is not None,
                 pending.request_id if asked and pending is not None else None,
                 accept,
+                view.can_ask_info,
             ),
+        )
+
+    def info_ask(self, order_id: int, *, error: str | None = None, current: bool = False) -> View:
+        """The prompt for the question («need data»); `error`: why the last text was refused."""
+        text = self.i18n.messages.executor.info_prompt(id=str(order_id))
+        if error is not None:
+            text = self.i18n.get(error) + "\n\n" + text
+        return View(
+            text=text,
+            reply_markup=order_back_keyboard(self.i18n, order_id),
+            mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 
     def extension_options(self, order_id: int) -> View:

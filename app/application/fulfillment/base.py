@@ -26,6 +26,7 @@ async def move(
     ensure_transition(order.status, new)
     old = order.status
     order.status = new
+    order.paused_at = None  # a pause belongs to one stay in `assigned`
     await orders.add_event(
         OrderEvent(
             order_id=order.id,

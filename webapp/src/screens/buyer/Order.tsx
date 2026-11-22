@@ -122,6 +122,21 @@ export function OrderScreen({ id }: { id: number }) {
           <Row title={t("order.confirm")} tone="link" onClick={confirmOrder} />
         </Section>
       )}
+      {o.info && (
+        <Section title={t("order.infoAsk")} footer={t("order.infoUntil", { time: fmtDate(o.info.until, true) })}>
+          <Row title={o.info.question} />
+          <ChatRow
+            title={t("order.infoReply")}
+            chat={o.chat}
+            onClick={() =>
+              chat(
+                (cid) => `/orders/${id}/chat/${cid}`,
+                async () => (o.chat ? { conversation_id: o.chat.conversation_id } : send("POST", `/orders/${id}/chat`)),
+              )
+            }
+          />
+        </Section>
+      )}
       {o.can_rate && (
         <Section title={t("order.rate")} footer={t("order.rateHint")}>
           <div className="stars">

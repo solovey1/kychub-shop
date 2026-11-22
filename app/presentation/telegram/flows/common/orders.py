@@ -7,6 +7,7 @@ from app.application.errors.shop import Conflict, OrderUnavailable
 from app.application.interactors.cancel_request import CancelRequestInteractor, cancel_state
 from app.application.interactors.deadlines import ExtensionInteractor
 from app.application.interactors.disputes import DisputeInteractor
+from app.application.interactors.info_state import pending_info
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.application.ports.telegram.messages_helper import MessageHelper
@@ -67,6 +68,7 @@ class OrdersFlow(BaseFlow):
             dispute,
             cancel,
             await self.interactor.executor_rating(order),
+            pending_info(order, events) if dispute is None else None,
         )
         await self.renderer.apply(view)
         if file is not None:

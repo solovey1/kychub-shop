@@ -58,7 +58,12 @@ class OrdersGateway(Protocol):
         """Executors who refused the order or let its deadline pass."""
 
     async def overdue_ids(self, now: datetime) -> list[int]:
-        """`assigned` orders whose deadline has passed (not while a dispute is open)."""
+        """`assigned` orders whose deadline has passed (not while a dispute is open or the order
+        is paused)."""
+
+    async def paused_before(self, cutoff: datetime) -> list[int]:
+        """`assigned` orders paused (the buyer was asked for data) before `cutoff`, no open
+        dispute."""
 
     async def unaccepted_ids(self, now: datetime) -> list[int]:
         """`assigned` orders whose executor did not accept them in time (not while a dispute is
@@ -69,7 +74,8 @@ class OrdersGateway(Protocol):
         caller reads the state under the lock); not while a dispute is open."""
 
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
-        """`assigned` orders whose deadline is still ahead, oldest first (no open dispute)."""
+        """`assigned` orders whose deadline is still ahead, oldest first (no open dispute, not
+        paused)."""
 
     async def ready_before(self, cutoff: datetime) -> list[Order]:
         """`ready` orders submitted before `cutoff` (nobody confirmed them yet), oldest first. Not

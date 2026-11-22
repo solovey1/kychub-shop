@@ -4,11 +4,18 @@ from typing import Any, Final
 
 from aiogram.types import CallbackQuery, Message
 
-from app.application.errors.shop import Conflict, DeadlineExpired, InvalidInput, OrderUnavailable
+from app.application.errors.shop import (
+    Conflict,
+    ContactsBlocked,
+    DeadlineExpired,
+    InvalidInput,
+    OrderUnavailable,
+)
 from app.application.interactors.cancel_request import CancelRequestInteractor
 from app.application.interactors.deadlines import ExtensionInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
+from app.application.interactors.info_request import InfoRequestInteractor
 from app.application.models.form_schema import FieldType, FormSchema
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
@@ -23,7 +30,7 @@ from app.presentation.telegram.flows.common.files import (
 )
 from app.presentation.telegram.presenters.common.purchase import PurchasePresenter
 from app.presentation.telegram.presenters.executor.cabinet import ExecutorPresenter
-from app.presentation.telegram.states.executor import ResultForm
+from app.presentation.telegram.states.executor import InfoForm, ResultForm
 from app.presentation.telegram.view.models import RenderMode
 from app.presentation.telegram.view.renderer import Renderer
 
@@ -36,6 +43,7 @@ class ExecutorOrdersFlow(BaseFlow):
     dispatcher: DispatchInteractor
     extensions: ExtensionInteractor
     cancel_requests: CancelRequestInteractor
+    info_requests: InfoRequestInteractor
     work: FulfillmentWorkInteractor
     effects: Effects
     presenter: ExecutorPresenter
@@ -51,6 +59,8 @@ class ExecutorOrdersFlow(BaseFlow):
                 await self.accept(cd.id)
             case "refuse":
                 await self.refuse(cd.id)
+            case "info":
+                await self.info_start(cd.id)
 
     async def take(self, order_id: int) -> None:
         if not await self.dispatcher.take(self.user.id, order_id):
@@ -75,6 +85,39 @@ class ExecutorOrdersFlow(BaseFlow):
             return await self._say("messages-executor-refuse_failed", order_id)
         await self._say("messages-executor-refused", order_id)
         await self.effects.order_refused(result)
+
+    async def info_start(self, order_id: int) -> None:
+        """«Need data»: the next text of the executor is the question to the buyer."""
+        fsm = self.helper.fsm
+        await fsm.clear()
+        view = await self.work.get(self.user.id, order_id)
+        if view is None or not view.can_ask_info:
+            return await self._say("messages-executor-info_failed", order_id)
+        await fsm.set_state(InfoForm.question)
+        await fsm.update_data(order_id=order_id)
+        await self.renderer.apply(self.presenter.info_ask(order_id))
+
+    async def info_question(self, message: Message) -> None:
+        data = await self.helper.fsm.get_data()
+        order_id = data.get("order_id")
+        if order_id is None:
+            return
+        try:
+            ask = await self.info_requests.ask(self.user.id, order_id, message.text or "")
+        except InvalidInput as e:
+            if isinstance(e, ContactsBlocked):
+                await self.effects.contacts_blocked(e)
+                key = "messages-executor-info_blocked"
+            else:
+                key = "messages-executor-info_invalid"
+            await self.renderer.apply(self.presenter.info_ask(order_id, error=key, current=True))
+            return
+        except (Conflict, OrderUnavailable, DeadlineExpired):
+            await self.helper.fsm.clear()
+            return await self._say("messages-executor-info_failed", order_id)
+        await self.helper.fsm.clear()
+        await self.renderer.apply(self.presenter.note("messages-executor-info_sent", order_id))
+        await self.effects.info_asked(ask)
 
     async def extension(self, cd: CDExt) -> None:
         if cd.action == "ask":

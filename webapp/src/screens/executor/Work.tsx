@@ -113,7 +113,7 @@ function Mine() {
             tag={
               o.action === "work" && o.deadline_at
                 ? t("action.work", { time: fmtDate(o.deadline_at, true) })
-                : o.action === "dispute" || o.action === "cancel" || o.action === "accept"
+                : o.action === "dispute" || o.action === "cancel" || o.action === "accept" || o.action === "paused"
                   ? t(`action.${o.action}`)
                   : undefined
             }

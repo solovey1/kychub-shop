@@ -60,10 +60,15 @@ class Relay:
     kv: KvStorage
     config: AppConfig
 
-    async def deliver(self, posted: Posted, source_message_id: int | None) -> Delivery:
+    async def deliver(
+        self, posted: Posted, source_message_id: int | None, *, copies: bool = True
+    ) -> Delivery:
         """`source_message_id`: the sender's own message (media is copied from it); None for a
-        text sent from the Mini App. Open Mini App sockets get the message first."""
+        text sent from the Mini App. Open Mini App sockets get the message first. `copies` False:
+        only the sockets (the caller tells the recipient in its own way)."""
         await self._publish(posted)
+        if not copies:
+            return Delivery(0, 0)
         delivered = failed = 0
         for recipient in posted.recipients:
             try:

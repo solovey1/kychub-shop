@@ -166,7 +166,24 @@ class OrdersRepository(OrdersGateway):
     async def overdue_ids(self, now: datetime) -> list[int]:
         query = (
             select(Order.id)
-            .where(Order.status == OrderStatus.assigned, Order.deadline_at < now, _no_dispute())
+            .where(
+                Order.status == OrderStatus.assigned,
+                Order.deadline_at < now,
+                Order.paused_at.is_(None),  # the clock stands while the buyer is asked
+                _no_dispute(),
+            )
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def paused_before(self, cutoff: datetime) -> list[int]:
+        query = (
+            select(Order.id)
+            .where(
+                Order.status == OrderStatus.assigned,
+                Order.paused_at < cutoff,
+                _no_dispute(),
+            )
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))
@@ -195,7 +212,12 @@ class OrdersRepository(OrdersGateway):
     async def assigned_with_deadline(self, now: datetime) -> list[Order]:
         query = (
             select(Order)
-            .where(Order.status == OrderStatus.assigned, Order.deadline_at >= now, _no_dispute())
+            .where(
+                Order.status == OrderStatus.assigned,
+                Order.deadline_at >= now,
+                Order.paused_at.is_(None),
+                _no_dispute(),
+            )
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))

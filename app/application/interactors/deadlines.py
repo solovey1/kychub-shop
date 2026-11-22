@@ -106,6 +106,8 @@ class ExtensionInteractor(BaseInteractor):
                 raise OrderUnavailable(order_id)
             if order.deadline_at is None or order.deadline_at <= datetime_now():
                 raise DeadlineExpired(order_id)
+            if order.paused_at is not None:  # the clock stands: nothing to extend
+                raise Conflict("info_pending")
             state = extension_state(await self.orders.events(order_id))
             if state.pending is not None:
                 raise Conflict("extension_pending")
@@ -216,7 +218,12 @@ class ReminderInteractor(BaseInteractor):
                 order = await self.orders.get_for_update(candidate.id)
                 now = datetime_now()
                 step = due_step(order, now) if order is not None else None
-                if order is None or step is None or order.status is not OrderStatus.assigned:
+                if (
+                    order is None
+                    or step is None
+                    or order.status is not OrderStatus.assigned
+                    or order.paused_at is not None
+                ):
                     await self.uow.rollback()
                     continue
                 assert order.deadline_at is not None

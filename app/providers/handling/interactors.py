@@ -29,6 +29,7 @@ from app.application.interactors.executors import (
 from app.application.interactors.feedback import ReviewInteractor, TipInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
 from app.application.interactors.hold import HoldInteractor
+from app.application.interactors.info_request import InfoRequestInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.managers import ManagerAdminInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
@@ -58,6 +59,7 @@ class InteractorsProvider(Provider):
         DispatchInteractor,
         AttentionInteractor,
         ExtensionInteractor,
+        InfoRequestInteractor,
         CancelRequestInteractor,
         ReminderInteractor,
         FulfillmentWorkInteractor,

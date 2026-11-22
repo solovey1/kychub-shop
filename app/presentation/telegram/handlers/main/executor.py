@@ -19,7 +19,7 @@ from app.presentation.telegram.filters import HasRole
 from app.presentation.telegram.flows.executor.cabinet import CabinetFlow
 from app.presentation.telegram.flows.executor.orders import ExecutorOrdersFlow
 from app.presentation.telegram.flows.executor.review import ReviewFlow
-from app.presentation.telegram.states.executor import ResultForm, ReviewForm, WalletForm
+from app.presentation.telegram.states.executor import InfoForm, ResultForm, ReviewForm, WalletForm
 
 router: Final[Router] = Router(name=__name__)
 router.callback_query.filter(HasRole(Role.EXECUTOR))
@@ -83,6 +83,11 @@ async def result_action(
 @router.message(ResultForm.answer, F.text | F.document | F.photo)
 async def result_answer(message: Message, flow: FromDishka[ExecutorOrdersFlow]) -> Any:
     return await flow.answer_message(message)
+
+
+@router.message(InfoForm.question, F.text)
+async def info_question(message: Message, flow: FromDishka[ExecutorOrdersFlow]) -> Any:
+    return await flow.info_question(message)
 
 
 @router.message(WalletForm.address, F.text)

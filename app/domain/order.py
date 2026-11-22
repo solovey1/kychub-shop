@@ -33,6 +33,8 @@ class Order(Base, TimestampMixin):
     deadline_at: Mapped[Optional[datetime]] = mapped_column()
     # auto-assigned: the executor has to accept until then; the deadline starts at acceptance
     accept_until: Mapped[Optional[datetime]] = mapped_column()
+    # the executor asked the buyer for data: the deadline clock is stopped since then
+    paused_at: Mapped[Optional[datetime]] = mapped_column()
     ready_at: Mapped[Optional[datetime]] = mapped_column()
     completed_at: Mapped[Optional[datetime]] = mapped_column()
     hold_until: Mapped[Optional[datetime]] = mapped_column()
@@ -61,6 +63,11 @@ class Order(Base, TimestampMixin):
             "ix_orders_accept_due",
             "accept_until",
             postgresql_where=text("status = 'assigned' AND accept_until IS NOT NULL"),
+        ),
+        Index(
+            "ix_orders_paused",
+            "paused_at",
+            postgresql_where=text("status = 'assigned' AND paused_at IS NOT NULL"),
         ),
         Index("ix_orders_executor_status", "executor_id", "status"),
         Index("ix_orders_user_id", "user_id"),

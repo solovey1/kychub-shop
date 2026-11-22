@@ -9,6 +9,7 @@ from app.application.interactors.cancel_request import CancelState, cancel_state
 from app.application.interactors.cards import CardBuilder, load_context
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.deadlines import ExtensionState, extension_state
+from app.application.interactors.info_state import InfoPending, can_ask_info, pending_info
 from app.application.models.form_schema import FieldType, FormField, FormSchema, split_files
 from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.disputes import DisputesGateway
@@ -38,6 +39,8 @@ class ExecutorOrderView:
     extension: ExtensionState
     cancel: CancelState
     dispute: Dispute | None = None
+    info: InfoPending | None = None  # his question waits for the buyer
+    can_ask_info: bool = False
 
 
 def pack_result(form: FormSchema, values: dict[str, str]) -> dict[str, object]:
@@ -78,12 +81,15 @@ class FulfillmentWorkInteractor(BaseInteractor):
         if order is None or order.executor_id != executor_id:
             return None
         events = await self.orders.events(order_id)
+        dispute = await self.disputes.open_for_order(order_id)
         return ExecutorOrderView(
             order,
             await self.cards.build(order, executor_id),
             extension_state(events),
             cancel_state(events),
-            await self.disputes.open_for_order(order_id),
+            dispute,
+            pending_info(order, events),
+            dispute is None and can_ask_info(order, events, datetime_now()),
         )
 
     async def result_form(self, executor_id: int, order_id: int) -> FormSchema:
@@ -116,6 +122,7 @@ class FulfillmentWorkInteractor(BaseInteractor):
             # is stopped while a dispute is open
             if (
                 order.deadline_at is not None
+                and order.paused_at is None  # the clock stands while the buyer is asked
                 and order.deadline_at < now
                 and await self.disputes.open_for_order(order_id) is None
             ):

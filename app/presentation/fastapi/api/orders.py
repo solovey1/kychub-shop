@@ -11,6 +11,7 @@ from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
 from app.application.interactors.disputes import DISPUTE_STATUSES, DisputeInteractor
 from app.application.interactors.feedback import ReviewInteractor
+from app.application.interactors.info_state import pending_info
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
@@ -26,6 +27,7 @@ from app.presentation.fastapi.api.schemas import (
     ExecutorRatingOut,
     ExtensionAnswerIn,
     ExtensionAskOut,
+    InfoOut,
     LedgerEntryOut,
     OrderBrief,
     OrderChatOut,
@@ -75,7 +77,9 @@ async def _order(
     result = order.result or {}
     reserved = await orders.reserved(order)
     dispute = await orders.dispute(order)
-    cancel = cancel_state(await orders.events(order_id))
+    events = await orders.events(order_id)
+    cancel = cancel_state(events)
+    info = pending_info(order, events) if dispute is None else None
     score = await orders.rating(order)
     avg, count = await orders.executor_rating(order)
     asking = order.status is OrderStatus.assigned and dispute is None
@@ -101,6 +105,9 @@ async def _order(
         if pending is not None and order.deadline_at is not None
         else None,
         deadline_at=order.deadline_at if order.status is OrderStatus.assigned else None,
+        info=InfoOut(question=info.question, asked_at=info.asked_at, until=info.until)
+        if info
+        else None,
         executor_rating=ExecutorRatingOut(score=avg, count=count) if order.executor_id else None,
         can_rate=order.status is OrderStatus.completed
         and order.executor_id is not None

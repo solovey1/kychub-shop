@@ -103,3 +103,13 @@ messages-order-cancel_asked = ↩️ Your request to cancel order #{ $id } went 
 messages-order-cancel_unavailable = You cannot ask to cancel right now: a request is already sent, the limit is spent or the order is no longer in work.
 messages-order-cancel_agreed = ↩️ Order #{ $id } is cancelled, { $amount } is back on your balance.
 messages-order-cancel_declined = The executor keeps working on order #{ $id }. If something is wrong — 🆘 call support.
+
+buttons-info_reply = 💬 Reply
+messages-order-info_ask =
+    ❓ <b>The executor asks you to clarify order #{ $id }:</b>
+    «{ $question }»
+
+    Answer in the chat by { $time }, or the order is cancelled and the money returns to your balance. The deadline is paused until you answer.
+messages-order-info_reminder = ⏰ The executor is waiting for your answer on order #{ $id }. Reply in the chat by { $time }, or the order is cancelled.
+messages-order-info_timeout = ↩️ You did not answer the executor on order #{ $id } within a day, so it is cancelled and { $amount } went back to your balance.
+messages-order-info_wait = ❓ The executor asks you to clarify: «{ $question }». Answer in the chat by { $time }, or the order is cancelled.

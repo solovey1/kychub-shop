@@ -63,3 +63,16 @@ messages-executor-cancel_agreed = ↩️ Order #{ $id } is cancelled by agreemen
 messages-executor-cancel_by_timer = ↩️ Order #{ $id } is cancelled: you did not answer the buyer's request within an hour. No penalty.
 messages-executor-cancel_declined = ✖️ You keep working on order #{ $id }.
 messages-executor-cancel_stale = That cancel request is no longer valid.
+
+buttons-info_ask = ❓ Need data
+messages-executor-info_prompt =
+    ❓ <b>Order #{ $id }: need data</b>
+    Write the buyer in one message what exactly to clarify: up to 300 characters, no contacts or links.
+    The order's deadline pauses until he answers (a day at most).
+messages-executor-info_invalid = The question must be text of up to 300 characters. Make it shorter and send it again.
+messages-executor-info_blocked = ⚠️ The question was not sent: contacts and links are not allowed. Ask it without them.
+messages-executor-info_sent = ✅ Your question about order #{ $id } went to the buyer. The deadline is paused until he answers (a day at most).
+messages-executor-info_failed = You can't ask for data on order #{ $id } now: a question is already open, the limit of 3 questions is spent, the deadline has passed or a dispute is open.
+messages-executor-info_wait = ⏸ Waiting for the buyer until { $time }. The order's deadline is paused.
+messages-executor-info_answered = 💬 The buyer answered on order #{ $id }. The deadline moved to { $time }.
+messages-executor-info_timeout = ↩️ The buyer did not answer your question on order #{ $id } within a day, so the order is closed and he got his money back. This does not affect your stats.

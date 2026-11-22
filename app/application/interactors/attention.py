@@ -13,7 +13,7 @@ from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
 
 # what an order waits for from its reader
-Action = Literal["confirm", "extension", "dispute"]
+Action = Literal["confirm", "extension", "dispute", "info"]
 
 _IN_WORK: Final = frozenset({OrderStatus.assigned, OrderStatus.ready})
 
@@ -39,8 +39,8 @@ class AttentionInteractor(BaseInteractor):
 
     async def buyer_actions(self, orders: list[Order]) -> dict[int, Action]:
         """What the buyer has to do per order (orders that wait for nothing are absent): answer
-        in an open dispute, answer an extension request, say «all fine» to a ready order.
-        Two queries for the whole list."""
+        in an open dispute, answer the executor's question («need data»), answer an extension
+        request, say «all fine» to a ready order. Two queries for the whole list."""
         in_work = [o for o in orders if o.status in _IN_WORK]
         disputes = await self.disputes.open_for_orders([o.id for o in in_work])
         assigned = [
@@ -55,22 +55,25 @@ class AttentionInteractor(BaseInteractor):
                     found[order.id] = "dispute"
             elif order.status is OrderStatus.ready:
                 found[order.id] = "confirm"
+            elif order.paused_at is not None and order.status is OrderStatus.assigned:
+                found[order.id] = "info"  # the executor waits for his answer
             elif extension_state(events.get(order.id, [])).pending is not None:
                 found[order.id] = "extension"
         return found
 
     async def executor_actions(
         self, orders: list[Order]
-    ) -> dict[int, Literal["work", "dispute", "cancel", "accept"]]:
+    ) -> dict[int, Literal["work", "dispute", "cancel", "accept", "paused"]]:
         """«work» for an assigned order, «accept» while he has to confirm it, «cancel» when the
-        buyer asks to cancel it, «dispute» when a dispute waits for his answer."""
+        buyer asks to cancel it, «dispute» when a dispute waits for his answer, «paused» while
+        the buyer is asked for data (nothing to do for him)."""
         in_work = [o for o in orders if o.status in _IN_WORK]
         disputes = await self.disputes.open_for_orders([o.id for o in in_work])
         assigned = [
             o.id for o in in_work if o.status is OrderStatus.assigned and o.id not in disputes
         ]
         events = await self.orders.extension_events(assigned, CANCEL_EVENTS)
-        found: dict[int, Literal["work", "dispute", "cancel", "accept"]] = {}
+        found: dict[int, Literal["work", "dispute", "cancel", "accept", "paused"]] = {}
         for order in in_work:
             dispute = disputes.get(order.id)
             if dispute is not None:
@@ -79,7 +82,13 @@ class AttentionInteractor(BaseInteractor):
             elif order.status is OrderStatus.assigned:
                 pending = cancel_state(events.get(order.id, [])).pending
                 found[order.id] = (
-                    "accept" if order.accept_until is not None else "cancel" if pending else "work"
+                    "accept"
+                    if order.accept_until is not None
+                    else "paused"
+                    if order.paused_at is not None
+                    else "cancel"
+                    if pending
+                    else "work"
                 )
         return found
 
@@ -88,11 +97,12 @@ class AttentionInteractor(BaseInteractor):
         buyer = await self.buyer_actions(await self.orders.active_for_user(user_id))
         if not is_executor:
             return Attention(len(bought | buyer.keys()), len(buyer))
-        mine = await self.executor_actions(await self.orders.in_work_for_executor(user_id))
+        actions = await self.executor_actions(await self.orders.in_work_for_executor(user_id))
+        mine = {oid for oid, action in actions.items() if action != "paused"}
         return Attention(
             len(bought | buyer.keys()),
             len(buyer),
-            len(worked | mine.keys()),
+            len(worked | mine),
             len(mine),
             len(await self.dispatch.queue_for(user_id)),
         )

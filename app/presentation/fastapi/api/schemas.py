@@ -51,7 +51,9 @@ class OrderBrief(PydanticModel):
     total: str
     created_at: datetime
     unread: int = 0  # messages in the order chat the buyer has not read
-    action: Literal["confirm", "extension", "dispute"] | None = None  # what waits for him (lists)
+    action: Literal["confirm", "extension", "dispute", "info"] | None = (
+        None  # what waits for him (lists)
+    )
 
     @classmethod
     def of(
@@ -59,7 +61,7 @@ class OrderBrief(PydanticModel):
         order: Order,
         locale: str,
         unread: int = 0,
-        action: Literal["confirm", "extension", "dispute"] | None = None,
+        action: Literal["confirm", "extension", "dispute", "info"] | None = None,
     ) -> "OrderBrief":
         snap = order.snapshot
         variant = snap.get("variant") or {}
@@ -91,6 +93,19 @@ class ExtensionAnswerIn(PydanticModel):
 
 class ExtensionRequestIn(PydanticModel):
     minutes: int
+
+
+class InfoIn(PydanticModel):
+    question: str = Field(max_length=300)
+
+
+class InfoOut(PydanticModel):
+    """«Need data»: the question waits for the buyer, who has until `until`; the order is on
+    pause meanwhile."""
+
+    question: str
+    asked_at: datetime
+    until: datetime
 
 
 class ExtensionStateOut(PydanticModel):
@@ -197,6 +212,7 @@ class OrderOut(OrderBrief):
     can_ask_cancel: bool = False  # assigned, no dispute, no open request, under the limit
     cancel_request: CancelRequestOut | None = None  # the buyer's own request, waiting
     deadline_at: datetime | None = None  # assigned and accepted: when the executor is due
+    info: InfoOut | None = None  # the executor asks for data: answer in the chat
     executor_rating: ExecutorRatingOut | None = None
     can_rate: bool = False  # completed, not rated yet
     rating: int | None = None  # his score, once given
@@ -324,6 +340,8 @@ class ExecutorOrderOut(ExecutorOrderBrief):
     result: dict[str, str] | None = None  # what the executor handed in
     extension: ExtensionStateOut | None = None  # only while the order is assigned
     cancel_request: CancelRequestOut | None = None  # the buyer asks to cancel: answer it
+    info: InfoOut | None = None  # his question waits for the buyer, the order is paused
+    can_ask_info: bool = False
     can_dispute: bool = False
     dispute: DisputeOut | None = None
     chat: OrderChatOut | None = None
@@ -338,7 +356,7 @@ class ExecutorOrderListItem(PydanticModel):
     deadline_at: datetime | None
     unread: int = 0
     # assigned: working; the buyer asks to cancel; a dispute waits for him
-    action: Literal["work", "dispute", "cancel", "accept"] | None = None
+    action: Literal["work", "dispute", "cancel", "accept", "paused"] | None = None
 
 
 class ExecutorOrderListOut(PydanticModel):

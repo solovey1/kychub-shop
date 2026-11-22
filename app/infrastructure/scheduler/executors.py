@@ -15,6 +15,7 @@ from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.disputes import DisputeInteractor
 from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.hold import HoldInteractor
+from app.application.interactors.info_request import InfoRequestInteractor
 from app.application.ports.repositories.settings import SettingsGateway
 from app.infrastructure.telegram.effects import Effects
 from app.infrastructure.telegram.notices import OrderNotices
@@ -129,6 +130,24 @@ async def agree_cancels(container: AsyncContainer) -> None:
             await effects.cancel_answered(answer)
 
 
+async def time_out_info(container: AsyncContainer) -> None:
+    """A buyer who left the executor's question unanswered for 24 h: the order is refunded."""
+    async with container() as request:
+        timeouts = await (await request.get(InfoRequestInteractor)).timeout_due()
+        effects = await request.get(Effects)
+        for timeout in timeouts:
+            await effects.info_timed_out(timeout)
+
+
+async def remind_info(container: AsyncContainer) -> None:
+    """One message to the buyer 2 hours before that refund."""
+    async with container() as request:
+        orders = await (await request.get(InfoRequestInteractor)).remind_due()
+        effects = await request.get(Effects)
+        for order in orders:
+            await effects.info_reminder(order)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -149,6 +168,8 @@ def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, release_unaccepted, "release_unaccepted", 60)
     _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
     _job(scheduler, container, agree_cancels, "agree_cancels", 60)
+    _job(scheduler, container, time_out_info, "time_out_info", 60)
+    _job(scheduler, container, remind_info, "remind_info", 60)
     _job(scheduler, container, auto_confirm, "auto_confirm", 60)
     _job(scheduler, container, remind_confirm, "remind_confirm", 60)
     _job(scheduler, container, resolve_disputes, "resolve_disputes", 60)

@@ -1,4 +1,6 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from app.application.contacts_filter import find_contact
@@ -13,6 +15,7 @@ from app.application.errors.shop import (
 )
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.dispute_state import reply_seen
+from app.application.interactors.info_state import resume_locked
 from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
@@ -62,6 +65,7 @@ class Posted:
     media: dict[str, Any] | None
     recipients: list[Recipient]
     needs_offer: bool  # an open ticket nobody has taken: managers have to be told
+    resumed_until: datetime | None = None  # the buyer answered a data question: the new deadline
 
 
 @dataclass(frozen=True)
@@ -336,9 +340,13 @@ class ConversationInteractor(BaseInteractor):
         sender_id: int,
         text: str | None,
         media: dict[str, Any] | None,
+        *,
+        before_store: Callable[[Order], Awaitable[None]] | None = None,
     ) -> Posted:
         """Stores the message first; the caller delivers copies afterwards.
-        A failed delivery never loses the message."""
+        A failed delivery never loses the message. `before_store` runs in the same transaction
+        once the message has passed the contacts filter (a refusal there loses the message too).
+        A buyer's message ends the pause of an order that waits for his answer."""
         text = (text or "").strip() or None
         if text is None and media is None:
             raise InvalidInput("empty")
@@ -352,6 +360,16 @@ class ConversationInteractor(BaseInteractor):
             if order is not None and role in (ChatRole.buyer, ChatRole.executor):
                 await self._no_contacts(order, sender_id, role, text)
                 await reply_seen(self.disputes, self.orders, order.id, role.value)
+            resumed_until = None
+            if order is not None and role is ChatRole.buyer and order.paused_at is not None:
+                # the lock the info-timeout job takes: his answer a moment before the 24 h ends
+                # resumes the order, a moment after finds it refunded and the chat closed
+                locked = await self.orders.get_for_update(order.id)
+                if locked is None or locked.status not in CHAT_STATUSES:
+                    raise ChatForbidden(conversation_id)
+                resumed_until = await resume_locked(self.orders, locked, sender_id)
+            if order is not None and before_store is not None:
+                await before_store(order)
             message = Message(
                 conversation_id=conversation.id,
                 sender_id=sender_id,
@@ -389,6 +407,7 @@ class ConversationInteractor(BaseInteractor):
                 media=media,
                 recipients=recipients,
                 needs_offer=ticket is not None and ticket.status is TicketStatus.open,
+                resumed_until=resumed_until,
             )
         except BaseException:
             await self.uow.rollback()

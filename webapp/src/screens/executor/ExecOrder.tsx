@@ -34,6 +34,54 @@ function Input({
   return <input type={kind} inputMode={kind === "number" ? "decimal" : undefined} {...common} />;
 }
 
+function InfoBlock({ o, id, reload }: { o: ExecutorOrder; id: number; reload: () => void }) {
+  const [asking, setAsking] = useState(false);
+  const [question, setQuestion] = useState("");
+  const { run } = useBusy();
+  const send_ = () =>
+    run(async () => {
+      if (!question.trim()) return;
+      try {
+        await send("POST", `/executor/orders/${id}/info`, { question });
+        success();
+        await alert(t("exec.infoSent"));
+        setAsking(false);
+        setQuestion("");
+      } catch (e) {
+        if (e instanceof ApiError && e.code === "contacts_blocked") {
+          failure();
+          return alert(t("chat.contacts"));
+        }
+        if (e instanceof ApiError && (e.status === 409 || e.status === 400)) await alert(t("exec.infoFailed"));
+        else return report(e);
+        setAsking(false);
+      }
+      reload();
+    });
+  if (o.info)
+    return (
+      <Section title={t("exec.infoTitle")} footer={t("exec.infoWaiting", { time: fmtDate(o.info.until, true) })}>
+        <Row title={o.info.question} />
+      </Section>
+    );
+  if (!o.can_ask_info) return null;
+  return (
+    <Section title={t("exec.infoTitle")} footer={asking ? t("exec.infoHint") : undefined}>
+      {asking ? (
+        <>
+          <Field label={t("exec.infoQuestion")}>
+            <textarea rows={3} autoFocus maxLength={300} value={question} onChange={(e) => setQuestion(e.target.value)} />
+          </Field>
+          <Row title={t("exec.infoSend")} tone="link" onClick={send_} />
+          <Row title={t("cancel")} onClick={() => setAsking(false)} />
+        </>
+      ) : (
+        <Row title={t("exec.infoAsk")} chevron onClick={() => setAsking(true)} />
+      )}
+    </Section>
+  );
+}
+
 function ResultForm({ id, form, reload }: { id: number; form: ResultField[]; reload: () => void }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [bad, setBad] = useState<string[]>([]);
@@ -225,6 +273,7 @@ export function ExecOrder({ id }: { id: number }) {
           )}
         </Section>
       )}
+      <InfoBlock o={o} id={id} reload={reload} />
       {o.result_form && <ResultForm id={id} form={o.result_form} reload={reload} />}
       {o.result && !o.result_form && (
         <Section title={t("exec.result")}>

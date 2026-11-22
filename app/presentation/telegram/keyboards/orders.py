@@ -95,6 +95,7 @@ def order_keyboard(
     pending: Pending | None = None,
     dispute: bool = False,
     can_ask_cancel: bool = False,
+    info: bool = False,
 ) -> InlineKeyboardMarkup:
     rows = []
     if order.status is OrderStatus.ready or (order.status in CHAT_STATUSES and not dispute):
@@ -104,7 +105,10 @@ def order_keyboard(
     if pending is not None:
         rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard
     if order.status in CHAT_STATUSES:
-        rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
+        chat = i18n.buttons.info_reply() if info else i18n.buttons.chat_executor()
+        rows.append(
+            [button(chat, CDChat(action="order", id=order.id), style="primary" if info else None)]
+        )
     else:  # in work, support comes through the dispute (or is already in it)
         rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
     if can_ask_cancel:

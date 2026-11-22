@@ -15,6 +15,7 @@ from app.application.interactors.deadlines import (
     extended_deadline,
 )
 from app.application.interactors.disputes import DisputeNews, DisputeReminder, side_user
+from app.application.interactors.info_request import WAIT, InfoAsk, InfoTimeout
 from app.application.interactors.payouts import Refunded
 from app.domain.order import Order
 from app.infrastructure.telegram.notifier import Notifier, Translate
@@ -324,6 +325,83 @@ class OrderNotices:
             ),
             id=str(order_id),
         )
+
+    def _answer_markup(
+        self, url: str, order_id: int, conversation_id: int | None
+    ) -> Callable[[Translate], InlineKeyboardMarkup]:
+        """«Answer» (the order chat in the bot) and the same chat in the Mini App."""
+
+        def build(tr: Translate) -> InlineKeyboardMarkup:
+            path = (
+                f"/orders/{order_id}/chat/{conversation_id}"
+                if conversation_id
+                else f"/orders/{order_id}"
+            )
+            opener = app_button(tr("buttons-open"), url, path)
+            return markup(
+                [
+                    [
+                        button(
+                            tr("buttons-info_reply"),
+                            CDChat(action="order", id=order_id),
+                            style="primary",
+                        )
+                    ],
+                    [opener] if opener else [],
+                ]
+            )
+
+        return build
+
+    async def info_asked(self, ask: InfoAsk, url: str) -> None:
+        """To the buyer: the executor needs data. Only the alias-free question, never a name."""
+        order = ask.order
+        order_id, question = order.id, html.quote(ask.question)
+        until = (order.paused_at or datetime_now()) + WAIT
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-info_ask",
+            self._answer_markup(url, order_id, ask.posted.conversation_id),
+            id=str(order_id),
+            question=question,
+            time=until,
+        )
+
+    async def info_reminder(self, order: Order, url: str) -> None:
+        if order.paused_at is None:
+            return
+        until = order.paused_at + WAIT
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-info_reminder",
+            self._answer_markup(url, order.id, None),
+            id=str(order.id),
+            time=until,
+        )
+
+    async def info_answered(self, order: Order, deadline: datetime) -> None:
+        if order.executor_id is None:
+            return
+        await self.notifier.send(
+            order.executor_id,
+            "messages-executor-info_answered",
+            _open_order(order.id),
+            id=str(order.id),
+            time=deadline,
+        )
+
+    async def info_timed_out(self, timeout: InfoTimeout) -> None:
+        order, refund = timeout.order, timeout.refund
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-info_timeout",
+            id=str(order.id),
+            amount=fmt_usd(refund.amount),
+        )
+        if order.executor_id is not None:
+            await self.notifier.send(
+                order.executor_id, "messages-executor-info_timeout", id=str(order.id)
+            )
 
     async def review_request(self, order: Order) -> None:
         order_id = order.id

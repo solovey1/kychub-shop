@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Awaitable, Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Final
 
 from aiogram import html
@@ -13,6 +14,7 @@ from app.application.interactors.conversations import Posted
 from app.application.interactors.deadlines import ExtensionAnswer, ExtensionAsk
 from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
 from app.application.interactors.disputes import AutoResolved, DisputeNews, DisputeReminder
+from app.application.interactors.info_request import InfoAsk, InfoTimeout
 from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
@@ -184,6 +186,45 @@ class Effects:
         )
         await self._order_event(order.id, order.status, staff=answer.agreed)
 
+    async def info_asked(self, ask: InfoAsk) -> None:
+        """The question is in the chat (Mini App sockets get it); the buyer gets it as one notice
+        with the question and the way to answer, not as a second copy of the same text."""
+        order = ask.order
+        await _safe(
+            f"publishing the question of order {order.id}",
+            self.relay.deliver(ask.posted, None, copies=False),
+        )
+        await _safe(
+            f"asking the buyer of order {order.id}",
+            self.notices.info_asked(ask, self.config.server.url),
+        )
+        await self._order_event(order.id, OrderStatus.assigned)
+
+    async def info_answered(self, order_id: int, deadline: datetime) -> None:
+        """The buyer wrote in the chat: the executor learns the order runs again."""
+        order = await self.orders.get(order_id)
+        if order is None or order.executor_id is None:
+            return
+        await _safe(
+            f"telling the executor of order {order_id}",
+            self.notices.info_answered(order, deadline),
+        )
+        await self._order_event(order_id, OrderStatus.assigned)
+
+    async def info_timed_out(self, timeout: InfoTimeout) -> None:
+        """The buyer never answered: refunded; the same live events as any refund."""
+        await _safe(
+            f"closing order {timeout.order.id} after no answer",
+            self.notices.info_timed_out(timeout),
+        )
+        await self._order_event(timeout.order.id, OrderStatus.refunded, staff=True)
+
+    async def info_reminder(self, order: Order) -> None:
+        await _safe(
+            f"reminding the buyer of order {order.id}",
+            self.notices.info_reminder(order, self.config.server.url),
+        )
+
     async def contacts_blocked(self, error: ContactsBlocked) -> None:
         """Call for every blocked message: only the third of a person reaches support."""
         if error.escalate:
@@ -267,6 +308,8 @@ class Effects:
         """Copies to the other side, the «new ticket» notice for managers, live events.
         `source_message_id`: the sender's own Telegram message, None when it came from the app."""
         delivery = await self.relay.deliver(posted, source_message_id)
+        if posted.resumed_until is not None and posted.order_id is not None:
+            await self.info_answered(posted.order_id, posted.resumed_until)
         await self.ticket_offers.announce(posted)
         if posted.needs_offer and posted.ticket_id is not None:
             users = [posted.sender_id, *(r.user_id for r in posted.recipients)]

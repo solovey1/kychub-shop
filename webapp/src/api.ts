@@ -33,7 +33,7 @@ export type OrderBrief = {
   total: string;
   created_at: string;
   unread: number;
-  action?: "confirm" | "extension" | "dispute" | null; // lists only: what waits for the buyer
+  action?: "confirm" | "extension" | "dispute" | "info" | null; // lists only: what waits for the buyer
 };
 export type Dispute = {
   opened_role: "buyer" | "executor";
@@ -70,9 +70,11 @@ export type Order = OrderBrief & {
   cancel_request: CancelRequest | null; // the buyer's own request, waiting for the executor
   deadline_at: string | null; // assigned and accepted: when the executor is due
   executor_rating: { score: number | null; count: number } | null;
+  info: Info | null; // the executor asks for data: answer in the chat
   can_rate: boolean; // completed, not rated yet
   rating: number | null;
 };
+export type Info = { question: string; asked_at: string; until: string };
 export type CancelRequest = { request_id: number; until: string };
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 export type Entry = {
@@ -118,6 +120,8 @@ export type ExecutorOrder = QueueItem & {
   result: Record<string, string> | null;
   extension: { pending_minutes: number | null; can_request: boolean; options: number[] } | null;
   cancel_request: CancelRequest | null; // the buyer asks to cancel: answer it
+  info: Info | null; // his question waits for the buyer, the order is paused
+  can_ask_info: boolean;
   can_dispute: boolean;
   dispute: Dispute | null;
   chat: OrderChat | null;
@@ -130,7 +134,7 @@ export type ExecutorListItem = {
   country: string | null;
   deadline_at: string | null;
   unread: number;
-  action?: "work" | "dispute" | "cancel" | "accept" | null; // assigned (working) / a dispute waits / buyer asks to cancel
+  action?: "work" | "dispute" | "cancel" | "accept" | "paused" | null; // assigned (working) / a dispute waits / buyer asks to cancel
 };
 export type Stats = {
   completed: number;

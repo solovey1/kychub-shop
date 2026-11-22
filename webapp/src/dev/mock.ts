@@ -180,6 +180,8 @@ const execDetail = (id: number) => {
     ],
     extension: o.status === "assigned" ? { pending_minutes: null, can_request: true, options: [15, 30, 60, 120, 360, 1440] } : null,
     cancel_request: null,
+    info: null,
+    can_ask_info: o.status === "assigned",
     accept_until: null,
     result_form: o.status === "assigned" ? form : null,
     result: o.status === "assigned" ? null : { login: "farm_account_01", password: "••••••••" },
@@ -1130,7 +1132,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), chat: BUYER_CHATS[o.id] ?? null, executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null, can_ask_cancel: o.status === "assigned", cancel_request: null, can_rate: o.status === "completed", rating: null, deadline_at: o.status === "assigned" ? minutes(90) : null, executor_rating: o.alias ? { score: 4.8, count: 12 } : null };
+    return { ...brief(o), chat: BUYER_CHATS[o.id] ?? null, executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null, can_ask_cancel: o.status === "assigned", cancel_request: null, can_rate: o.status === "completed", rating: null, deadline_at: o.status === "assigned" ? minutes(90) : null, info: null, executor_rating: o.alias ? { score: 4.8, count: 12 } : null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
