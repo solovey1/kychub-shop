@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, text
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
@@ -71,7 +71,7 @@ class Message(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_id: Mapped[int] = mapped_column(
-        ForeignKey("conversations.id", ondelete="CASCADE"), index=True
+        ForeignKey("conversations.id", ondelete="CASCADE")
     )
     sender_id: Mapped[Int64] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     sender_role: Mapped[ChatRole] = mapped_column()
@@ -82,4 +82,23 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=NowFunc)
 
     # reply routing: (chat, message) -> conversation
-    __table_args__ = (Index("ix_messages_tg_chat_message", "tg_chat_id", "tg_message_id"),)
+    __table_args__ = (
+        Index("ix_messages_tg_chat_message", "tg_chat_id", "tg_message_id"),
+        # history pages and unread counts both walk one conversation by id
+        Index("ix_messages_conversation_id_id", "conversation_id", "id"),
+    )
+
+
+class ConversationRead(Base):
+    """How far a user has read a conversation; no row means nothing yet."""
+
+    __tablename__ = "conversation_reads"
+
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[Int64] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    last_read_message_id: Mapped[int] = mapped_column(BigInteger, server_default=text("0"))
+    updated_at: Mapped[datetime] = mapped_column(server_default=NowFunc)
