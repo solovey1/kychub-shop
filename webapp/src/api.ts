@@ -344,6 +344,8 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
     method,
     headers: {
       Authorization: `tma ${initData}`,
+      // a free ngrok tunnel answers browser requests with its warning page; harmless elsewhere
+      "ngrok-skip-browser-warning": "1",
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
