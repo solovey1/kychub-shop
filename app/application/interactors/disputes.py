@@ -211,14 +211,19 @@ class DisputeInteractor(BaseInteractor):
         return done
 
     async def remind_due(self) -> list[DisputeReminder]:
-        """One message to the silent side an hour before the deadline (the event is committed
-        first and carries the deadline, so a new request for a reply is reminded again). No
-        reminders when the whole term is an hour or less."""
+        """Two messages to the silent side: half way through the term and an hour before its end
+        (the event is committed first and carries the deadline and the step, so a new request for
+        a reply is reminded again). A term of two hours or less has the last reminder only, one
+        of an hour or less none."""
         found: list[DisputeReminder] = []
-        if await reply_hours(self.settings) <= 1:
+        hours = await reply_hours(self.settings)
+        if hours <= 1:
             return found
+        total = timedelta(hours=hours)
         now = datetime_now()
-        for order_id in await self.disputes.ending_order_ids(now + REMIND_BEFORE, now):
+        for order_id in await self.disputes.ending_order_ids(
+            now + max(total / 2, REMIND_BEFORE), now
+        ):
             try:
                 order = await self.orders.get_for_update(order_id)
                 dispute = await self.disputes.open_for_order(order_id)
@@ -228,25 +233,36 @@ class DisputeInteractor(BaseInteractor):
                     or dispute is None
                     or dispute.awaiting_until is None
                     or dispute.awaiting_until <= now
-                    or dispute.awaiting_until - now > REMIND_BEFORE
                 ):
                     await self.uow.rollback()
                     continue
+                left = dispute.awaiting_until - now
+                step = (
+                    "soon"
+                    if left <= REMIND_BEFORE
+                    else "half"
+                    if total > 2 * REMIND_BEFORE and left <= total / 2
+                    else None
+                )
                 stamp = dispute.awaiting_until.isoformat()
-                if any(
-                    e.type == "dispute_reminder" and e.payload.get("until") == stamp
+                if step is None or any(
+                    e.type == "dispute_reminder"
+                    and e.payload.get("until") == stamp
+                    and e.payload.get("step", "soon") == step
                     for e in await self.orders.events(order_id)
                 ):
                     await self.uow.rollback()
                     continue
                 await self.orders.add_event(
                     OrderEvent(
-                        order_id=order_id, type="dispute_reminder", payload={"until": stamp}
+                        order_id=order_id,
+                        type="dispute_reminder",
+                        payload={"until": stamp, "step": step},
                     )
                 )
                 await self.uow.commit()
-                left = math.ceil((dispute.awaiting_until - now).total_seconds() / 60)
-                found.append(DisputeReminder(order, dispute, max(left, 1)))
+                minutes = math.ceil(left.total_seconds() / 60)
+                found.append(DisputeReminder(order, dispute, max(minutes, 1)))
             except Exception:
                 await self.uow.rollback()
                 logger.exception("recording the dispute reminder of order %s failed", order_id)
