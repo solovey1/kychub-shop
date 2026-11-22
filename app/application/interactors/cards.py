@@ -66,6 +66,7 @@ class CardBuilder(BaseInteractor):
         )
         return OrderCard(
             order_id=order.id,
+            code=order.code,
             product=ctx.product.title_i18n,
             country_code=country_code,
             country_title=country.title_i18n if country else None,

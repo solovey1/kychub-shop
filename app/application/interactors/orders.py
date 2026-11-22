@@ -34,6 +34,9 @@ class OrdersInteractor(BaseInteractor):
     settings: SettingsGateway
     disputes: DisputesGateway
 
+    async def code(self, order_id: int) -> str:
+        return await self.gateway.code(order_id)
+
     async def list_orders(self, user_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
         total = await self.gateway.count_for_user(user_id)

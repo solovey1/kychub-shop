@@ -30,6 +30,7 @@ def _row(order: Order, alias: str | None, locale: str) -> AdminOrderRow:
     brief = OrderBrief.of(order, locale)
     return AdminOrderRow(
         id=order.id,
+        code=order.code,
         status=order.status.value,
         product=brief.product,
         variant=brief.variant,
@@ -51,9 +52,10 @@ async def orders(
     buyer_id: int | None = None,
     executor_id: int | None = None,
     page: int = Query(0, ge=0),
+    number: str | None = Query(None, max_length=16),
 ) -> AdminOrderPage:
     items, aliases, total = await interactor.listing(
-        status, product_id, buyer_id, executor_id, page
+        status, product_id, buyer_id, executor_id, page, number
     )
     return AdminOrderPage(
         items=[_row(o, aliases.get(o.executor_id or 0), user.language) for o in items],

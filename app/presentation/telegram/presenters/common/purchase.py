@@ -253,13 +253,13 @@ class PurchasePresenter(BasePresenter):
         else:
             next_ = messages.next_queue()
         receipt = View(
-            text=messages.accepted(id=order.id, next=next_),
+            text=messages.accepted(id=order.code, next=next_),
             reply_markup=accepted_keyboard(self.i18n, order.id),
         )
         if not done or not order.result:
             return receipt, None, None
         result, file = result_view(
-            self.i18n, messages.done(id=order.id), str(order.result.get("text", ""))
+            self.i18n, messages.done(id=order.code), str(order.result.get("text", ""))
         )
         result.mode = RenderMode.NEW
         result.kwargs = {"message_effect_id": DONE_EFFECT}
@@ -272,7 +272,7 @@ class PurchasePresenter(BasePresenter):
         return self.i18n.get(
             "messages-purchase-admin_manual",
             "ru",
-            id=order.id,
+            id=order.code,
             user=user.mention,
             product=html.quote(product_title),
             answers=answers or "-",

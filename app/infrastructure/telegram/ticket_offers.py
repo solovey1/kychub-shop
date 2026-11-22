@@ -60,7 +60,7 @@ class TicketOffers:
                 variant = snap.get("variant") or {}
                 line = "\n" + tr(
                     "messages-ticket-order",
-                    id=str(order.id),
+                    id=order.code,
                     product=pick_i18n(snap.get("product"), locale),
                     variant=pick_i18n(variant.get("title"), locale),
                     total=fmt_usd(order.price - order.discount),
@@ -68,7 +68,7 @@ class TicketOffers:
                 )
             return tr(
                 "messages-ticket-new",
-                id=str(ticket_id),
+                id=posted.ticket_code,
                 name=posted.buyer_name,
                 order=line,
                 text=preview(tr, posted.text, posted.media, PREVIEW_CHARS),
@@ -87,7 +87,8 @@ class TicketOffers:
     ) -> None:
         """Replace every stored notice with a short note and drop the buttons."""
         offer_key = TicketOfferKey(ticket_id=ticket_id)
+        code = await self.notifier.ticket_code(ticket_id)
         for chat_id, message_id in await self.kv.get(offer_key) or []:
             if chat_id != except_chat:
-                await self.notifier.edit(chat_id, message_id, key, id=str(ticket_id), name=name)
+                await self.notifier.edit(chat_id, message_id, key, id=code, name=name)
         await self.kv.delete(offer_key)

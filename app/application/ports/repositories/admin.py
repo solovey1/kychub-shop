@@ -126,6 +126,7 @@ class AdminGateway(Protocol):
         product_id: int | None,
         user_id: int | None,
         executor_id: int | None,
+        code: str | None,
         offset: int,
         limit: int,
     ) -> tuple[list[Order], int]:

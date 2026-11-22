@@ -67,9 +67,9 @@ class ExecutorPresenter(BasePresenter):
     def text(self, key: str, **kwargs: str) -> View:
         return View(text=self.i18n.get(key, **kwargs))
 
-    def taken(self, order_id: int) -> View:
+    def taken(self, order_id: int, code: str) -> View:
         return View(
-            text=self.i18n.messages.executor.taken(id=str(order_id)),
+            text=self.i18n.messages.executor.taken(id=code),
             reply_markup=refuse_keyboard(self.i18n, order_id),
         )
 
@@ -136,9 +136,11 @@ class ExecutorPresenter(BasePresenter):
             ),
         )
 
-    def info_ask(self, order_id: int, *, error: str | None = None, current: bool = False) -> View:
+    def info_ask(
+        self, order_id: int, code: str, *, error: str | None = None, current: bool = False
+    ) -> View:
         """The prompt for the question («need data»); `error`: why the last text was refused."""
-        text = self.i18n.messages.executor.info_prompt(id=str(order_id))
+        text = self.i18n.messages.executor.info_prompt(id=code)
         if error is not None:
             text = self.i18n.get(error) + "\n\n" + text
         return View(
@@ -147,15 +149,16 @@ class ExecutorPresenter(BasePresenter):
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 
-    def extension_options(self, order_id: int) -> View:
+    def extension_options(self, order_id: int, code: str) -> View:
         return View(
-            text=self.i18n.messages.executor.ext_pick(id=str(order_id)),
+            text=self.i18n.messages.executor.ext_pick(id=code),
             reply_markup=extension_options_keyboard(self.i18n, order_id),
         )
 
     def result_ask(
         self,
         order_id: int,
+        code: str,
         field: FormField,
         idx: int,
         total: int,
@@ -166,7 +169,7 @@ class ExecutorPresenter(BasePresenter):
     ) -> View:
         i18n = self.i18n
         text = i18n.messages.executor.result_ask(
-            id=str(order_id),
+            id=code,
             step=str(idx + 1),
             total=str(total),
             label=escape(pick_i18n(field.label, i18n.locale)),
@@ -188,10 +191,10 @@ class ExecutorPresenter(BasePresenter):
             mode=RenderMode.CURRENT if current else RenderMode.ANSWER,
         )
 
-    def note(self, key: str, order_id: int, **kwargs: str) -> View:
+    def note(self, key: str, order_id: int, code: str, **kwargs: str) -> View:
         """A short message with a way back to the order."""
         return View(
-            text=self.i18n.get(key, id=str(order_id), **kwargs),
+            text=self.i18n.get(key, id=code, **kwargs),
             reply_markup=order_back_keyboard(self.i18n, order_id),
         )
 

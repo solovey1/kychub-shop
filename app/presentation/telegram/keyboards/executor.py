@@ -58,7 +58,7 @@ def orders_keyboard(
         [
             button(
                 i18n.buttons.order_item(
-                    id=order.id,
+                    id=order.code,
                     title=pick_i18n(order.snapshot.get("product"), i18n.locale),
                     status=i18n.get(f"order-status-{order.status}"),
                 ),

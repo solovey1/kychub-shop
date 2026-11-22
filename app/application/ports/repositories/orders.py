@@ -14,6 +14,9 @@ class OrdersGateway(Protocol):
 
     async def add_event(self, event: OrderEvent) -> None: ...
 
+    async def code(self, order_id: int) -> str:
+        """The public code of the order (what people see instead of the id)."""
+
     async def get_for_user(self, user_id: int, order_id: int) -> Order | None: ...
 
     async def list_for_user(self, user_id: int, offset: int, limit: int) -> list[Order]: ...

@@ -25,6 +25,9 @@ class SupportGateway(Protocol):
     async def add_ticket(self, ticket: Ticket) -> None:
         """Insert and flush, so `ticket.id` is available."""
 
+    async def ticket_code(self, ticket_id: int) -> str:
+        """The public code of the ticket (what people see instead of the id)."""
+
     async def add_conversation(self, conversation: Conversation) -> None:
         """Insert and flush."""
 

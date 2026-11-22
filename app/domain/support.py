@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, text
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
+from app.utils.codes import new_code
 from app.utils.custom_types import DictStrAny, Int64
 
 from .base import Base
@@ -15,6 +16,7 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(5), unique=True, default=new_code)
     user_id: Mapped[Int64] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"))
     manager_id: Mapped[Optional[Int64]] = mapped_column(

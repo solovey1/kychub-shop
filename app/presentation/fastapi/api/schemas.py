@@ -44,6 +44,7 @@ class TimezoneIn(PydanticModel):
 
 class OrderBrief(PydanticModel):
     id: int
+    code: str  # what people read as the order number
     status: OrderStatus
     product: str
     variant: str
@@ -67,6 +68,7 @@ class OrderBrief(PydanticModel):
         variant = snap.get("variant") or {}
         return cls(
             id=order.id,
+            code=order.code,
             status=order.status,
             product=pick_i18n(snap.get("product"), locale),
             variant=pick_i18n(variant.get("title"), locale),
@@ -156,6 +158,7 @@ class ReplyRequestIn(PydanticModel):
 
 class DisputeRowOut(PydanticModel):
     order_id: int
+    order_code: str
     status: OrderStatus
     product: str
     variant: str
@@ -324,6 +327,7 @@ class ExecutorOrderBrief(PydanticModel):
     """No buyer data and no price the buyer paid: the executor sees his earning."""
 
     id: int
+    code: str
     status: OrderStatus
     product: str
     country: str | None
@@ -350,6 +354,7 @@ class ExecutorOrderOut(ExecutorOrderBrief):
 
 class ExecutorOrderListItem(PydanticModel):
     id: int
+    code: str
     status: OrderStatus
     product: str
     variant: str
@@ -414,8 +419,10 @@ class WithdrawalOut(PydanticModel):
 
 class TicketOut(PydanticModel):
     id: int
+    code: str
     status: str
     order_id: int | None
+    order_code: str | None
     buyer_name: str  # staff only
     mine: bool
     conversation_id: int
@@ -455,6 +462,7 @@ def card_fields(card: OrderCard, locale: str) -> list[CardFieldOut]:
 def card_brief(card: OrderCard, status: OrderStatus, locale: str) -> dict[str, object]:
     return {
         "id": card.order_id,
+        "code": card.code,
         "status": status,
         "product": pick_i18n(card.product, locale),
         "country": card.country_code,

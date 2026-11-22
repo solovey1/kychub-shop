@@ -268,10 +268,13 @@ class AdminRepository(AdminGateway):
         product_id: int | None,
         user_id: int | None,
         executor_id: int | None,
+        code: str | None,
         offset: int,
         limit: int,
     ) -> tuple[list[Order], int]:
         conditions = []
+        if code is not None:
+            conditions.append(Order.code == code)
         if status is not None:
             conditions.append(Order.status == status)
         if user_id is not None:

@@ -30,7 +30,7 @@ def orders_keyboard(
     for order in orders:
         label = i18n.buttons.order_item(
             icon=i18n.get(f"order-icon-{order.status}"),
-            id=order.id,
+            id=order.code,
             title=pick_i18n(order.snapshot.get("product"), i18n.locale),
             total=fmt_usd(order.price - order.discount),
         )

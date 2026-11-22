@@ -66,6 +66,8 @@ class Posted:
     recipients: list[Recipient]
     needs_offer: bool  # an open ticket nobody has taken: managers have to be told
     resumed_until: datetime | None = None  # the buyer answered a data question: the new deadline
+    ticket_code: str | None = None  # the public codes (what people read), the ids stay internal
+    order_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,12 @@ class ConversationInteractor(BaseInteractor):
     users: UsersGateway
     executors: ExecutorsGateway
     disputes: DisputesGateway
+
+    async def order_code(self, order_id: int) -> str:
+        return await self.orders.code(order_id)
+
+    async def ticket_code(self, ticket_id: int) -> str:
+        return await self.support.ticket_code(ticket_id)
 
     async def current_ticket(
         self, user_id: int, order_id: int | None
@@ -396,13 +404,21 @@ class ConversationInteractor(BaseInteractor):
                 )
                 if uid is not None and uid != sender_id
             ]
+            order_id = order.id if order else (ticket.order_id if ticket else None)
+            order_code = (
+                order.code
+                if order
+                else None
+                if order_id is None
+                else await self.orders.code(order_id)
+            )
             await self.uow.commit()
             return Posted(
                 message_id=message.id,
                 conversation_id=conversation.id,
                 kind=conversation.kind,
                 ticket_id=ticket.id if ticket else None,
-                order_id=order.id if order else (ticket.order_id if ticket else None),
+                order_id=order_id,
                 sender_id=sender_id,
                 sender_role=role,
                 buyer_name=buyer.name if buyer else "",
@@ -412,6 +428,8 @@ class ConversationInteractor(BaseInteractor):
                 recipients=recipients,
                 needs_offer=ticket is not None and ticket.status is TicketStatus.open,
                 resumed_until=resumed_until,
+                ticket_code=ticket.code if ticket else None,
+                order_code=order_code,
             )
         except BaseException:
             await self.uow.rollback()

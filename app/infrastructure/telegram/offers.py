@@ -125,14 +125,20 @@ class OfferService:
             result.release_reason or ""
         )
         if result.released_executor_id is not None and key is not None:
-            await self.notifier.send(result.released_executor_id, key, id=str(result.order_id))
+            await self.notifier.send(
+                result.released_executor_id,
+                key,
+                id=await self.notifier.order_code(result.order_id),
+            )
 
     async def _announce(self, result: DispatchResult) -> None:
         order_id = result.order_id
         await self._tell_released(result)
         if result.kind in ("skipped", "none"):
             if result.kind == "none" and result.first_no_executor:
-                await self.notifier.staff("messages-executor-no_executor", id=str(order_id))
+                await self.notifier.staff(
+                    "messages-executor-no_executor", id=await self.notifier.order_code(order_id)
+                )
                 await self._tell_buyer_waiting(order_id)
             return
         order = await self.orders.get(order_id)
@@ -182,13 +188,14 @@ class OfferService:
                     [button(tr("buttons-cancel_refund"), CDCancel(id=order_id), style="danger")],
                 ]
             ),
-            id=str(order_id),
+            id=order.code,
         )
 
     async def close(self, order_id: int, key: str, *, except_chat: int | None = None) -> None:
         """Replace every stored proposal of the order with a short note and drop the buttons."""
         offer_key = OrderOfferKey(order_id=order_id)
+        code = await self.notifier.order_code(order_id)
         for chat_id, message_id in await self.kv.get(offer_key) or []:
             if chat_id != except_chat:
-                await self.notifier.edit(chat_id, message_id, key, id=str(order_id))
+                await self.notifier.edit(chat_id, message_id, key, id=code)
         await self.kv.delete(offer_key)

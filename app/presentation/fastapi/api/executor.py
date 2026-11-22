@@ -194,6 +194,7 @@ async def my_orders(
         items.append(
             ExecutorOrderListItem(
                 id=order.id,
+                code=order.code,
                 status=order.status,
                 product=pick_i18n(order.snapshot.get("product"), user.language),
                 variant=pick_i18n(variant.get("title"), user.language),

@@ -6,6 +6,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter
 
 from app.application.interactors.admin.promo import PromoAdminInteractor
+from app.application.ports.repositories.orders import OrdersGateway
 from app.domain.promo import PromoCode
 from app.presentation.fastapi.api.admin.schemas import (
     FinanceUser,
@@ -51,7 +52,9 @@ async def promos(_: FinanceUser, promo: Promos) -> list[PromoBrief]:
 
 @router.get("/promos/{promo_id}")
 @inject
-async def get_promo(promo_id: int, _: FinanceUser, promo: Promos) -> PromoOut:
+async def get_promo(
+    promo_id: int, _: FinanceUser, promo: Promos, orders: FromDishka[OrdersGateway]
+) -> PromoOut:
     p, usages = await promo.promo(promo_id)
     return PromoOut(
         **_brief(p).model_dump(),
@@ -68,6 +71,7 @@ async def get_promo(promo_id: int, _: FinanceUser, promo: Promos) -> PromoOut:
                 user_id=u.usage.user_id,
                 name=u.name,
                 order_id=u.usage.order_id,
+                order_code=await orders.code(u.usage.order_id) if u.usage.order_id else None,
                 created_at=u.usage.created_at,
             )
             for u in usages

@@ -72,7 +72,7 @@ class OrdersFlow(BaseFlow):
         )
         await self.renderer.apply(view)
         if file is not None:
-            await self.renderer.send_file(f"order-{order.id}.txt", file)
+            await self.renderer.send_file(f"order-{order.code}.txt", file)
         if order.status is OrderStatus.ready and order.result:
             await self.effects.notices.files(self.user.id, list(order.result.get("files", [])))
 
@@ -84,7 +84,9 @@ class OrdersFlow(BaseFlow):
             case "ask":
                 await self.helper.fsm.set_state(DisputeForm.reason)
                 await self.helper.fsm.update_data(order_id=cd.id, page=cd.page)
-                await self.renderer.apply(self.presenter.dispute_ask(cd.id, cd.page))
+                await self.renderer.apply(
+                    self.presenter.dispute_ask(cd.id, await self.interactor.code(cd.id), cd.page)
+                )
             case "skip":
                 await self._open_dispute(cd.id, cd.page, None)
             case "cancel":
@@ -103,7 +105,7 @@ class OrdersFlow(BaseFlow):
             order = await self.review.confirm_by_buyer(self.user.id, cd.id)
         except (OrderUnavailable, Conflict):  # done already, not his, or a dispute is open
             return await self.show(cd.id, cd.page)
-        await self.renderer.apply(self.presenter.confirmed(order.id, cd.page))
+        await self.renderer.apply(self.presenter.confirmed(order.code, cd.page))
         await self.effects.order_confirmed(order, ask_rating=True)
 
     async def _open_dispute(self, order_id: int, page: int, reason: str | None) -> None:
@@ -112,7 +114,9 @@ class OrdersFlow(BaseFlow):
             news = await self.disputes.open(self.user.id, order_id, reason)
         except Conflict as e:
             if e.code == "not_accepted":  # an auto-assigned order nobody accepted yet
-                await self.renderer.apply(self.presenter.dispute_not_accepted(order_id, page))
+                await self.renderer.apply(
+                    self.presenter.dispute_not_accepted(await self.interactor.code(order_id), page)
+                )
                 return
             return await self._back(order_id, page)  # one is open already
         except OrderUnavailable:  # not his order, or it is no longer in work
@@ -147,15 +151,21 @@ class OrdersFlow(BaseFlow):
             if isinstance(update, CallbackQuery):
                 await update.answer(self.presenter.cancel_unavailable(), show_alert=True)
             return await self.show(cd.id, cd.page)
-        await self.renderer.apply(self.presenter.cancel_asked(cd.id, cd.page))
+        await self.renderer.apply(
+            self.presenter.cancel_asked(await self.interactor.code(cd.id), cd.page)
+        )
         await self.effects.cancel_asked(ask)
 
     async def cancel(self, cd: CDCancel) -> Any:
         if not cd.ok:
-            return await self.renderer.apply(self.presenter.cancel_confirm(cd.id, cd.page))
+            return await self.renderer.apply(
+                self.presenter.cancel_confirm(cd.id, await self.interactor.code(cd.id), cd.page)
+            )
         try:
             refund = await self.interactor.cancel(self.user.id, cd.id)
         except OrderUnavailable:  # taken meanwhile, or not the buyer order
             return await self.show(cd.id, cd.page)
-        await self.renderer.apply(self.presenter.cancelled(cd.id, refund.amount, cd.page))
+        await self.renderer.apply(
+            self.presenter.cancelled(await self.interactor.code(cd.id), refund.amount, cd.page)
+        )
         await self.effects.order_cancelled(cd.id)

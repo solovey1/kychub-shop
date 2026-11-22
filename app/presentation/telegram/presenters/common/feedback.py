@@ -18,21 +18,21 @@ from app.presentation.telegram.view.models import RenderMode, View
 class FeedbackPresenter(BasePresenter):
     i18n: I18nContext
 
-    def ask(self, order_id: int) -> View:
+    def ask(self, order_id: int, code: str) -> View:
         return View(
-            text=self.i18n.messages.feedback.ask(id=str(order_id)),
+            text=self.i18n.messages.feedback.ask(id=code),
             reply_markup=rate_keyboard(self.i18n.get, order_id),
         )
 
-    def rated(self, order_id: int, score: int) -> View:
+    def rated(self, order_id: int, code: str, score: int) -> View:
         return View(
-            text=self.i18n.messages.feedback.rated(id=str(order_id), score=str(score)),
+            text=self.i18n.messages.feedback.rated(id=code, score=str(score)),
             reply_markup=rate_keyboard(self.i18n.get, order_id, rated=True),
         )
 
-    def tip_choose(self, order_id: int, token: str) -> View:
+    def tip_choose(self, order_id: int, code: str, token: str) -> View:
         return View(
-            text=self.i18n.messages.feedback.tip_choose(id=str(order_id)),
+            text=self.i18n.messages.feedback.tip_choose(id=code),
             reply_markup=tip_keyboard(self.i18n.get, order_id, token),
         )
 

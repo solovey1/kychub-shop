@@ -121,7 +121,7 @@ class Effects:
             await self.notifier.send(
                 assigned.previous_id,
                 "messages-executor-reassigned_away",
-                id=str(assigned.order_id),
+                id=await self.notifier.order_code(assigned.order_id),
             )
         await self.offers.announce(
             DispatchResult(assigned.order_id, "assigned", [assigned.executor_id])
@@ -342,7 +342,7 @@ class Effects:
             manager_id,
             "messages-ticket-taken",
             lambda tr: ticket_keyboard(tr, url, conversation_id, ticket.id, staff=True),
-            id=str(ticket.id),
+            id=ticket.code,
         )
         if ticket.user_id != manager_id:
             await self.notifier.send(
@@ -355,7 +355,7 @@ class Effects:
     async def ticket_closed(self, ticket: Ticket, actor_id: int) -> None:
         if ticket.user_id != actor_id:
             await self.notifier.send(
-                ticket.user_id, "messages-ticket-closed_buyer", id=str(ticket.id)
+                ticket.user_id, "messages-ticket-closed_buyer", id=ticket.code
             )
         await _safe(
             f"updating ticket {ticket.id} notices",
@@ -372,10 +372,10 @@ class Effects:
             ticket.manager_id,
             "messages-ticket-handed",
             lambda tr: ticket_keyboard(tr, url, conversation_id, ticket.id, staff=True),
-            id=str(ticket.id),
+            id=ticket.code,
         )
         if previous_id is not None:
-            await self.notifier.send(previous_id, "messages-ticket-handed_away", id=str(ticket.id))
+            await self.notifier.send(previous_id, "messages-ticket-handed_away", id=ticket.code)
         await self._ticket_event(
             ticket.id,
             TicketStatus.taken,

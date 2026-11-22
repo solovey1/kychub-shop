@@ -68,6 +68,9 @@ class FulfillmentWorkInteractor(BaseInteractor):
     cards: CardBuilder
     disputes: DisputesGateway
 
+    async def code(self, order_id: int) -> str:
+        return await self.orders.code(order_id)
+
     async def my_orders(self, executor_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
         total = await self.orders.count_for_executor(executor_id)

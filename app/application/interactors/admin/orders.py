@@ -11,6 +11,7 @@ from app.domain.enums.order import OrderStatus
 from app.domain.executor import ExecutorProfile
 from app.domain.ledger import LedgerEntry
 from app.domain.order import Order, OrderEvent
+from app.utils.codes import normalize_code
 
 PAGE_SIZE: Final = 30
 
@@ -51,10 +52,16 @@ class OrdersAdminInteractor(AdminInteractor):
         user_id: int | None,
         executor_id: int | None,
         page: int,
+        number: str | None = None,
     ) -> tuple[list[Order], dict[int, str], int]:
-        """The page, the executor aliases of its orders, the total."""
+        """The page, the executor aliases of its orders, the total. `number`: what staff typed, an
+        order code as people read it (`№K7QX2`); anything else finds nothing."""
+        code = None
+        if number is not None and number.strip():
+            if (code := normalize_code(number)) is None:
+                return [], {}, 0
         items, total = await self.db.orders_filtered(
-            status, product_id, user_id, executor_id, page * PAGE_SIZE, PAGE_SIZE
+            status, product_id, user_id, executor_id, code, page * PAGE_SIZE, PAGE_SIZE
         )
         ids = [o.executor_id for o in items if o.executor_id is not None]
         return items, await self.db.executor_aliases(ids), total

@@ -65,7 +65,7 @@ class ExecutorOrdersFlow(BaseFlow):
     async def take(self, order_id: int) -> None:
         if not await self.dispatcher.take(self.user.id, order_id):
             return await self._say("messages-executor-take_failed", order_id)
-        await self.renderer.apply(self.presenter.taken(order_id))
+        await self.renderer.apply(self.presenter.taken(order_id, await self.work.code(order_id)))
         await self.effects.order_taken(order_id, self.user.id)
 
     async def accept(self, order_id: int) -> None:
@@ -74,7 +74,11 @@ class ExecutorOrdersFlow(BaseFlow):
             await self.dispatcher.accept(self.user.id, order_id)
         except OrderUnavailable:  # the time ran out and the order went back to the queue
             return await self._say("messages-executor-accept_failed", order_id)
-        await self.renderer.apply(self.presenter.note("messages-executor-accepted", order_id))
+        await self.renderer.apply(
+            self.presenter.note(
+                "messages-executor-accepted", order_id, await self.work.code(order_id)
+            )
+        )
         await self.effects.order_accepted(order_id)
 
     async def refuse(self, order_id: int) -> None:
@@ -95,7 +99,9 @@ class ExecutorOrdersFlow(BaseFlow):
             return await self._say("messages-executor-info_failed", order_id)
         await fsm.set_state(InfoForm.question)
         await fsm.update_data(order_id=order_id)
-        await self.renderer.apply(self.presenter.info_ask(order_id))
+        await self.renderer.apply(
+            self.presenter.info_ask(order_id, await self.work.code(order_id))
+        )
 
     async def info_question(self, message: Message) -> None:
         data = await self.helper.fsm.get_data()
@@ -110,18 +116,28 @@ class ExecutorOrdersFlow(BaseFlow):
                 key = "messages-executor-info_blocked"
             else:
                 key = "messages-executor-info_invalid"
-            await self.renderer.apply(self.presenter.info_ask(order_id, error=key, current=True))
+            await self.renderer.apply(
+                self.presenter.info_ask(
+                    order_id, await self.work.code(order_id), error=key, current=True
+                )
+            )
             return
         except (Conflict, OrderUnavailable, DeadlineExpired):
             await self.helper.fsm.clear()
             return await self._say("messages-executor-info_failed", order_id)
         await self.helper.fsm.clear()
-        await self.renderer.apply(self.presenter.note("messages-executor-info_sent", order_id))
+        await self.renderer.apply(
+            self.presenter.note(
+                "messages-executor-info_sent", order_id, await self.work.code(order_id)
+            )
+        )
         await self.effects.info_asked(ask)
 
     async def extension(self, cd: CDExt) -> None:
         if cd.action == "ask":
-            await self.renderer.apply(self.presenter.extension_options(cd.id))
+            await self.renderer.apply(
+                self.presenter.extension_options(cd.id, await self.work.code(cd.id))
+            )
             return
         try:
             ask = await self.extensions.request(self.user.id, cd.id, cd.value)
@@ -147,7 +163,7 @@ class ExecutorOrdersFlow(BaseFlow):
         await self.show(cd.id, 0)
 
     async def _say(self, key: str, order_id: int) -> None:
-        await self.renderer.apply(self.presenter.text(key, id=str(order_id)))
+        await self.renderer.apply(self.presenter.text(key, id=await self.work.code(order_id)))
 
     async def list(self, page: int) -> Any:
         orders, total, page = await self.work.my_orders(self.user.id, page)
@@ -242,6 +258,7 @@ class ExecutorOrdersFlow(BaseFlow):
         await fsm.set_state(ResultForm.answer)
         view = self.presenter.result_ask(
             order_id,
+            await self.work.code(order_id),
             form.fields[idx],
             idx,
             len(form.fields),
@@ -309,7 +326,9 @@ class ExecutorOrdersFlow(BaseFlow):
             await fsm.clear()
             return await self._say("messages-executor-result_invalid", order_id)
         await fsm.clear()
-        view = self.presenter.note("messages-executor-submitted", order_id)
+        view = self.presenter.note(
+            "messages-executor-submitted", order_id, await self.work.code(order_id)
+        )
         view.mode = RenderMode.ANSWER
         await self.renderer.apply(view)
         await self.effects.result_submitted(order)

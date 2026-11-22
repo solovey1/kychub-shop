@@ -33,21 +33,27 @@ class FeedbackFlow(BaseFlow):
     async def rate(self, cd: CDRate) -> Any:
         await self.helper.fsm.clear()
         if cd.score == 0:
-            return await self.renderer.apply(self.presenter.ask(cd.id))
+            return await self.renderer.apply(
+                self.presenter.ask(cd.id, await self.notifier.order_code(cd.id))
+            )
         try:
             await self.reviews.rate(self.user.id, cd.id, cd.score)
         except AlreadyRated:
             return await self.renderer.apply(self.presenter.note("already_rated"))
         except OrderUnavailable:
             return await self.renderer.apply(self.presenter.note("unavailable"))
-        await self.renderer.apply(self.presenter.rated(cd.id, cd.score))
+        await self.renderer.apply(
+            self.presenter.rated(cd.id, await self.notifier.order_code(cd.id), cd.score)
+        )
 
     async def tip(self, cd: CDTip) -> Any:
         fsm = self.helper.fsm
         if cd.c == 0:  # a new token per shown screen
             await fsm.clear()
             token = uuid4().hex[:12]
-            return await self.renderer.apply(self.presenter.tip_choose(cd.id, token))
+            return await self.renderer.apply(
+                self.presenter.tip_choose(cd.id, await self.notifier.order_code(cd.id), token)
+            )
         if cd.c < 0:
             await fsm.set_state(TipForm.amount)
             await fsm.update_data(order_id=cd.id, token=cd.t or uuid4().hex[:12])
@@ -85,5 +91,8 @@ class FeedbackFlow(BaseFlow):
         await self.helper.fsm.clear()
         await self.renderer.apply(self.presenter.tipped(amount, current=current))
         await self.notifier.send(
-            executor_id, "messages-executor-tip", id=str(order_id), amount=fmt_usd(amount)
+            executor_id,
+            "messages-executor-tip",
+            id=await self.notifier.order_code(order_id),
+            amount=fmt_usd(amount),
         )

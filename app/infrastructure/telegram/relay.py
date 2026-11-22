@@ -167,7 +167,7 @@ class Relay:
         staff = recipient.role in (ChatRole.manager, ChatRole.admin)
         text = tr(
             "messages-ticket-notice",
-            id=str(ticket_id),
+            id=posted.ticket_code,
             text=preview(tr, posted.text, posted.media, NOTICE_CHARS),
         )
         markup = ticket_keyboard(
@@ -186,9 +186,9 @@ class Relay:
     @staticmethod
     def _header(tr: Translate, posted: Posted, recipient: Recipient) -> str:
         ref = (
-            tr("messages-chat-ref_ticket", id=str(posted.ticket_id))
+            tr("messages-chat-ref_ticket", id=posted.ticket_code)
             if posted.ticket_id is not None
-            else tr("messages-chat-ref_order", id=str(posted.order_id))
+            else tr("messages-chat-ref_order", id=posted.order_code)
         )
         match posted.sender_role:
             case ChatRole.buyer if recipient.role is ChatRole.executor:

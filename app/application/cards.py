@@ -19,6 +19,7 @@ class OrderCard:
     """What an executor or a reviewer sees of an order. Never the buyer's identity."""
 
     order_id: int
+    code: str
     product: dict[str, str]
     country_code: str | None
     country_title: dict[str, str] | None
@@ -40,7 +41,7 @@ def render_card(tr: Callable[..., str], locale: str, card: OrderCard) -> str:
     ]
     return tr(
         "messages-card",
-        id=str(card.order_id),
+        id=card.code,
         product=escape(pick_i18n(card.product, locale)),
         place=place or "-",
         earning=fmt_usd(card.earning),

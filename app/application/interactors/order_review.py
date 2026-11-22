@@ -67,6 +67,9 @@ class OrderReviewInteractor(BaseInteractor):
     cards: CardBuilder
     disputes: DisputesGateway
 
+    async def code(self, order_id: int) -> str:
+        return await self.orders.code(order_id)
+
     async def get(self, order_id: int) -> ReviewView | None:
         order = await self.orders.get(order_id)
         if order is None:

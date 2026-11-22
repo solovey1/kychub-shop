@@ -46,18 +46,32 @@ async def tickets(
     rows = await chat.list_tickets(user.id, scope)
     unread = await chat.unread_by_ticket(user.id, [row[0] for row in rows])
     return [
-        _ticket_out(ticket, name, conversation_id, user.id, unread.get(ticket.id, 0))
+        _ticket_out(
+            ticket,
+            name,
+            conversation_id,
+            user.id,
+            unread.get(ticket.id, 0),
+            await chat.order_code(ticket.order_id) if ticket.order_id else None,
+        )
         for ticket, name, conversation_id in rows
     ]
 
 
 def _ticket_out(
-    ticket: Ticket, name: str, conversation_id: int, user_id: int, unread: int
+    ticket: Ticket,
+    name: str,
+    conversation_id: int,
+    user_id: int,
+    unread: int,
+    order_code: str | None,
 ) -> TicketOut:
     return TicketOut(
         id=ticket.id,
+        code=ticket.code,
         status=ticket.status.value,
         order_id=ticket.order_id,
+        order_code=order_code,
         buyer_name=unescape(name),
         mine=ticket.manager_id == user_id,
         conversation_id=conversation_id,
@@ -79,7 +93,15 @@ async def get_ticket(
     if await chat.reader_role(user.id, conversation) is None:
         raise HTTPException(404, "Not found")
     unread = await chat.unread_by_ticket(user.id, [card[0]])
-    return _ticket_out(card[0], card[1], conversation.id, user.id, unread.get(ticket_id, 0))
+    order_id = card[0].order_id
+    return _ticket_out(
+        card[0],
+        card[1],
+        conversation.id,
+        user.id,
+        unread.get(ticket_id, 0),
+        await chat.order_code(order_id) if order_id else None,
+    )
 
 
 @router.post("/tickets/{ticket_id}/take")
@@ -190,6 +212,7 @@ async def staff_disputes(
         rows.append(
             DisputeRowOut(
                 order_id=order.id,
+                order_code=order.code,
                 status=order.status,
                 product=brief.product,
                 variant=brief.variant,

@@ -71,6 +71,7 @@ async def user_card(
         orders=[
             UserOrder(
                 id=o.id,
+                code=o.code,
                 status=o.status.value,
                 product=(o.snapshot.get("product") or {}).get("ru", ""),
                 total=usd(o.price - o.discount),

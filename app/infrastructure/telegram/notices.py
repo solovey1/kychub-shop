@@ -96,7 +96,7 @@ class OrderNotices:
             order.user_id,
             "messages-order-ready",
             lambda tr: _deal_markup(tr, order_id),
-            id=str(order_id),
+            id=order.code,
             time=until or "-",
         )
 
@@ -104,10 +104,11 @@ class OrderNotices:
         self, order_id: int, role: str, alias: str | None, url: str
     ) -> None:
         """Support is told once when somebody keeps trying to pass contacts in an order chat."""
+        code = await self.notifier.order_code(order_id)
         await self.notifier.staff(
             lambda tr, _: tr(
                 "messages-contacts-staff",
-                id=str(order_id),
+                id=code,
                 who=tr(f"dispute-who-{role}") + (f" {html.quote(alias)}" if alias else ""),
             ),
             lambda tr: _app_markup(tr("buttons-order_open"), url, f"/support/review/{order_id}"),
@@ -115,12 +116,10 @@ class OrderNotices:
 
     async def dispute_opened(self, news: DisputeNews, url: str) -> None:
         """Support is told; the other side is asked to answer in the order chat."""
-        order_id = news.order.id
+        order_id, code = news.order.id, news.order.code
         who = news.dispute.opened_role
         await self.notifier.staff(
-            lambda tr, _: tr(
-                "messages-dispute-staff", id=str(order_id), who=tr(f"dispute-who-{who}")
-            ),
+            lambda tr, _: tr("messages-dispute-staff", id=code, who=tr(f"dispute-who-{who}")),
             lambda tr: _app_markup(tr("buttons-dispute_open"), url, f"/support/review/{order_id}"),
         )
         await self.ask_reply(news, url, "messages-dispute-reply")
@@ -136,7 +135,7 @@ class OrderNotices:
             user_id,
             key,
             lambda tr: _reply_markup(tr, url, order_id, buyer),
-            id=str(order_id),
+            id=order.code,
             time=dispute.awaiting_until,
         )
 
@@ -145,13 +144,14 @@ class OrderNotices:
         user_id = side_user(order, dispute.awaiting_role or "")
         if user_id is None or dispute.awaiting_until is None:
             return
-        order_id, buyer, left = order.id, user_id == order.user_id, reminder.left_minutes
+        order_id, code = order.id, order.code
+        buyer, left = user_id == order.user_id, reminder.left_minutes
         until = dispute.awaiting_until
         await self.notifier.send(
             user_id,
             lambda tr, _: tr(
                 "messages-dispute-reminder",
-                id=str(order_id),
+                id=code,
                 left=fmt_duration(tr, left),
                 time=until,
             ),
@@ -165,7 +165,7 @@ class OrderNotices:
                     user_id,
                     "messages-dispute-closed",
                     _buyer_open(order.id) if user_id == order.user_id else _open_order(order.id),
-                    id=str(order.id),
+                    id=order.code,
                 )
 
     async def confirm_reminder(self, order: Order, until: datetime) -> None:
@@ -174,7 +174,7 @@ class OrderNotices:
             order.user_id,
             "messages-order-confirm_reminder",
             lambda tr: _deal_markup(tr, order_id),
-            id=str(order_id),
+            id=order.code,
             time=until,
         )
 
@@ -183,7 +183,7 @@ class OrderNotices:
         result = order.result or {}
         text = str(result.get("text", ""))
         user_id = order.user_id
-        oid = str(order.id)
+        oid = order.code
         if len(text) > FILE_LIMIT:
             await self.notifier.send(
                 user_id,
@@ -194,7 +194,7 @@ class OrderNotices:
                 ),
                 _result_markup("", order.id),
             )
-            await self.notifier.send_file(user_id, f"order-{order.id}.txt", text.encode("utf-8"))
+            await self.notifier.send_file(user_id, f"order-{order.code}.txt", text.encode("utf-8"))
         else:
             body = f"\n\n<code>{html.quote(text)}</code>" if text else ""
             await self.notifier.send(
@@ -214,7 +214,7 @@ class OrderNotices:
                 order.executor_id,
                 "messages-executor-confirmed",
                 _open_order(order.id),
-                id=str(order.id),
+                id=order.code,
             )
 
     async def sent_back(self, order: Order, comment: str) -> None:
@@ -223,16 +223,17 @@ class OrderNotices:
                 order.executor_id,
                 "messages-executor-sent_back",
                 _open_order(order.id),
-                id=str(order.id),
+                id=order.code,
                 comment=html.quote(comment),
             )
 
     async def refunded(self, refund: Refunded) -> None:
+        code = await self.notifier.order_code(refund.order_id)
         await self.notifier.send(
             refund.buyer_id,
             "messages-order-refunded",
             _buyer_open(refund.order_id),
-            id=str(refund.order_id),
+            id=code,
             amount=fmt_usd(refund.amount),
         )
         if refund.executor_id is not None:
@@ -240,20 +241,20 @@ class OrderNotices:
                 refund.executor_id,
                 "messages-executor-order_closed",
                 _open_order(refund.order_id),
-                id=str(refund.order_id),
+                id=code,
             )
 
     async def reminder(self, reminder: Reminder) -> None:
         order = reminder.order
         if order.executor_id is None or order.deadline_at is None:
             return
-        order_id, left = order.id, reminder.left_minutes
+        order_id, code, left = order.id, order.code, reminder.left_minutes
         until = order.deadline_at
         await self.notifier.send(
             order.executor_id,
             lambda tr, _: tr(
                 "messages-executor-reminder",
-                id=str(order_id),
+                id=code,
                 left=fmt_duration(tr, left),
                 time=until,
             ),
@@ -268,13 +269,13 @@ class OrderNotices:
     async def extension_asked(self, ask: ExtensionAsk) -> None:
         """To the buyer, who sees the executor's alias at most: never a name or an id."""
         order = ask.order
-        order_id, rid, minutes = order.id, ask.request_id, ask.minutes
+        order_id, code, rid, minutes = order.id, order.code, ask.request_id, ask.minutes
         until = extended_deadline(order, minutes, datetime_now())
         await self.notifier.send(
             order.user_id,
             lambda tr, _: tr(
                 "messages-order-extension_ask",
-                id=str(order_id),
+                id=code,
                 duration=fmt_duration(tr, minutes),
                 time=until,
             ),
@@ -290,7 +291,7 @@ class OrderNotices:
             order.executor_id,
             key,
             _open_order(order.id),
-            id=str(order.id),
+            id=order.code,
             time=order.deadline_at,
         )
 
@@ -316,7 +317,7 @@ class OrderNotices:
                     [button(tr("buttons-open_order"), CDXOrder(id=order_id))],
                 ]
             ),
-            id=str(order_id),
+            id=order.code,
             time=datetime_now() + AGREE_AFTER,
         )
 
@@ -328,7 +329,7 @@ class OrderNotices:
                 order.user_id,
                 "messages-order-cancel_agreed",
                 _buyer_open(order_id),
-                id=str(order_id),
+                id=order.code,
                 amount=fmt_usd(answer.refund.amount),
             )
             if answer.by_timer and order.executor_id is not None:
@@ -336,7 +337,7 @@ class OrderNotices:
                     order.executor_id,
                     "messages-executor-cancel_by_timer",
                     _open_order(order_id),
-                    id=str(order_id),
+                    id=order.code,
                 )
             return
         await self.notifier.send(
@@ -348,7 +349,7 @@ class OrderNotices:
                     [button(tr("buttons-open_order"), CDOrder(id=order_id))],
                 ]
             ),
-            id=str(order_id),
+            id=order.code,
         )
 
     def _answer_markup(
@@ -387,7 +388,7 @@ class OrderNotices:
             order.user_id,
             "messages-order-info_ask",
             self._answer_markup(url, order_id, ask.posted.conversation_id),
-            id=str(order_id),
+            id=order.code,
             question=question,
             time=until,
         )
@@ -400,7 +401,7 @@ class OrderNotices:
             order.user_id,
             "messages-order-info_reminder",
             self._answer_markup(url, order.id, None),
-            id=str(order.id),
+            id=order.code,
             time=until,
         )
 
@@ -411,7 +412,7 @@ class OrderNotices:
             order.executor_id,
             "messages-executor-info_answered",
             _open_order(order.id),
-            id=str(order.id),
+            id=order.code,
             time=deadline,
         )
 
@@ -421,7 +422,7 @@ class OrderNotices:
             order.user_id,
             "messages-order-info_timeout",
             _buyer_open(order.id),
-            id=str(order.id),
+            id=order.code,
             amount=fmt_usd(refund.amount),
         )
         if order.executor_id is not None:
@@ -429,7 +430,7 @@ class OrderNotices:
                 order.executor_id,
                 "messages-executor-info_timeout",
                 _open_order(order.id),
-                id=str(order.id),
+                id=order.code,
             )
 
     async def review_request(self, order: Order) -> None:
@@ -438,5 +439,5 @@ class OrderNotices:
             order.user_id,
             "messages-feedback-ask",
             lambda tr: rate_keyboard(tr, order_id),
-            id=str(order_id),
+            id=order.code,
         )

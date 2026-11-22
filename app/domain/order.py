@@ -2,10 +2,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums.order import OrderStatus
+from app.utils.codes import new_code
 from app.utils.custom_types import DictStrAny, Int64, Money
 
 from .base import Base
@@ -16,6 +17,8 @@ class Order(Base, TimestampMixin):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # what people see instead of the sequential id (which would tell how many orders there are)
+    code: Mapped[str] = mapped_column(String(5), unique=True, default=new_code)
     user_id: Mapped[Int64] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     variant_id: Mapped[int] = mapped_column(ForeignKey("product_variants.id", ondelete="RESTRICT"))
     snapshot: Mapped[DictStrAny] = mapped_column()

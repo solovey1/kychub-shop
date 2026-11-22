@@ -206,6 +206,7 @@ class UserBrief(PydanticModel):
 
 class UserOrder(PydanticModel):
     id: int
+    code: str
     status: str
     product: str
     total: str
@@ -295,6 +296,7 @@ class TgIdIn(PydanticModel):
 # --- orders
 class AdminOrderRow(PydanticModel):
     id: int
+    code: str
     status: str
     product: str
     variant: str
@@ -443,6 +445,7 @@ class PromoUsageOut(PydanticModel):
     user_id: int
     name: str
     order_id: int | None
+    order_code: str | None = None
     created_at: datetime
 
 

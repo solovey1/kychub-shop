@@ -71,7 +71,11 @@ class ChatFlow(BaseFlow):
         except OrderUnavailable:
             return await self._say("messages-chat-order_missing")
         tr = self.presenter.i18n.get
-        order = tr("messages-support-order", id=str(order_id)) + "\n" if order_id else ""
+        order = (
+            tr("messages-support-order", id=await self.chat.order_code(order_id)) + "\n"
+            if order_id
+            else ""
+        )
         if current is None:
             view = self.presenter.screen(
                 "messages-support", support_keyboard(tr, order_id or 0), order=order
@@ -83,7 +87,7 @@ class ChatFlow(BaseFlow):
                 tr, self.config.server.url, conversation.id, ticket.id, staff=False, close=True
             )
             view = self.presenter.screen(
-                "messages-support-open", markup, order=order, id=str(ticket.id)
+                "messages-support-open", markup, order=order, id=ticket.code
             )
         await self.renderer.apply(view)
 
@@ -134,7 +138,7 @@ class ChatFlow(BaseFlow):
             if role is ChatRole.executor
             else "messages-chat-order_buyer"
         )
-        await self._say(key, id=str(order_id))
+        await self._say(key, id=await self.chat.order_code(order_id))
 
     async def reply(self, conversation_id: int) -> None:
         await self.helper.fsm.clear()
@@ -146,7 +150,9 @@ class ChatFlow(BaseFlow):
 
     async def take(self, ticket_id: int) -> None:
         if not await self.chat.take_ticket(self.user.id, ticket_id):
-            return await self._say("messages-ticket-take_failed", id=str(ticket_id))
+            return await self._say(
+                "messages-ticket-take_failed", id=await self.chat.ticket_code(ticket_id)
+            )
         card = await self.chat.ticket_card(ticket_id)
         assert card is not None
         conversation = await self.chat.ticket_conversation(ticket_id)
@@ -156,6 +162,8 @@ class ChatFlow(BaseFlow):
         try:
             ticket = await self.chat.close_ticket(self.user.id, ticket_id)
         except TicketUnavailable:
-            return await self._say("messages-ticket-unavailable", id=str(ticket_id))
-        await self._say("messages-ticket-closed", id=str(ticket_id))
+            return await self._say(
+                "messages-ticket-unavailable", id=await self.chat.ticket_code(ticket_id)
+            )
+        await self._say("messages-ticket-closed", id=ticket.code)
         await self.effects.ticket_closed(ticket, self.user.id)

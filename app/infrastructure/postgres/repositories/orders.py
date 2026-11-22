@@ -27,7 +27,12 @@ class OrdersRepository(OrdersGateway):
     _helper: SqlRepositoryHelper[Order]
 
     async def add(self, order: Order) -> None:
-        await self._uow.flush(order)
+        await self._uow.flush_coded(order)
+
+    async def code(self, order_id: int) -> str:
+        return await self._helper.session.scalar(
+            select(Order.code).where(Order.id == order_id)
+        ) or str(order_id)
 
     async def add_event(self, event: OrderEvent) -> None:
         await self._uow.flush(event)

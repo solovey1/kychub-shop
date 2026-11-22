@@ -166,7 +166,7 @@ class OrdersPresenter(BasePresenter):
                 x for x in (country_flag(country), variant_name or country) if x
             )
         text = i18n.messages.order(
-            id=order.id,
+            id=order.code,
             product=html.quote(pick_i18n(snap.get("product"), i18n.locale)),
             variant=html.quote(variant_name or "-"),
             total=fmt_usd(order.price - order.discount),
@@ -219,9 +219,9 @@ class OrdersPresenter(BasePresenter):
             ),
         ), None
 
-    def dispute_ask(self, order_id: int, page: int) -> View:
+    def dispute_ask(self, order_id: int, code: str, page: int) -> View:
         return View(
-            text=self.i18n.messages.dispute.ask_reason(id=str(order_id)),
+            text=self.i18n.messages.dispute.ask_reason(id=code),
             reply_markup=dispute_ask_keyboard(self.i18n.get, order_id, page),
         )
 
@@ -235,14 +235,14 @@ class OrdersPresenter(BasePresenter):
         )
         return View(
             text=self.i18n.messages.dispute.opened(
-                id=str(order.id), time=self._time(until) if until else "-"
+                id=order.code, time=self._time(until) if until else "-"
             ),
             reply_markup=back,
         )
 
-    def dispute_not_accepted(self, order_id: int, page: int) -> View:
+    def dispute_not_accepted(self, code: str, page: int) -> View:
         return View(
-            text=self.i18n.get("messages-dispute-not_accepted", id=str(order_id)),
+            text=self.i18n.get("messages-dispute-not_accepted", id=code),
             reply_markup=order_back_keyboard(self.i18n, page),
         )
 
@@ -252,18 +252,18 @@ class OrdersPresenter(BasePresenter):
             reply_markup=markup([[button(self.i18n.buttons.back(), CDXOrder(id=order_id))]]),
         )
 
-    def cancel_asked(self, order_id: int, page: int) -> View:
+    def cancel_asked(self, code: str, page: int) -> View:
         return View(
-            text=self.i18n.messages.order.cancel_asked(id=str(order_id)),
+            text=self.i18n.messages.order.cancel_asked(id=code),
             reply_markup=order_back_keyboard(self.i18n, page),
         )
 
     def cancel_unavailable(self) -> str:
         return self.i18n.messages.order.cancel_unavailable()
 
-    def confirmed(self, order_id: int, page: int) -> View:
+    def confirmed(self, code: str, page: int) -> View:
         return View(
-            text=self.i18n.messages.order.confirmed(id=str(order_id)),
+            text=self.i18n.messages.order.confirmed(id=code),
             reply_markup=order_back_keyboard(self.i18n, page),
         )
 
@@ -274,19 +274,19 @@ class OrdersPresenter(BasePresenter):
         messages = Keys(self.i18n, "messages-order")
         order = answer.order
         if answer.approved and order.deadline_at is not None:
-            text = messages.extension_yes(id=str(order.id), time=self._time(order.deadline_at))
+            text = messages.extension_yes(id=order.code, time=self._time(order.deadline_at))
         else:
-            text = messages.extension_no(id=str(order.id))
+            text = messages.extension_no(id=order.code)
         return View(text=text)
 
-    def cancel_confirm(self, order_id: int, page: int) -> View:
+    def cancel_confirm(self, order_id: int, code: str, page: int) -> View:
         return View(
-            text=self.i18n.messages.orders.cancel_confirm(id=str(order_id)),
+            text=self.i18n.messages.orders.cancel_confirm(id=code),
             reply_markup=cancel_confirm_keyboard(self.i18n, order_id, page),
         )
 
-    def cancelled(self, order_id: int, amount: Decimal, page: int) -> View:
+    def cancelled(self, code: str, amount: Decimal, page: int) -> View:
         return View(
-            text=self.i18n.messages.orders.cancelled(id=str(order_id), amount=fmt_usd(amount)),
+            text=self.i18n.messages.orders.cancelled(id=code, amount=fmt_usd(amount)),
             reply_markup=order_back_keyboard(self.i18n, page),
         )

@@ -29,7 +29,11 @@ class SupportRepository(SupportGateway):
             raise UserNotFound(user_id)
 
     async def add_ticket(self, ticket: Ticket) -> None:
-        await self._uow.flush(ticket)
+        await self._uow.flush_coded(ticket)
+
+    async def ticket_code(self, ticket_id: int) -> str:
+        code = await self._helper.session.scalar(select(Ticket.code).where(Ticket.id == ticket_id))
+        return code or str(ticket_id)
 
     async def add_conversation(self, conversation: Conversation) -> None:
         await self._uow.flush(conversation)

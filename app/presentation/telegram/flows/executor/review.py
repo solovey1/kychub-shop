@@ -39,9 +39,13 @@ class ReviewFlow(BaseFlow):
             case "back":
                 await self.helper.fsm.set_state(ReviewForm.comment)
                 await self.helper.fsm.update_data(order_id=cd.id)
-                await self.renderer.apply(self.presenter.ask_comment(cd.id))
+                await self.renderer.apply(
+                    self.presenter.ask_comment(cd.id, await self.interactor.code(cd.id))
+                )
             case "fail":
-                await self.renderer.apply(self.presenter.fail_confirm(cd.id))
+                await self.renderer.apply(
+                    self.presenter.fail_confirm(cd.id, await self.interactor.code(cd.id))
+                )
             case "failok":
                 await self.fail(cd.id)
 
@@ -83,7 +87,9 @@ class ReviewFlow(BaseFlow):
         await self.effects.order_failed(refund)
 
     async def _say(self, key: str, order_id: int, *, current: bool = False) -> None:
-        await self.renderer.apply(self.presenter.text(key, order_id, current=current))
+        await self.renderer.apply(
+            self.presenter.text(key, await self.interactor.code(order_id), current=current)
+        )
 
     @staticmethod
     async def _safe(call: Awaitable[object], order_id: int) -> None:

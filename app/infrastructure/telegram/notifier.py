@@ -10,6 +10,8 @@ from aiogram_i18n.cores import FluentRuntimeCore
 
 from app.application.i18n_text import fmt_time
 from app.application.ports.repositories.executors import ExecutorsGateway
+from app.application.ports.repositories.orders import OrdersGateway
+from app.application.ports.repositories.support import SupportGateway
 from app.application.ports.repositories.users import UsersGateway
 from app.const import DEFAULT_LOCALE
 
@@ -30,6 +32,15 @@ class Notifier:
     core: FluentRuntimeCore
     users: UsersGateway
     executors: ExecutorsGateway
+    orders: OrdersGateway
+    support: SupportGateway
+
+    async def order_code(self, order_id: int) -> str:
+        """What people read as the order number."""
+        return await self.orders.code(order_id)
+
+    async def ticket_code(self, ticket_id: int) -> str:
+        return await self.support.ticket_code(ticket_id)
 
     async def _who(self, user_id: int) -> tuple[str, str | None]:
         """The recipient's language and time zone."""
