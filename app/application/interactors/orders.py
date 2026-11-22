@@ -41,6 +41,9 @@ class OrdersInteractor(BaseInteractor):
         page = min(max(page, 0), pages - 1)
         return await self.gateway.list_for_user(user_id, page * PAGE_SIZE, PAGE_SIZE), total, page
 
+    async def count(self, user_id: int) -> int:
+        return await self.gateway.count_for_user(user_id)
+
     async def get(self, user_id: int, order_id: int) -> Order | None:
         return await self.gateway.get_for_user(user_id, order_id)
 

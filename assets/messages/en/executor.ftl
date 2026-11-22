@@ -81,3 +81,12 @@ messages-executor-accept_failed = Order #{ $id } can no longer be accepted: time
 messages-executor-ignored = 🌙 You did not accept order #{ $id } — we set your status to «offline». Turn it on when you are ready.
 messages-executor-accept_wait = ⏳ Confirm that you take the order by { $time }.
 buttons-accept = ✅ I take it
+
+messages-executor-welcome =
+    👋 <b>You are online — a quick tour</b>
+
+    📥 An order arrives as a card: tap ✅ Take, first come first served. If an order was assigned to you, confirm it with ✅ I take it within a few minutes, or it goes to someone else.
+    ⏰ Every order has a deadline. Running late? Ask for an extension, the buyer has to agree.
+    ❓ Missing data? Tap "Need data": the deadline pauses until the buyer answers.
+    💰 Your earnings sit in hold first and become available a few days after the buyer confirms.
+    🚫 No contacts, links or messengers: talk only in the order chat.

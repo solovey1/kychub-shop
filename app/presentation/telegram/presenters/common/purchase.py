@@ -188,6 +188,7 @@ class PurchasePresenter(BasePresenter):
         promo_error: str | None = None,
         pick: bool = False,
         online: int | None = None,
+        first: bool = False,
     ) -> View:
         """The checkout. `pick`: the same text, with the questions as buttons to change one."""
         messages = Keys(self.i18n, "messages-purchase")
@@ -212,6 +213,8 @@ class PurchasePresenter(BasePresenter):
             lines.append(messages.line_missing(amount=fmt_usd(quote.total - quote.balance)))
         if online is not None:
             lines.append(messages.line_online(count=online) if online else messages.line_offline())
+        if first:
+            lines += ["", messages.how_it_works()]
         if promo_error:
             reason = self.i18n.get(f"messages-promo-reason_{promo_error}")
             lines.append(messages.promo_error(reason=reason))

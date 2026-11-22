@@ -229,6 +229,7 @@ class PurchaseFlow(BaseFlow):
         # new token per shown screen: the price on it may differ from the previous one
         await fsm.update_data(purchase_token=uuid4().hex)
         await fsm.set_state(None)
+        online = await self.interactor.online_executors(prep)
         await self._render(
             self.presenter.confirm(
                 prep,
@@ -238,7 +239,8 @@ class PurchaseFlow(BaseFlow):
                 current=current,
                 promo_error=promo_error,
                 pick=pick,
-                online=await self.interactor.online_executors(prep),
+                online=online,
+                first=online is not None and await self.interactor.is_first_order(self.user.id),
             )
         )
 

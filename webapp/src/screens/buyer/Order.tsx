@@ -114,6 +114,11 @@ export function OrderScreen({ id }: { id: number }) {
         <h1>{o.product}</h1>
         <p>{list(o.variant, o.country?.toUpperCase(), `№${o.id}`)}</p>
       </div>
+      {o.intro && (
+        <Section title={t("order.howTitle")}>
+          <Row title={t("order.how")} />
+        </Section>
+      )}
       {o.can_confirm && (
         <Section
           title={t("order.confirmHint")}

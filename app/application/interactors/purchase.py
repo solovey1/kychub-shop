@@ -86,6 +86,9 @@ class PurchaseInteractor(BaseInteractor):
         )
         return len(found)
 
+    async def is_first_order(self, user_id: int) -> bool:
+        return await self.orders.count_for_user(user_id) == 0
+
     async def previous_answers(self, user_id: int, product_id: int) -> dict[str, str]:
         """What this user answered the last time they ordered this product."""
         order = await self.orders.last_for_product(user_id, product_id)

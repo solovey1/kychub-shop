@@ -74,3 +74,6 @@ buttons-done = ✅ Done
 
 messages-purchase-line_online = 🟢 Executors online: { $count }
 messages-purchase-line_offline = 🌙 Everyone is offline right now — your order will be picked up as soon as someone shows up
+messages-purchase-how_it_works =
+    ℹ️ <b>How it works</b>
+    💰 Your money waits in reserve → 🧑‍💻 an executor does the job → ✅ you check and confirm. Something wrong? 🆘 Support is one tap away.

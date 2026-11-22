@@ -216,6 +216,7 @@ class OrderOut(OrderBrief):
     executor_rating: ExecutorRatingOut | None = None
     can_rate: bool = False  # completed, not rated yet
     rating: int | None = None  # his score, once given
+    intro: bool = False  # his only order so far: show «how it works»
 
 
 class RateIn(PydanticModel):

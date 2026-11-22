@@ -73,6 +73,7 @@ export type Order = OrderBrief & {
   info: Info | null; // the executor asks for data: answer in the chat
   can_rate: boolean; // completed, not rated yet
   rating: number | null;
+  intro: boolean;
 };
 export type Info = { question: string; asked_at: string; until: string };
 export type CancelRequest = { request_id: number; until: string };

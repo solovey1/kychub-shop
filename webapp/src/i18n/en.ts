@@ -641,4 +641,13 @@ export const en: typeof ru = {
   "exec.accept": "I take it",
   "exec.acceptFailed": "The order can no longer be accepted: time is up or it went to someone else.",
   "action.accept": "Please confirm",
+  "order.howTitle": "How it works",
+  "order.how": "💰 Your money waits in reserve → 🧑‍💻 an executor does the job → ✅ you check and confirm. Something wrong? 🆘 Support.",
+  "work.welcomeTitle": "How it works here",
+  "work.welcome1": "📥 An order arrives as a card: tap Take, first come first served. Confirm an assigned order with I take it within a few minutes.",
+  "work.welcome2": "⏰ Every order has a deadline. Running late? Ask for an extension, the buyer has to agree.",
+  "work.welcome3": "❓ Missing data? Need data pauses the deadline until the buyer answers.",
+  "work.welcome4": "💰 Earnings sit in hold first and become available a few days after the buyer confirms.",
+  "work.welcome5": "🚫 No contacts, links or messengers: talk only in the order chat.",
+  "work.welcomeOk": "Got it",
 };

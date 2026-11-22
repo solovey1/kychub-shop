@@ -19,6 +19,8 @@ from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.settings import SettingsGateway
+from app.application.ports.storages.key_value import KvStorage
+from app.application.storage.keys.impl import ExecutorWelcomeKey
 from app.domain.enums.dispute import DisputeResolution
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import TicketStatus
@@ -60,6 +62,7 @@ class Effects:
     settings: SettingsGateway
     dispatcher: DispatchInteractor
     config: AppConfig
+    kv: KvStorage
 
     async def order_cancelled(self, order_id: int) -> None:
         await _safe(
@@ -69,7 +72,15 @@ class Effects:
         await self._order_event(order_id, OrderStatus.cancelled, queue=True)
 
     async def executor_online(self, executor_id: int) -> None:
-        """He went online: offer / assign the waiting orders he may take right away."""
+        """He went online: offer / assign the waiting orders he may take right away. The first
+        time, he gets the rules first."""
+        key = ExecutorWelcomeKey(user_id=executor_id)
+        try:
+            if not await self.kv.exists(key):
+                await self.kv.set(key, 1)
+                await self.notifier.send(executor_id, "messages-executor-welcome")
+        except Exception:
+            logger.exception("welcoming executor %s failed", executor_id)
         try:
             results = await self.dispatcher.dispatch_waiting(executor_id)
         except Exception:

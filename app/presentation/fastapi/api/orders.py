@@ -113,6 +113,7 @@ async def _order(
         and order.executor_id is not None
         and score is None,
         rating=score,
+        intro=await orders.count(user.id) == 1,
         can_ask_cancel=asking and cancel.can_request,
         cancel_request=CancelRequestOut(
             request_id=cancel.pending.request_id, until=cancel.pending.agrees_at

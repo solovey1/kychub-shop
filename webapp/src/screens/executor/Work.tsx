@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { SwitchRow } from "../../admin/kit";
@@ -16,6 +17,7 @@ export function Work({ seg }: { seg: WorkSeg }) {
   return (
     <div className="screen">
       <OnlineSwitch />
+      <Welcome />
       <Segments
         value={seg}
         onChange={(s) => go(`/work/${s}`, { replace: true })}
@@ -39,6 +41,28 @@ export function Work({ seg }: { seg: WorkSeg }) {
       />
       {seg === "queue" ? <Queue /> : seg === "mine" ? <Mine /> : <WalletScreen />}
     </div>
+  );
+}
+
+const WELCOME_KEY = "work.welcomeSeen";
+
+function Welcome() {
+  const [seen, setSeen] = useState(() => localStorage.getItem(WELCOME_KEY) === "1");
+  if (seen) return null;
+  return (
+    <Section title={t("work.welcomeTitle")}>
+      {([1, 2, 3, 4, 5] as const).map((n) => (
+        <Row key={n} title={t(`work.welcome${n}`)} />
+      ))}
+      <Row
+        title={t("work.welcomeOk")}
+        tone="link"
+        onClick={() => {
+          localStorage.setItem(WELCOME_KEY, "1");
+          setSeen(true);
+        }}
+      />
+    </Section>
   );
 }
 

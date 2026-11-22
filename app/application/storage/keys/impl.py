@@ -61,6 +61,13 @@ class TicketTipKey(StorageKey[int], prefix="ticket_tip", type=int):
 
 
 @dataclass(kw_only=True, frozen=True)
+class ExecutorWelcomeKey(StorageKey[int], prefix="executor_welcome", type=int):
+    """Флаг без срока: исполнитель уже получил правила при первом выходе в сеть."""
+
+    user_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
 class NavScreenKey(StorageKey[int], prefix="nav_screen", type=int):
     """Значение — id последнего экрана меню (кнопки внизу или /start): его заменяет новый."""
 
