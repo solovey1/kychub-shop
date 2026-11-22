@@ -148,7 +148,6 @@ export function Chat({
   if (error && !items) return <Loading />;
   return (
     <div className="chat">
-      {header}
       {title && (
         <div className="chat-bar">
           <span>{title}</span>
@@ -164,6 +163,7 @@ export function Chat({
           )}
         </div>
       )}
+      {header}
       <div
         className="messages"
         ref={list}
