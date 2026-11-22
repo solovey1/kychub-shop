@@ -16,13 +16,13 @@ messages-chat-order_closed = Заказ уже не в работе, чат по
 messages-chat-saved = Сообщение сохранено. Ответ придёт в этот чат.
 messages-chat-undelivered = Не удалось доставить сообщение: получатель недоступен. Оно сохранено в истории.
 
-buttons-chat_reply = Ответить
-buttons-chat_close = Закрыть тикет
-buttons-chat_open = Открыть чат
+buttons-chat_reply = ↩️ Ответить
+buttons-chat_close = ✖️ Закрыть тикет
+buttons-chat_open = 💬 Открыть чат
 
-buttons-support = Поддержка
-buttons-chat_support = Связаться с поддержкой
-buttons-chat_executor = Написать исполнителю
+buttons-support = 💬 Поддержка
+buttons-chat_support = 🆘 Связаться с поддержкой
+buttons-chat_executor = 💬 Написать исполнителю
 buttons-chat_buyer = Написать покупателю
 
 messages-chat-order_missing = Заказ не найден.

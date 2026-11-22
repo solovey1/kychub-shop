@@ -95,6 +95,16 @@ class CatalogRepository(CatalogGateway):
         query = select(Country).where(Country.code.in_(codes))
         return {c.code: c for c in await self._session.scalars(query)}
 
+    async def min_prices(self, product_ids: list[int]) -> dict[int, Decimal]:
+        if not product_ids:
+            return {}
+        query = (
+            select(ProductVariant.product_id, func.min(ProductVariant.price))
+            .where(ProductVariant.product_id.in_(product_ids), ProductVariant.is_active)
+            .group_by(ProductVariant.product_id)
+        )
+        return {pid: Decimal(p) for pid, p in (await self._session.execute(query)).all()}
+
     async def search(
         self, text: str, locale: str, offset: int, limit: int
     ) -> list[tuple[Product, Decimal]]:

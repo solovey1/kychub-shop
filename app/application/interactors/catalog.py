@@ -14,6 +14,7 @@ class CategoryPage:
     category: Category | None  # None = catalog root
     children: list[Category]
     products: list[Product]
+    prices: dict[int, Decimal]  # product id -> cheapest variant
     page: int
     pages: int
 
@@ -29,6 +30,7 @@ class VariantView:
 class ProductCard:
     product: Product
     variants: list[VariantView]
+    deadline_minutes: int | None
 
 
 @dataclass(frozen=True)
@@ -49,12 +51,13 @@ class CatalogInteractor(BaseInteractor):
                 return None
         children = await self.gateway.children(category_id or None)
         if category is None:
-            return CategoryPage(None, children, [], 0, 1)
+            return CategoryPage(None, children, [], {}, 0, 1)
         total = await self.gateway.count_products(category.id)
         pages = max(1, -(-total // PAGE_SIZE))
         page = min(max(page, 0), pages - 1)
         products = await self.gateway.products(category.id, page * PAGE_SIZE, PAGE_SIZE)
-        return CategoryPage(category, children, products, page, pages)
+        prices = await self.gateway.min_prices([p.id for p in products])
+        return CategoryPage(category, children, products, prices, page, pages)
 
     async def product(self, product_id: int) -> ProductCard | None:
         product = await self.gateway.product(product_id)
@@ -75,7 +78,8 @@ class CatalogInteractor(BaseInteractor):
             )
             for v in variants
         ]
-        return ProductCard(product, views)
+        service = await self.gateway.service(product.service_id) if product.service_id else None
+        return ProductCard(product, views, service.deadline_minutes if service else None)
 
     async def search(self, text: str, locale: str, offset: int) -> InlinePage:
         rows = await self.gateway.search(text, locale, offset, INLINE_PAGE_SIZE + 1)

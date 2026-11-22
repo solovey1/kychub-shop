@@ -48,8 +48,8 @@ messages-promo-reason_not_allowed = код вам недоступен.
 messages-promo-reason_new_users_only = код только для новых покупателей.
 messages-promo-reason_already_used = вы уже использовали этот код.
 
-buttons-pay = Оплатить { $amount }
-buttons-promo = Промокод
-buttons-skip = Пропустить
+buttons-pay = ✅ Оплатить { $amount }
+buttons-promo = 🎟 Промокод
+buttons-skip = ⏭ Пропустить
 buttons-copy = Скопировать
-buttons-topup = Пополнить баланс
+buttons-topup = 💳 Пополнить

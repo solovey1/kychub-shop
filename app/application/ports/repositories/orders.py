@@ -17,6 +17,15 @@ class OrdersGateway(Protocol):
 
     async def count_for_user(self, user_id: int) -> int: ...
 
+    async def active_for_user(self, user_id: int) -> list[Order]:
+        """Orders still on their way to the buyer: paid, in_queue, assigned, ready."""
+
+    async def events(self, order_id: int) -> list[OrderEvent]:
+        """Oldest first."""
+
+    async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
+        """The user's newest order of this product, whatever its status."""
+
     async def find_by_token(self, user_id: int, token: str) -> Order | None: ...
 
     async def get(self, order_id: int) -> Order | None: ...

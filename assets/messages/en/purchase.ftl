@@ -48,8 +48,8 @@ messages-promo-reason_not_allowed = this code is not available to you.
 messages-promo-reason_new_users_only = the code is for new customers only.
 messages-promo-reason_already_used = you have already used this code.
 
-buttons-pay = Pay { $amount }
-buttons-promo = Promo code
-buttons-skip = Skip
+buttons-pay = ✅ Pay { $amount }
+buttons-promo = 🎟 Promo code
+buttons-skip = ⏭ Skip
 buttons-copy = Copy
-buttons-topup = Top up balance
+buttons-topup = 💳 Top up

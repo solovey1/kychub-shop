@@ -43,7 +43,7 @@ class BalanceFlow(BaseFlow):
     bot: Bot
 
     async def show(self, *, current: bool = False, notice: str | None = None) -> Any:
-        amount, entries = await self.interactor.summary(self.user.id)
+        amount, entries = await self.interactor.summary(self.user.id, 5)
         return await self.renderer.apply(
             self.presenter.balance(amount, entries, current=current, notice=notice)
         )

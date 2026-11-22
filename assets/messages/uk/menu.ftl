@@ -1,15 +1,17 @@
 messages-greeting =
-    Вітаємо, { $name }.
+    👋 Привіт, { $name }!
 
-    Магазин цифрових товарів. Оберіть розділ.
-messages-language = Оберіть мову інтерфейсу.
+    💰 Баланс: <b>{ $balance }</b>{ $orders }
+messages-greeting-orders = 📦 У роботі: { $count }
+messages-greeting-orders_until = 📦 У роботі: { $count }, найближчий термін до { $time }
+messages-language = 🌐 Оберіть мову інтерфейсу.
 
-buttons-back = Назад
-buttons-menu = Головне меню
-buttons-cancel = Скасувати
-buttons-catalog = Каталог
-buttons-search = Пошук
-buttons-orders = Мої замовлення
-buttons-balance = Баланс: { $amount }
-buttons-language = Мова
-buttons-app = Відкрити магазин
+buttons-back = ⬅️ Назад
+buttons-menu = 🏠 Меню
+buttons-cancel = ✖️ Скасувати
+buttons-catalog = 🛍 Каталог
+buttons-search = 🔎 Пошук
+buttons-orders = 📦 Мої замовлення
+buttons-orders_n = 📦 Мої замовлення ({ $count })
+buttons-language = 🌐 Мова
+buttons-app = 📱 Відкрити застосунок

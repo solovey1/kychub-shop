@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import ColumnElement, exists, func, select
 
 from app.application.ports.repositories.orders import OrdersGateway
+from app.domain.catalog import ProductVariant
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
 from app.domain.ledger import LedgerEntry
@@ -38,6 +39,30 @@ class OrdersRepository(OrdersGateway):
 
     async def count_for_user(self, user_id: int) -> int:
         return await self._helper.count(Order.user_id == user_id)
+
+    async def active_for_user(self, user_id: int) -> list[Order]:
+        query = select(Order).where(
+            Order.user_id == user_id,
+            Order.status.in_(
+                (OrderStatus.paid, OrderStatus.in_queue, OrderStatus.assigned, OrderStatus.ready)
+            ),
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def events(self, order_id: int) -> list[OrderEvent]:
+        query = select(OrderEvent).where(OrderEvent.order_id == order_id).order_by(OrderEvent.id)
+        return list(await self._helper.session.scalars(query))
+
+    async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
+        query = (
+            select(Order)
+            .join(ProductVariant, ProductVariant.id == Order.variant_id)
+            .where(Order.user_id == user_id, ProductVariant.product_id == product_id)
+            .order_by(Order.id.desc())
+            .limit(1)
+        )
+        order: Order | None = await self._helper.session.scalar(query)
+        return order
 
     async def find_by_token(self, user_id: int, token: str) -> Order | None:
         return await self._helper.get_one(

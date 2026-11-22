@@ -16,13 +16,13 @@ messages-chat-order_closed = This order is no longer in work, so its chat is clo
 messages-chat-saved = Message saved. The reply will arrive in this chat.
 messages-chat-undelivered = The message could not be delivered: the recipient is unavailable. It is saved in the history.
 
-buttons-chat_reply = Reply
-buttons-chat_close = Close ticket
-buttons-chat_open = Open chat
+buttons-chat_reply = ↩️ Reply
+buttons-chat_close = ✖️ Close ticket
+buttons-chat_open = 💬 Open chat
 
-buttons-support = Support
-buttons-chat_support = Contact support
-buttons-chat_executor = Message the executor
+buttons-support = 💬 Support
+buttons-chat_support = 🆘 Contact support
+buttons-chat_executor = 💬 Message the executor
 buttons-chat_buyer = Message the buyer
 
 messages-chat-order_missing = Order not found.
