@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.application.errors.shop import ExecutorNotFound, OrderUnavailable
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
@@ -98,9 +99,11 @@ async def take(
 async def my_orders(
     user: ExecutorUser,
     work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
     page: int = Query(0, ge=0),
 ) -> ExecutorOrderListOut:
     orders, total, page = await work.my_orders(user.id, page)
+    unread = await chat.unread_by_order(user.id, orders)
     items = []
     for order in orders:
         variant = order.snapshot.get("variant") or {}
@@ -112,6 +115,7 @@ async def my_orders(
                 variant=pick_i18n(variant.get("title"), user.language),
                 country=variant.get("country"),
                 deadline_at=order.deadline_at,
+                unread=unread.get(order.id, 0),
             )
         )
     return ExecutorOrderListOut(items=items, total=total, page=page, page_size=PAGE_SIZE)

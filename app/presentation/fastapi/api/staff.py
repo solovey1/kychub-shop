@@ -36,6 +36,8 @@ async def tickets(
 ) -> list[TicketOut]:
     if scope == "all" and not user.roles & Role.ADMIN:
         raise HTTPException(403, "Forbidden")
+    rows = await chat.list_tickets(user.id, scope)
+    unread = await chat.unread_by_ticket(user.id, [row[0] for row in rows])
     return [
         TicketOut(
             id=ticket.id,
@@ -45,8 +47,9 @@ async def tickets(
             mine=ticket.manager_id == user.id,
             conversation_id=conversation_id,
             created_at=ticket.created_at,
+            unread=unread.get(ticket.id, 0),
         )
-        for ticket, name, conversation_id in await chat.list_tickets(user.id, scope)
+        for ticket, name, conversation_id in rows
     ]
 
 

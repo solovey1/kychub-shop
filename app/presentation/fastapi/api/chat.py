@@ -22,8 +22,10 @@ from app.presentation.fastapi.api.schemas import (
     MessageOut,
     MessagesOut,
     PostMessageIn,
+    ReadIn,
     SupportIn,
     TicketRefOut,
+    UnreadOut,
 )
 
 router: APIRouter = APIRouter(tags=["chat"])
@@ -104,6 +106,25 @@ async def post_message(
     message = await chat.message(posted.message_id)
     assert message is not None
     return MessageOut(**message_view(message, user.id))
+
+
+@router.post("/conversations/{conversation_id}/read")
+@inject
+async def read(
+    conversation_id: int,
+    body: ReadIn,
+    user: CurrentUser,
+    chat: FromDishka[ConversationInteractor],
+) -> dict[str, bool]:
+    await _readable(chat, user.id, conversation_id)  # somebody else's: 404, nothing written
+    await chat.mark_read(user.id, conversation_id, body.message_id)  # not in it: 422
+    return {"ok": True}
+
+
+@router.get("/unread")
+@inject
+async def unread(user: CurrentUser, chat: FromDishka[ConversationInteractor]) -> UnreadOut:
+    return UnreadOut(**vars(await chat.unread_counts(user.id)))
 
 
 @router.get("/files/{message_id}")

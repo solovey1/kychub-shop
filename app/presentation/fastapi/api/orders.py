@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.application.errors.shop import OrderUnavailable
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
 from app.infrastructure.telegram.effects import Effects
@@ -29,11 +30,13 @@ BALANCE_ENTRIES = 50
 async def list_orders(
     user: CurrentUser,
     orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
     page: int = Query(0, ge=0),
 ) -> OrderListOut:
     items, total, page = await orders.list_orders(user.id, page)
+    unread = await chat.unread_by_order(user.id, items)
     return OrderListOut(
-        items=[OrderBrief.of(order, user.language) for order in items],
+        items=[OrderBrief.of(order, user.language, unread.get(order.id, 0)) for order in items],
         total=total,
         page=page,
         page_size=PAGE_SIZE,

@@ -1,7 +1,21 @@
+from collections.abc import Collection
+from dataclasses import dataclass
 from typing import Protocol
 
+from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import TicketStatus
 from app.domain.support import Conversation, Message, Ticket
+
+
+@dataclass(frozen=True)
+class UnreadCounts:
+    """Chats with something unread per tab (`review`: orders waiting for a check)."""
+
+    orders: int = 0
+    support: int = 0
+    work: int = 0
+    tickets: int = 0
+    review: int = 0
 
 
 class SupportGateway(Protocol):
@@ -44,3 +58,18 @@ class SupportGateway(Protocol):
         self, status: TicketStatus | None, manager_id: int | None, limit: int
     ) -> list[Ticket]:
         """Newest first; each filter applies only when given."""
+
+    async def mark_read(self, conversation_id: int, user_id: int, message_id: int) -> None:
+        """Moves the read mark forward only: a late request never takes it back."""
+
+    async def unread_by_order(self, user_id: int, order_ids: Collection[int]) -> dict[int, int]:
+        """Unread messages (not his own) per order chat; chats with none are absent."""
+
+    async def unread_by_ticket(self, user_id: int, ticket_ids: Collection[int]) -> dict[int, int]:
+        """Unread messages (not his own) per ticket chat; chats with none are absent."""
+
+    async def unread_counts(
+        self, user_id: int, staff: bool, chat_statuses: Collection[OrderStatus]
+    ) -> UnreadCounts:
+        """The tab counters in one query. Order chats count only while `chat_statuses` holds;
+        staff counters (open tickets nobody took + his own, orders to check) only for `staff`."""

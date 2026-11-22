@@ -40,9 +40,10 @@ class OrderBrief(PydanticModel):
     country: str | None
     total: str
     created_at: datetime
+    unread: int = 0  # messages in the order chat the buyer has not read
 
     @classmethod
-    def of(cls, order: Order, locale: str) -> "OrderBrief":
+    def of(cls, order: Order, locale: str, unread: int = 0) -> "OrderBrief":
         snap = order.snapshot
         variant = snap.get("variant") or {}
         return cls(
@@ -53,6 +54,7 @@ class OrderBrief(PydanticModel):
             country=variant.get("country"),
             total=usd(order.price - order.discount),
             created_at=order.created_at,
+            unread=unread,
         )
 
 
@@ -98,6 +100,18 @@ class LedgerEntryOut(PydanticModel):
 class BalanceOut(PydanticModel):
     balance: str
     entries: list[LedgerEntryOut]
+
+
+class UnreadOut(PydanticModel):
+    orders: int
+    support: int
+    work: int
+    tickets: int
+    review: int
+
+
+class ReadIn(PydanticModel):
+    message_id: int = Field(ge=1)
 
 
 class ConversationOut(PydanticModel):
@@ -176,6 +190,7 @@ class ExecutorOrderListItem(PydanticModel):
     variant: str
     country: str | None
     deadline_at: datetime | None
+    unread: int = 0
 
 
 class ExecutorOrderListOut(PydanticModel):
@@ -224,6 +239,7 @@ class TicketOut(PydanticModel):
     mine: bool
     conversation_id: int
     created_at: datetime
+    unread: int = 0
 
 
 class SendBackIn(PydanticModel):

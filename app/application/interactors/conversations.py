@@ -10,7 +10,7 @@ from app.application.errors.shop import (
 from app.application.interactors.base import BaseInteractor
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
-from app.application.ports.repositories.support import SupportGateway
+from app.application.ports.repositories.support import SupportGateway, UnreadCounts
 from app.application.ports.repositories.users import UsersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.enums.order import OrderStatus
@@ -221,6 +221,34 @@ class ConversationInteractor(BaseInteractor):
             return None
         return message if await self.reader_role(user_id, conversation) else None
 
+    async def mark_read(self, user_id: int, conversation_id: int, message_id: int) -> None:
+        """Reads up to `message_id` (the caller has checked he may read the conversation)."""
+        try:
+            message = await self.support.message(message_id)
+            if message is None or message.conversation_id != conversation_id:
+                raise InvalidInput("message")  # a made-up id would hide future messages
+            await self.support.mark_read(conversation_id, user_id, message_id)
+            await self.uow.commit()
+        except BaseException:
+            await self.uow.rollback()
+            raise
+
+    async def unread_counts(self, user_id: int) -> UnreadCounts:
+        return await self.support.unread_counts(
+            user_id, await self._is_staff(user_id), CHAT_STATUSES
+        )
+
+    async def unread_by_order(self, user_id: int, orders: list[Order]) -> dict[int, int]:
+        """For a list of his own orders; a chat closed with its order shows nothing."""
+        return await self.support.unread_by_order(
+            user_id, [o.id for o in orders if o.status in CHAT_STATUSES]
+        )
+
+    async def unread_by_ticket(self, user_id: int, tickets: list[Ticket]) -> dict[int, int]:
+        return await self.support.unread_by_ticket(
+            user_id, [t.id for t in tickets if t.status is not TicketStatus.closed]
+        )
+
     async def can_post(self, user_id: int, conversation: Conversation) -> ChatRole | None:
         """The capacity in which the user may write here now, or None."""
         ctx = await self._load(conversation)
@@ -253,6 +281,7 @@ class ConversationInteractor(BaseInteractor):
                 media=media,
             )
             await self.support.add_message(message)
+            await self.support.mark_read(conversation.id, sender_id, message.id)  # his own: read
             buyer = await self.users.get(participants.buyer_id)
             alias = None
             if order is not None and order.executor_id is not None:

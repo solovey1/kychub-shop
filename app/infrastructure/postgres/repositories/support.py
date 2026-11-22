@@ -1,12 +1,15 @@
+from collections.abc import Collection
 from dataclasses import dataclass
 
-from sqlalchemy import select, text
+from sqlalchemy import ColumnElement, ScalarSelect, Select, and_, func, literal, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 
 from app.application.errors.base import UserNotFound
-from app.application.ports.repositories.support import SupportGateway
+from app.application.ports.repositories.support import SupportGateway, UnreadCounts
+from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import ConversationKind, TicketStatus
-from app.domain.support import Conversation, Message, Ticket
+from app.domain.order import Order
+from app.domain.support import Conversation, ConversationRead, Message, Ticket
 from app.domain.user import User
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 from app.infrastructure.postgres.uow import UoW
@@ -117,3 +120,97 @@ class SupportRepository(SupportGateway):
             query = query.where(Ticket.manager_id == manager_id)
         query = query.order_by(Ticket.id.desc()).limit(limit)
         return list(await self._helper.session.scalars(query))
+
+    async def mark_read(self, conversation_id: int, user_id: int, message_id: int) -> None:
+        stmt = insert(ConversationRead).values(
+            conversation_id=conversation_id, user_id=user_id, last_read_message_id=message_id
+        )
+        await self._helper.session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[ConversationRead.conversation_id, ConversationRead.user_id],
+                set_={
+                    "last_read_message_id": func.greatest(
+                        ConversationRead.last_read_message_id, stmt.excluded.last_read_message_id
+                    ),
+                    "updated_at": func.now(),
+                },
+            )
+        )
+
+    @staticmethod
+    def _unread(user_id: int) -> Select[tuple[int | None, int | None, int]]:
+        """Per conversation: the messages of others past the user's read mark."""
+        return (
+            select(
+                Conversation.order_id, Conversation.ticket_id, func.count(Message.id).label("n")
+            )
+            .join(Message, Message.conversation_id == Conversation.id)
+            .outerjoin(
+                ConversationRead,
+                and_(
+                    ConversationRead.conversation_id == Conversation.id,
+                    ConversationRead.user_id == user_id,
+                ),
+            )
+            .where(
+                Message.sender_id != user_id,
+                Message.id > func.coalesce(ConversationRead.last_read_message_id, 0),
+            )
+            .group_by(Conversation.id)
+        )
+
+    async def unread_by_order(self, user_id: int, order_ids: Collection[int]) -> dict[int, int]:
+        if not order_ids:
+            return {}
+        query = self._unread(user_id).where(Conversation.order_id.in_(order_ids))
+        rows = await self._helper.session.execute(query)
+        return {order_id: n for order_id, _, n in rows if order_id is not None}
+
+    async def unread_by_ticket(self, user_id: int, ticket_ids: Collection[int]) -> dict[int, int]:
+        if not ticket_ids:
+            return {}
+        query = self._unread(user_id).where(Conversation.ticket_id.in_(ticket_ids))
+        rows = await self._helper.session.execute(query)
+        return {ticket_id: n for _, ticket_id, n in rows if ticket_id is not None}
+
+    async def unread_counts(
+        self, user_id: int, staff: bool, chat_statuses: Collection[OrderStatus]
+    ) -> UnreadCounts:
+        unread = self._unread(user_id).subquery()
+
+        def orders(*where: ColumnElement[bool]) -> ScalarSelect[int]:
+            return (
+                select(func.count())
+                .select_from(unread)
+                .join(Order, Order.id == unread.c.order_id)
+                .where(Order.status.in_(chat_statuses), *where)
+                .scalar_subquery()
+            )
+
+        def tickets(*where: ColumnElement[bool]) -> ScalarSelect[int]:
+            return (
+                select(func.count())
+                .select_from(unread)
+                .join(Ticket, Ticket.id == unread.c.ticket_id)
+                .where(*where)
+                .scalar_subquery()
+            )
+
+        staff_tickets = or_(
+            and_(Ticket.status == TicketStatus.open, Ticket.manager_id.is_(None)),
+            and_(Ticket.status == TicketStatus.taken, Ticket.manager_id == user_id),
+        )
+        query = select(
+            orders(Order.user_id == user_id),
+            tickets(
+                Ticket.user_id == user_id,
+                Ticket.status.in_((TicketStatus.open, TicketStatus.taken)),
+            ),
+            orders(Order.executor_id == user_id),
+            tickets(staff_tickets) if staff else literal(0),
+            select(func.count()).where(Order.status == OrderStatus.ready).scalar_subquery()
+            if staff
+            else literal(0),
+        )
+        row = (await self._helper.session.execute(query)).one()
+        return UnreadCounts(*(int(n) for n in row))
