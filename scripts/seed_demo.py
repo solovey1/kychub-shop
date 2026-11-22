@@ -50,13 +50,13 @@ async def _product(
     config: Optional[dict[str, Any]] = None,
     stock: int = 0,
 ) -> None:
+    FormSchema.model_validate(input_schema or {"fields": []})  # before anything is written
     existing = await s.scalar(
         select(Product).where(Product.title_i18n["ru"].astext == title["ru"])
     )
     if existing is not None:
         existing.input_schema = input_schema or {}  # keeps a re-run in step with the seed
         return
-    FormSchema.model_validate(input_schema or {"fields": []})
     product = Product(
         category_id=category.id,
         service_id=service.id if service else None,
