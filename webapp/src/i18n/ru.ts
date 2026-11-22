@@ -28,10 +28,13 @@ export const ru = {
   "tab.support": "Поддержка",
 
   "track.paid": "Оплачен",
-  "track.in_queue": "В очереди",
+  "track.in_queue": "Очередь",
   "track.assigned": "В работе",
   "track.ready": "Проверка",
-  "track.completed": "Выполнен",
+  "track.completed": "Готов",
+  "track.failed": "Сбой",
+  "track.refunded": "Возврат",
+  "track.cancelled": "Отмена",
 
   "status.awaiting_input": "Ждёт данных",
   "status.paid": "Оплачен",
@@ -171,6 +174,7 @@ export const ru = {
   "review.decided": "По заказу уже принято решение.",
 
   "tab.admin": "Админка",
+  "tab.manage": "Управление",
 
   "admin.empty": "Для вашей роли пока нет готовых разделов.",
   "admin.catalog": "Каталог",

@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { t } from "../i18n";
+import { Icon } from "../ui/Icon";
 import { Empty, Row, Section } from "../ui/kit";
 import { visibleSections } from "./access";
 
@@ -17,7 +18,8 @@ export function Admin({ roles }: { roles: string[] }) {
           {sections.map((s) => (
             <Row
               key={s.id}
-              title={`${s.emoji} ${t(s.titleKey)}`}
+              icon={<Icon name={s.icon} />}
+              title={t(s.titleKey)}
               sub={t(s.descKey)}
               chevron
               onClick={() => go(s.path)}

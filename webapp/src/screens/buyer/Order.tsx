@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { report, useBusy } from "../../action";
 import { ApiError, send, useFetch, type Order as OrderData } from "../../api";
-import { fmtDate, fmtMoney, named, t } from "../../i18n";
+import { fmtDate, fmtMoney, t } from "../../i18n";
 import { alert, confirm, success } from "../../telegram";
 import { Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
 import { Track } from "../../ui/Track";
@@ -70,7 +70,6 @@ export function OrderScreen({ id }: { id: number }) {
         <Row title={t("order.total")} right={<Money value={o.total} />} />
         {o.executor_alias && <Row title={t("order.executor")} right={o.executor_alias} />}
         <Row title={t("order.created")} right={fmtDate(o.created_at)} />
-        <Row title={t("order.status")} right={named("status", o.status)} />
       </Section>
       {lines.length > 0 && (
         <Section

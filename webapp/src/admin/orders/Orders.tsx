@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { usePaged, type AdminOrderRow, type Status } from "../../api";
 import { named, t } from "../../i18n";
-import { Empty, Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
+import { Empty, Failure, Field, Loading, Money, Row, Section, list, statusTone } from "../../ui/kit";
 import { SelectField } from "../kit";
 
 const STATUSES: Status[] = [
@@ -16,7 +16,6 @@ const STATUSES: Status[] = [
   "refunded",
   "cancelled",
 ];
-const ENDED = ["cancelled", "failed", "refunded"];
 
 export function AdminOrders() {
   const [, go] = useLocation();
@@ -53,7 +52,7 @@ export function AdminOrders() {
               meta={list(`№${o.id}`, o.executor_alias)}
               right={<Money value={o.total} />}
               rightSub={
-                <span className={ENDED.includes(o.status) ? "bad-text" : ""}>{named("status", o.status)}</span>
+                <span className={statusTone(o.status)}>{named("status", o.status)}</span>
               }
               chevron
               onClick={() => go(`/admin/orders/${o.id}`)}

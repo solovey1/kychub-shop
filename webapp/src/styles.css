@@ -106,12 +106,19 @@ button.row:active {
   flex: 1;
 }
 .row-right {
+  font-variant-numeric: tabular-nums;
   align-items: flex-end;
   text-align: right;
   flex: none;
 }
 .row-title {
   overflow-wrap: anywhere;
+}
+.row-icon {
+  display: flex;
+  flex: none;
+  width: 24px;
+  color: var(--hint);
 }
 .row-sub {
   font-size: 13px;
@@ -229,8 +236,13 @@ button.row:active {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 13px;
+  min-width: 0;
+  font-size: 11px;
   line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
   color: var(--hint);
   text-decoration: none;
 }
@@ -253,8 +265,9 @@ button.row:active {
   font-weight: 500;
   line-height: 1;
 }
-.segments .badge {
-  margin-left: 6px;
+.segments .badge,
+.row-title .badge {
+  margin-left: 8px;
   vertical-align: 1px;
 }
 .tabs .badge {
@@ -262,7 +275,8 @@ button.row:active {
   top: 5px;
   left: calc(50% + 4px);
 }
-.tabs svg {
+.icon {
+  flex: none;
   width: 24px;
   height: 24px;
   fill: none;
@@ -309,16 +323,16 @@ button.row:active {
   padding: 4px;
 }
 
-/* the order track */
+/* the order track: first/last dots sit on the content edges, the rest are spread evenly */
 .track {
   position: relative;
-  padding: 14px 4px 12px;
+  padding: 16px;
 }
 .track-line {
   position: absolute;
-  top: 20px;
-  left: calc(50% / var(--n));
-  right: calc(50% / var(--n));
+  top: 21px;
+  left: 16px;
+  right: 16px;
   height: 2px;
   background: color-mix(in srgb, var(--hint) 35%, transparent);
 }
@@ -334,17 +348,32 @@ button.row:active {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(var(--n), 1fr);
+  height: 40px;
 }
 .track li {
+  position: absolute;
+  top: 0;
+  left: calc(var(--i) / (var(--n) - 1) * 100%);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
   color: var(--hint);
   text-align: center;
+}
+.track li:first-child {
+  transform: none;
+  align-items: flex-start;
+  text-align: left;
+}
+.track li:last-child {
+  transform: translateX(-100%);
+  align-items: flex-end;
+  text-align: right;
 }
 .track li b {
   width: 12px;

@@ -2,12 +2,11 @@ import { useLocation } from "wouter";
 import { useFetch, usePaged, type ExecutorListItem, type QueueItem } from "../../api";
 import { named, t } from "../../i18n";
 import { useUnread } from "../../unread";
-import { Badge, Empty, Failure, Loading, Money, Row, Section, Segments, list } from "../../ui/kit";
+import { Badge, Empty, Failure, Loading, Money, Row, Section, Segments, list, statusTone } from "../../ui/kit";
 import { Left } from "../../ui/Left";
 import { WalletScreen } from "./Wallet";
 
 export type WorkSeg = "queue" | "mine" | "wallet";
-const ENDED = ["cancelled", "failed", "refunded"];
 
 export function Work({ seg }: { seg: WorkSeg }) {
   const [, go] = useLocation();
@@ -72,7 +71,7 @@ function Mine() {
             sub={list(o.variant, o.country?.toUpperCase())}
             meta={`№${o.id}`}
             right={
-              <span className={ENDED.includes(o.status) ? "bad-text" : ""}>
+              <span className={statusTone(o.status)}>
                 {named("status", o.status)}
               </span>
             }

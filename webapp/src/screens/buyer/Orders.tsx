@@ -3,9 +3,7 @@ import { report, useBusy } from "../../action";
 import { send, usePaged, type OrderBrief } from "../../api";
 import { named, t } from "../../i18n";
 import { useUnread } from "../../unread";
-import { Empty, Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
-
-const ENDED = ["cancelled", "failed", "refunded"];
+import { Empty, Failure, Loading, Money, Row, Section, list, statusTone } from "../../ui/kit";
 
 export function openSupport(orderId: number | null) {
   return send<{ conversation_id: number }>("POST", "/support", { order_id: orderId });
@@ -42,7 +40,7 @@ export function Orders() {
               meta={`№${o.id}`}
               right={<Money value={o.total} />}
               rightSub={
-                <span className={ENDED.includes(o.status) ? "bad-text" : ""}>
+                <span className={statusTone(o.status)}>
                   {named("status", o.status)}
                 </span>
               }

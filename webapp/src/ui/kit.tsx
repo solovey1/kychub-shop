@@ -26,6 +26,10 @@ export function Badge({ n }: { n: number }) {
   return n > 0 ? <span className="badge">{n > 99 ? "99+" : n}</span> : null;
 }
 
+/** Status colour in lists: red only when the order went wrong, muted when it was cancelled. */
+export const statusTone = (status: string) =>
+  status === "failed" || status === "refunded" ? "bad-text" : status === "cancelled" ? "hint" : "";
+
 export function Row({
   title,
   sub,
@@ -36,6 +40,7 @@ export function Row({
   chevron,
   unread,
   dim,
+  icon,
   onClick,
 }: {
   title: ReactNode;
@@ -47,13 +52,18 @@ export function Row({
   chevron?: boolean;
   unread?: number;
   dim?: boolean;
+  icon?: ReactNode;
   onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag className={`row${tone ? ` tone-${tone}` : ""}${dim ? " dim" : ""}`} onClick={onClick}>
+      {icon && <span className="row-icon">{icon}</span>}
       <span className="row-main">
-        <span className="row-title">{title}</span>
+        <span className="row-title">
+          {title}
+          <Badge n={unread ?? 0} />
+        </span>
         {sub && <span className="row-sub">{sub}</span>}
         {meta && <span className="row-sub">{meta}</span>}
       </span>
@@ -63,7 +73,6 @@ export function Row({
           {rightSub && <span className="row-sub">{rightSub}</span>}
         </span>
       )}
-      {!!unread && <Badge n={unread} />}
       {chevron && <i className="chevron" />}
     </Tag>
   );

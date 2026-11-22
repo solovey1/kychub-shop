@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useFetch, type StaffOrder } from "../../api";
-import { named, t } from "../../i18n";
+import { t } from "../../i18n";
 import { Money, Row, list } from "../../ui/kit";
 import { Track } from "../../ui/Track";
 
@@ -21,7 +21,6 @@ export function TicketOrder({ id }: { id: number }) {
       <div className="group">
         <Row title={list(o.variant, o.country && flag(o.country))} right={<Money value={o.total} />} />
         <Track status={o.status} hasExecutor={!!o.executor_alias} />
-        <Row title={t("order.status")} right={named("status", o.status)} />
         {o.executor_alias && <Row title={t("order.executor")} right={o.executor_alias} />}
         {o.fields.map((f, i) => (
           <Row key={i} title={f.is_file ? t("exec.fileInBot") : (f.value ?? "")} sub={f.label} />

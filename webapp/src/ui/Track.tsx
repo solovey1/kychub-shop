@@ -39,9 +39,9 @@ export function Track({ status, hasExecutor }: { status: Status; hasExecutor: bo
                   ? "now"
                   : "next";
           return (
-            <li key={step} className={state}>
+            <li key={step} className={state} style={{ "--i": i } as CSSProperties}>
               <b />
-              <span>{named(ended && i === at ? "status" : "track", step)}</span>
+              <span>{named("track", step)}</span>
             </li>
           );
         })}

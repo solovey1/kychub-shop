@@ -29,10 +29,13 @@ export const uk: typeof ru = {
   "tab.support": "Підтримка",
 
   "track.paid": "Сплачено",
-  "track.in_queue": "У черзі",
+  "track.in_queue": "Черга",
   "track.assigned": "У роботі",
   "track.ready": "Перевірка",
-  "track.completed": "Виконано",
+  "track.completed": "Готово",
+  "track.failed": "Збій",
+  "track.refunded": "Повернуто",
+  "track.cancelled": "Скасовано",
 
   "status.awaiting_input": "Чекає даних",
   "status.paid": "Сплачено",
@@ -172,6 +175,7 @@ export const uk: typeof ru = {
   "review.decided": "За замовленням уже ухвалено рішення.",
 
   "tab.admin": "Адмінка",
+  "tab.manage": "Керування",
 
   "admin.empty": "Для вашої ролі поки немає готових розділів.",
   "admin.catalog": "Каталог",

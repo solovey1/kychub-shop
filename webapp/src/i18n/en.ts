@@ -33,6 +33,9 @@ export const en: typeof ru = {
   "track.assigned": "In progress",
   "track.ready": "Review",
   "track.completed": "Done",
+  "track.failed": "Failed",
+  "track.refunded": "Refund",
+  "track.cancelled": "Cancelled",
 
   "status.awaiting_input": "Needs details",
   "status.paid": "Paid",
@@ -172,6 +175,7 @@ export const en: typeof ru = {
   "review.decided": "This order has already been decided.",
 
   "tab.admin": "Admin",
+  "tab.manage": "Manage",
 
   "admin.empty": "No sections are ready for your role yet.",
   "admin.catalog": "Catalog",
