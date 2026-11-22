@@ -84,8 +84,10 @@ class ExtensionStateOut(PydanticModel):
 
 class OrderOut(OrderBrief):
     executor_alias: str | None = None
-    result: str | None = None  # only once the order is completed
+    result: str | None = None  # from the moment the executor is done (ready) on
     result_files: int = 0
+    can_confirm: bool = False  # ready: the buyer may say «everything is fine»
+    confirm_at: datetime | None = None  # ready: when it confirms itself
     can_cancel: bool = False
     reserved: str | None = None  # still held for this order, not charged yet
     extension: ExtensionAskOut | None = None

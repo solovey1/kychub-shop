@@ -14,6 +14,7 @@ def _out(t: Tunables) -> SettingsBody:
         hold_days=t.hold_days,
         review_delay_hours=t.review_delay_hours,
         min_withdrawal=usd(t.min_withdrawal),
+        confirm_hours=t.confirm_hours,
     )
 
 
@@ -32,6 +33,10 @@ async def put_settings(
 ) -> SettingsBody:
     return _out(
         await settings.update(
-            user.id, body.hold_days, body.review_delay_hours, body.min_withdrawal
+            user.id,
+            body.hold_days,
+            body.review_delay_hours,
+            body.min_withdrawal,
+            body.confirm_hours,
         )
     )

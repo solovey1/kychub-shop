@@ -48,6 +48,17 @@ export function OrderScreen({ id }: { id: number }) {
         } else await report(e);
       }
     });
+  const confirmOrder = () =>
+    run(async () => {
+      try {
+        await send("POST", `/orders/${id}/confirm`);
+        success();
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) await alert(t("order.alreadyDone"));
+        else return report(e);
+      }
+      reload();
+    });
   const answer = (approve: boolean) =>
     run(async () => {
       const ext = o.extension;
@@ -99,6 +110,14 @@ export function OrderScreen({ id }: { id: number }) {
       {lines.length === 0 && o.result_files > 0 && (
         <Section title={t("order.result")} footer={t("order.files")}>
           <Row title={t("order.filesCount", { n: o.result_files })} />
+        </Section>
+      )}
+      {o.can_confirm && (
+        <Section
+          title={t("order.confirmHint")}
+          footer={o.confirm_at ? t("order.confirmAt", { time: fmtDate(o.confirm_at, true) }) : undefined}
+        >
+          <Row title={t("order.confirm")} tone="link" onClick={confirmOrder} />
         </Section>
       )}
       {o.extension && (

@@ -4,10 +4,17 @@ from typing import Final
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dishka import AsyncContainer
 
+from app.application.interactors.auto_confirm import (
+    AutoConfirmInteractor,
+    confirm_deadline,
+    confirm_hours,
+)
 from app.application.interactors.deadlines import ReminderInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.feedback import ReviewInteractor
 from app.application.interactors.hold import HoldInteractor
+from app.application.ports.repositories.settings import SettingsGateway
+from app.infrastructure.telegram.effects import Effects
 from app.infrastructure.telegram.notices import OrderNotices
 from app.infrastructure.telegram.offers import OfferService
 
@@ -60,6 +67,27 @@ async def remind_deadlines(container: AsyncContainer) -> None:
             await notices.reminder(reminder)
 
 
+async def auto_confirm(container: AsyncContainer) -> None:
+    """Submitted orders the buyer did not answer within `confirm_hours` confirm themselves."""
+    async with container() as request:
+        confirmed = await (await request.get(AutoConfirmInteractor)).confirm_due()
+        effects = await request.get(Effects)
+        for order in confirmed:
+            await effects.order_confirmed(order)
+
+
+async def remind_confirm(container: AsyncContainer) -> None:
+    """One message to the buyer 2 hours before the auto-confirmation."""
+    async with container() as request:
+        interactor = await request.get(AutoConfirmInteractor)
+        hours = await confirm_hours(await request.get(SettingsGateway))
+        notices = await request.get(OrderNotices)
+        for order in await interactor.remind_due():
+            until = confirm_deadline(order, hours)
+            if until is not None:
+                await notices.confirm_reminder(order, until)
+
+
 def _job(
     scheduler: AsyncIOScheduler, container: AsyncContainer, func: object, name: str, seconds: int
 ) -> None:
@@ -78,6 +106,8 @@ def _job(
 def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
     _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
+    _job(scheduler, container, auto_confirm, "auto_confirm", 60)
+    _job(scheduler, container, remind_confirm, "remind_confirm", 60)
     _job(scheduler, container, requeue_stale, "requeue_stale", 300)
     _job(scheduler, container, release_holds, "release_holds", 600)
     _job(scheduler, container, request_reviews, "request_reviews", 300)

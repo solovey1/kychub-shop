@@ -15,10 +15,13 @@ function Editor({ start }: { start: Tunables }) {
   const [hold, setHold] = useState(String(start.hold_days));
   const [delay, setDelay] = useState(String(start.review_delay_hours));
   const [min, setMin] = useState(start.min_withdrawal);
+  const [confirm, setConfirm] = useState(String(start.confirm_hours));
   const [saved, setSaved] = useState(start);
 
-  const body: Tunables = { hold_days: Number(hold), review_delay_hours: Number(delay), min_withdrawal: min.trim() };
-  const valid = hold !== "" && delay !== "" && /^\d{1,8}(\.\d{1,2})?$/.test(body.min_withdrawal);
+  const body: Tunables = { hold_days: Number(hold), review_delay_hours: Number(delay), min_withdrawal: min.trim(),
+    confirm_hours: Number(confirm),
+  };
+  const valid = hold !== "" && delay !== "" && Number(confirm) >= 1 && Number(confirm) <= 168 && /^\d{1,8}(\.\d{1,2})?$/.test(body.min_withdrawal);
   const changed = JSON.stringify(body) !== JSON.stringify(saved);
 
   useSave(valid && changed ? t("save") : null, async () => {
@@ -36,6 +39,9 @@ function Editor({ start }: { start: Tunables }) {
         </Field>
         <Field label={t("settings.reviewDelay")} invalid={delay === ""}>
           <input inputMode="numeric" value={delay} onChange={(e) => setDelay(e.target.value.replace(/\D/g, ""))} />
+        </Field>
+        <Field label={t("settings.confirmHours")} invalid={Number(confirm) < 1 || Number(confirm) > 168}>
+          <input inputMode="numeric" value={confirm} onChange={(e) => setConfirm(e.target.value.replace(/\D/g, ""))} />
         </Field>
         <Field label={t("settings.minWithdrawal")} invalid={!valid && min !== ""}>
           <input inputMode="decimal" value={min} onChange={(e) => setMin(e.target.value.replace(",", "."))} />

@@ -27,7 +27,6 @@ messages-executor-sent_back =
     Коментар: { $comment }
 messages-executor-order_closed = Замовлення № { $id } закрито адміністрацією, нарахування за ним скасовано.
 
-messages-review-ready = 🔍 Замовлення № { $id } очікує перевірки.
 messages-review-missing = Замовлення № { $id } не знайдено.
 messages-review-unavailable = Замовлення № { $id } уже оброблене або недоступне для цієї дії.
 messages-review-confirmed = ✅ Замовлення підтверджено, результат надіслано покупцю.

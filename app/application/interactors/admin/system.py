@@ -9,6 +9,8 @@ from app.application.interactors.balance import parse_money
 from app.application.ports.repositories.admin import StatsData
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.settings_keys import (
+    CONFIRM_HOURS,
+    DEFAULT_CONFIRM_HOURS,
     DEFAULT_HOLD_DAYS,
     DEFAULT_MIN_WITHDRAWAL,
     DEFAULT_REVIEW_DELAY_HOURS,
@@ -36,6 +38,7 @@ class Tunables:
     hold_days: int
     review_delay_hours: int
     min_withdrawal: Decimal
+    confirm_hours: int
 
 
 @dataclass(frozen=True)
@@ -47,15 +50,23 @@ class SettingsAdminInteractor(AdminInteractor):
             int(await self.settings.get(HOLD_DAYS, DEFAULT_HOLD_DAYS)),
             int(await self.settings.get(REVIEW_DELAY_HOURS, DEFAULT_REVIEW_DELAY_HOURS)),
             parse_money(str(await self.settings.get(MIN_WITHDRAWAL, str(DEFAULT_MIN_WITHDRAWAL)))),
+            int(await self.settings.get(CONFIRM_HOURS, DEFAULT_CONFIRM_HOURS)),
         )
 
     async def update(
-        self, actor: int, hold_days: int, review_delay_hours: int, min_withdrawal: str
+        self,
+        actor: int,
+        hold_days: int,
+        review_delay_hours: int,
+        min_withdrawal: str,
+        confirm_hours: int,
     ) -> Tunables:
         if not 0 <= hold_days <= 60:
             raise InvalidField("hold_days", "0..60")
         if not 0 <= review_delay_hours <= 720:
             raise InvalidField("review_delay_hours", "0..720")
+        if not 1 <= confirm_hours <= 168:
+            raise InvalidField("confirm_hours", "1..168")
         try:
             minimum = parse_money(min_withdrawal)
         except InvalidAmount as e:
@@ -68,11 +79,13 @@ class SettingsAdminInteractor(AdminInteractor):
                 HOLD_DAYS: hold_days,
                 REVIEW_DELAY_HOURS: review_delay_hours,
                 MIN_WITHDRAWAL: str(minimum),
+                CONFIRM_HOURS: confirm_hours,
             }
             old = {
                 HOLD_DAYS: before.hold_days,
                 REVIEW_DELAY_HOURS: before.review_delay_hours,
                 MIN_WITHDRAWAL: str(before.min_withdrawal),
+                CONFIRM_HOURS: before.confirm_hours,
             }
             diff = {k: [old[k], v] for k, v in new.items() if old[k] != v}
             for key, value in new.items():

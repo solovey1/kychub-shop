@@ -27,7 +27,6 @@ messages-executor-sent_back =
     Comment: { $comment }
 messages-executor-order_closed = Order #{ $id } was closed by the administration, its payout was cancelled.
 
-messages-review-ready = 🔍 Order #{ $id } is waiting for review.
 messages-review-missing = Order #{ $id } not found.
 messages-review-unavailable = Order #{ $id } was already handled or does not allow this action.
 messages-review-confirmed = ✅ The order is confirmed, the result was sent to the buyer.

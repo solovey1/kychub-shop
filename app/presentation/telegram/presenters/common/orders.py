@@ -23,6 +23,8 @@ from app.presentation.telegram.presenters.common.purchase import result_view
 from app.presentation.telegram.view.models import View
 from app.utils.time import datetime_now
 
+RESULT_SHOWN = 2500
+
 _CHAIN = (
     OrderStatus.paid,
     OrderStatus.in_queue,
@@ -115,6 +117,7 @@ class OrdersPresenter(BasePresenter):
         reorder: bool = False,
         reserved: Decimal = Decimal(0),
         pending: Pending | None = None,
+        confirm_at: datetime | None = None,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -140,6 +143,13 @@ class OrdersPresenter(BasePresenter):
             text += "\n\n" + i18n.messages.order.extension(
                 duration=fmt_duration(i18n.get, pending.minutes), time=until.strftime("%H:%M")
             )
+        if order.status is OrderStatus.ready and order.result:
+            shown = html.quote(str(order.result.get("text", ""))[:RESULT_SHOWN])
+            text += "\n\n" + i18n.messages.order.check(
+                result=f"<code>{shown}</code>" if shown else "-",
+                files=str(len(order.result.get("files", []))),
+                time=confirm_at.strftime("%d.%m %H:%M") if confirm_at else "-",
+            )
         if order.status is OrderStatus.completed and order.result:
             return result_view(
                 i18n,
@@ -151,6 +161,12 @@ class OrdersPresenter(BasePresenter):
         return View(
             text=text, reply_markup=order_keyboard(i18n, order, page, reorder, pending)
         ), None
+
+    def confirmed(self, order_id: int, page: int) -> View:
+        return View(
+            text=self.i18n.messages.order.confirmed(id=str(order_id)),
+            reply_markup=order_back_keyboard(self.i18n, page),
+        )
 
     def extension_stale(self) -> str:
         return self.i18n.messages.order.extension_stale()

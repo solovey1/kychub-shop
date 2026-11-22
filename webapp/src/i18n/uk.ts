@@ -552,4 +552,9 @@ export const uk: typeof ru = {
   "audit.actor": "ID того, хто зробив",
   "audit.empty": "Записів немає",
   "audit.system": "Система",
+  "order.confirm": "Все гаразд",
+  "order.confirmAt": "Підтвердиться автоматично {time}",
+  "order.confirmHint": "Перевірте результат. Якщо все добре, підтвердьте замовлення.",
+  "order.alreadyDone": "Замовлення вже підтверджено.",
+  "settings.confirmHours": "Автопідтвердження замовлення через, годин",
 };

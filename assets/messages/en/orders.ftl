@@ -19,7 +19,7 @@ messages-order-executor = 👤 Executor: { $alias }
 order-step-paid = Paid
 order-step-in_queue = In queue
 order-step-assigned = In progress
-order-step-ready = Under review
+order-step-ready = Check the result
 order-step-completed = Completed
 order-step-failed = ❌ Failed
 order-step-refunded = ↩️ Refunded
@@ -54,3 +54,15 @@ messages-order-extension_no = ✖️ You declined the extension of order #{ $id 
 messages-order-extension_stale = This request is no longer relevant
 buttons-ext_yes = ✅ Extend
 buttons-ext_no = ✖️ No
+buttons-deal_ok = ✅ All good
+messages-order-ready =
+    🎉 The executor has finished order #{ $id }. Check the result in the order.
+    If all is well, tap «All good». Otherwise the order confirms itself on { $time }.
+messages-order-confirm_reminder = ⏳ Order #{ $id } will confirm itself on { $time }. Please check the result.
+messages-order-check =
+    🔍 <b>Result</b>
+    { $result }
+    📎 Files: { $files }
+
+    All in order? Tap «All good». Otherwise the order confirms itself on { $time }.
+messages-order-confirmed = ✅ Order #{ $id } confirmed. Thank you!

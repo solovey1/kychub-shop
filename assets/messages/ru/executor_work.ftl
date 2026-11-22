@@ -27,7 +27,6 @@ messages-executor-sent_back =
     Комментарий: { $comment }
 messages-executor-order_closed = Заказ № { $id } закрыт администрацией, начисление по нему отменено.
 
-messages-review-ready = 🔍 Заказ № { $id } ждёт проверки.
 messages-review-missing = Заказ № { $id } не найден.
 messages-review-unavailable = Заказ № { $id } уже обработан или недоступен для этого действия.
 messages-review-confirmed = ✅ Заказ подтверждён, результат отправлен покупателю.

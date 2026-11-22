@@ -19,7 +19,7 @@ messages-order-executor = 👤 Исполнитель: { $alias }
 order-step-paid = Оплачен
 order-step-in_queue = В очереди
 order-step-assigned = В работе
-order-step-ready = На проверке
+order-step-ready = Проверьте результат
 order-step-completed = Выполнен
 order-step-failed = ❌ Не выполнен
 order-step-refunded = ↩️ Возвращён
@@ -54,3 +54,15 @@ messages-order-extension_no = ✖️ Вы отказали в продлении
 messages-order-extension_stale = Просьба уже неактуальна
 buttons-ext_yes = ✅ Продлить
 buttons-ext_no = ✖️ Нет
+buttons-deal_ok = ✅ Всё ок
+messages-order-ready =
+    🎉 Исполнитель завершил заказ №{ $id }. Проверьте результат в заказе.
+    Если всё хорошо — нажмите «Всё ок». Иначе заказ подтвердится автоматически { $time }.
+messages-order-confirm_reminder = ⏳ Заказ №{ $id } подтвердится автоматически { $time }. Проверьте результат.
+messages-order-check =
+    🔍 <b>Результат</b>
+    { $result }
+    📎 Файлов: { $files }
+
+    Всё в порядке? Нажмите «Всё ок». Иначе заказ подтвердится автоматически { $time }.
+messages-order-confirmed = ✅ Заказ №{ $id } подтверждён. Спасибо!

@@ -38,6 +38,8 @@ export type Order = OrderBrief & {
   result: string | null;
   result_files: number;
   can_cancel: boolean;
+  can_confirm: boolean;
+  confirm_at: string | null;
   reserved: string | null;
   extension: { request_id: number; minutes: number; until: string } | null;
 };
@@ -316,7 +318,12 @@ export type StatsData = {
   buyers: string;
   buyers_hold: string;
 };
-export type Tunables = { hold_days: number; review_delay_hours: number; min_withdrawal: string };
+export type Tunables = {
+  hold_days: number;
+  review_delay_hours: number;
+  min_withdrawal: string;
+  confirm_hours: number;
+};
 export type AuditRow = {
   id: number;
   actor_id: number | null;

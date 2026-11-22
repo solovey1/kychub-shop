@@ -84,36 +84,52 @@ class OrderReviewInteractor(BaseInteractor):
         return await self.orders.list_by_status(status, limit)
 
     async def confirm(self, actor_id: int, order_id: int) -> Order:
-        """ready -> completed; the executor share goes to the hold."""
+        """Staff: ready -> completed; the executor share goes to the hold."""
+        return await self._confirm(actor_id, order_id, buyer_id=None)
+
+    async def confirm_by_buyer(self, buyer_id: int, order_id: int) -> Order:
+        """The buyer of this order says everything is fine (anyone else: OrderUnavailable)."""
+        return await self._confirm(buyer_id, order_id, buyer_id=buyer_id)
+
+    async def _confirm(self, actor_id: int, order_id: int, buyer_id: int | None) -> Order:
         try:
             order = await self._locked(order_id, OrderStatus.ready)
-            if order.executor_id is None:
+            if buyer_id is not None and order.user_id != buyer_id:
                 raise OrderUnavailable(order_id)
-            ctx = await load_context(self.catalog, order)
-            profile = await self.executors.get_profile(order.executor_id)
-            earning = earning_for(order, percent_for(profile, ctx.service if ctx else None))
-            now = datetime_now()
-            hold_days = int(await self.settings.get(HOLD_DAYS, DEFAULT_HOLD_DAYS))
-            delay = int(await self.settings.get(REVIEW_DELAY_HOURS, DEFAULT_REVIEW_DELAY_HOURS))
-            order.completed_at = now
-            order.hold_until = now + timedelta(days=hold_days)
-            order.review_due_at = now + timedelta(hours=delay)
-            await move(self.orders, order, OrderStatus.completed, actor_id)
-            await capture_buyer(self.ledger, self.ledger_gateway, order)
-            if earning > 0:
-                await self.ledger.post(
-                    order.executor_id,
-                    LedgerAccount.executor_hold,
-                    earning,
-                    LedgerKind.executor_earning,
-                    order_id=order.id,
-                    ref=order_ref(order),
-                )
+            await self.complete_locked(order, actor_id)
             await self.uow.commit()
             return order
         except BaseException:
             await self.uow.rollback()
             raise
+
+    async def complete_locked(self, order: Order, actor_id: int | None) -> None:
+        """ready -> completed under the order lock, commits nothing. Every way of completing an
+        order (buyer, staff, the auto-confirm job) comes through here: a second one finds the order
+        no longer `ready` and never reaches the ledger, and `capture_buyer` posts once per order
+        anyway. `actor_id` None: the system."""
+        if order.status is not OrderStatus.ready or order.executor_id is None:
+            raise OrderUnavailable(order.id)
+        ctx = await load_context(self.catalog, order)
+        profile = await self.executors.get_profile(order.executor_id)
+        earning = earning_for(order, percent_for(profile, ctx.service if ctx else None))
+        now = datetime_now()
+        hold_days = int(await self.settings.get(HOLD_DAYS, DEFAULT_HOLD_DAYS))
+        delay = int(await self.settings.get(REVIEW_DELAY_HOURS, DEFAULT_REVIEW_DELAY_HOURS))
+        order.completed_at = now
+        order.hold_until = now + timedelta(days=hold_days)
+        order.review_due_at = now + timedelta(hours=delay)
+        await move(self.orders, order, OrderStatus.completed, actor_id)
+        await capture_buyer(self.ledger, self.ledger_gateway, order)
+        if earning > 0:
+            await self.ledger.post(
+                order.executor_id,
+                LedgerAccount.executor_hold,
+                earning,
+                LedgerKind.executor_earning,
+                order_id=order.id,
+                ref=order_ref(order),
+            )
 
     async def send_back(self, actor_id: int, order_id: int, comment: str) -> Order:
         """ready -> assigned with a fresh deadline and the reviewer comment."""

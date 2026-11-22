@@ -497,6 +497,7 @@ class SettingsBody(PydanticModel):
     hold_days: int
     review_delay_hours: int
     min_withdrawal: str
+    confirm_hours: int
 
 
 class AuditOut(PydanticModel):

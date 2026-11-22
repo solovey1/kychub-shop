@@ -7,6 +7,7 @@ from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.deadlines import ExtensionInteractor, extended_deadline
+from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.orders import OrdersInteractor
 from app.domain.enums.order import OrderStatus
 from app.domain.user import User
@@ -53,7 +54,7 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
     if order is None:
         raise HTTPException(404, "Not found")
     pending = await orders.pending_extension(order)
-    done = order.status is OrderStatus.completed and order.result is not None
+    done = order.status in (OrderStatus.ready, OrderStatus.completed) and order.result is not None
     result = order.result or {}
     reserved = await orders.reserved(order)
     return OrderOut(
@@ -62,6 +63,8 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
         result=str(result.get("text", "")) if done else None,
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
+        can_confirm=order.status is OrderStatus.ready,
+        confirm_at=await orders.confirm_at(order),
         reserved=usd(reserved) if reserved > 0 else None,
         extension=ExtensionAskOut(
             request_id=pending.request_id,
@@ -94,6 +97,21 @@ async def answer_extension(
     """Conflict `extension_stale` (409): the request is gone, nothing changed."""
     answer = await extension.answer(user.id, order_id, body.request_id, body.approve)
     await effects.extension_answered(answer)
+    return await _order(order_id, user, orders)
+
+
+@router.post("/orders/{order_id}/confirm")
+@inject
+async def confirm_order(
+    order_id: int,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    review: FromDishka[OrderReviewInteractor],
+    effects: FromDishka[Effects],
+) -> OrderOut:
+    """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404."""
+    order = await review.confirm_by_buyer(user.id, order_id)
+    await effects.order_confirmed(order)
     return await _order(order_id, user, orders)
 
 

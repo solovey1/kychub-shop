@@ -552,4 +552,9 @@ export const en: typeof ru = {
   "audit.actor": "ID of who did it",
   "audit.empty": "No records",
   "audit.system": "System",
+  "order.confirm": "All good",
+  "order.confirmAt": "Confirms itself on {time}",
+  "order.confirmHint": "Check the result. If all is well, confirm the order.",
+  "order.alreadyDone": "The order is already confirmed.",
+  "settings.confirmHours": "Order confirms itself after, hours",
 };

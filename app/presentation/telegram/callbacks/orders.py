@@ -16,6 +16,12 @@ class CDCancel(CallbackData, prefix="oc"):
     ok: int = 0  # 0 = ask for confirmation, 1 = cancel the order
 
 
+class CDDeal(CallbackData, prefix="dl"):
+    action: str  # ok (everything is fine) | ask (call support) | skip (no reason) | cancel
+    id: int
+    page: int = 0
+
+
 class CDExtAnswer(CallbackData, prefix="oe"):
     id: int
     rid: int  # the request being answered

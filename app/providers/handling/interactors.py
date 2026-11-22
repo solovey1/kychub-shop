@@ -11,6 +11,7 @@ from app.application.interactors.admin.system import (
     SettingsAdminInteractor,
     StatsAdminInteractor,
 )
+from app.application.interactors.auto_confirm import AutoConfirmInteractor
 from app.application.interactors.balance import BalanceInteractor
 from app.application.interactors.cards import CardBuilder
 from app.application.interactors.catalog import CatalogInteractor
@@ -56,6 +57,7 @@ class InteractorsProvider(Provider):
         ReminderInteractor,
         FulfillmentWorkInteractor,
         OrderReviewInteractor,
+        AutoConfirmInteractor,
         HoldInteractor,
         ReviewInteractor,
         TipInteractor,

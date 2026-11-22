@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 
 from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
+from app.application.interactors.auto_confirm import confirm_deadline, confirm_hours
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.catalog import PAGE_SIZE, VariantView
 from app.application.interactors.deadlines import Pending, extension_state
@@ -11,6 +13,7 @@ from app.application.interactors.payouts import Refunded, open_hold, refund_buye
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
 from app.application.ports.repositories.orders import OrdersGateway
+from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.catalog import Product
 from app.domain.enums.order import OrderStatus
@@ -26,6 +29,7 @@ class OrdersInteractor(BaseInteractor):
     ledger: LedgerService
     ledger_gateway: LedgerGateway
     executors: ExecutorsGateway
+    settings: SettingsGateway
 
     async def list_orders(self, user_id: int, page: int) -> tuple[list[Order], int, int]:
         """Returns (orders on the page, total orders, corrected page)."""
@@ -58,6 +62,10 @@ class OrdersInteractor(BaseInteractor):
         if order.status is not OrderStatus.assigned:
             return None
         return extension_state(await self.gateway.events(order.id)).pending
+
+    async def confirm_at(self, order: Order) -> datetime | None:
+        """When a `ready` order confirms itself if the buyer says nothing."""
+        return confirm_deadline(order, await confirm_hours(self.settings))
 
     async def events(self, order_id: int) -> list[OrderEvent]:
         return await self.gateway.events(order_id)

@@ -19,7 +19,7 @@ messages-order-executor = 👤 Виконавець: { $alias }
 order-step-paid = Оплачено
 order-step-in_queue = У черзі
 order-step-assigned = У роботі
-order-step-ready = На перевірці
+order-step-ready = Перевірте результат
 order-step-completed = Виконано
 order-step-failed = ❌ Не виконано
 order-step-refunded = ↩️ Повернуто
@@ -54,3 +54,15 @@ messages-order-extension_no = ✖️ Ви відмовили в продовже
 messages-order-extension_stale = Прохання вже неактуальне
 buttons-ext_yes = ✅ Продовжити
 buttons-ext_no = ✖️ Ні
+buttons-deal_ok = ✅ Все гаразд
+messages-order-ready =
+    🎉 Виконавець завершив замовлення №{ $id }. Перевірте результат у замовленні.
+    Якщо все добре — натисніть «Все гаразд». Інакше замовлення підтвердиться автоматично { $time }.
+messages-order-confirm_reminder = ⏳ Замовлення №{ $id } підтвердиться автоматично { $time }. Перевірте результат.
+messages-order-check =
+    🔍 <b>Результат</b>
+    { $result }
+    📎 Файлів: { $files }
+
+    Усе гаразд? Натисніть «Все гаразд». Інакше замовлення підтвердиться автоматично { $time }.
+messages-order-confirmed = ✅ Замовлення №{ $id } підтверджено. Дякуємо!

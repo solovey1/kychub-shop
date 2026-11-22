@@ -551,4 +551,9 @@ export const ru = {
   "audit.actor": "ID того, кто сделал",
   "audit.empty": "Записей нет",
   "audit.system": "Система",
+  "order.confirm": "Всё ок",
+  "order.confirmAt": "Подтвердится автоматически {time}",
+  "order.confirmHint": "Проверьте результат. Если всё хорошо, подтвердите заказ.",
+  "order.alreadyDone": "Заказ уже подтверждён.",
+  "settings.confirmHours": "Автоподтверждение заказа через, часов",
 };

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Callable
 
 from aiogram import html
@@ -15,19 +16,18 @@ from app.application.interactors.deadlines import (
 from app.application.interactors.payouts import Refunded
 from app.domain.order import Order
 from app.infrastructure.telegram.notifier import Notifier, Translate
-from app.presentation.telegram.callbacks.executor import CDExt, CDReview, CDXOrder
+from app.presentation.telegram.callbacks.executor import CDExt, CDXOrder
 from app.presentation.telegram.callbacks.menu import CDMenu
+from app.presentation.telegram.callbacks.orders import CDOrder
 from app.presentation.telegram.keyboards.common import button, markup
 from app.presentation.telegram.keyboards.feedback import rate_keyboard
-from app.presentation.telegram.keyboards.orders import extension_keyboard
+from app.presentation.telegram.keyboards.orders import deal_rows, extension_keyboard
 from app.presentation.telegram.presenters.common.purchase import COPY_LIMIT, FILE_LIMIT
 from app.utils.time import datetime_now
 
 
-def _open_review(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
-    return lambda tr: markup(
-        [[button(tr("buttons-open"), CDReview(action="open", id=order_id), style="primary")]]
-    )
+def _deal_markup(tr: Translate, order_id: int) -> InlineKeyboardMarkup:
+    return markup([*deal_rows(tr, order_id), [button(tr("buttons-open"), CDOrder(id=order_id))]])
 
 
 def _open_order(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
@@ -59,9 +59,25 @@ class OrderNotices:
 
     notifier: Notifier
 
-    async def ready_for_review(self, order: Order) -> None:
-        await self.notifier.staff(
-            "messages-review-ready", _open_review(order.id), id=str(order.id)
+    async def ready_for_buyer(self, order: Order, until: datetime | None) -> None:
+        """The executor is done: the buyer checks the result (and the auto-confirmation starts)."""
+        order_id = order.id
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-ready",
+            lambda tr: _deal_markup(tr, order_id),
+            id=str(order_id),
+            time=until.strftime("%d.%m %H:%M") if until else "-",
+        )
+
+    async def confirm_reminder(self, order: Order, until: datetime) -> None:
+        order_id = order.id
+        await self.notifier.send(
+            order.user_id,
+            "messages-order-confirm_reminder",
+            lambda tr: _deal_markup(tr, order_id),
+            id=str(order_id),
+            time=until.strftime("%d.%m %H:%M"),
         )
 
     async def deliver(self, order: Order) -> None:

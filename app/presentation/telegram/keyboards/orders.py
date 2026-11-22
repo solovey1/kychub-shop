@@ -12,7 +12,13 @@ from app.domain.order import Order
 from app.presentation.telegram.callbacks.catalog import CDVariant
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
-from app.presentation.telegram.callbacks.orders import CDCancel, CDExtAnswer, CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import (
+    CDCancel,
+    CDDeal,
+    CDExtAnswer,
+    CDOrder,
+    CDOrders,
+)
 from app.presentation.telegram.keyboards.common import button, markup, pager
 
 
@@ -57,6 +63,19 @@ def extension_keyboard(tr: Callable[..., str], order_id: int, rid: int) -> Inlin
     )
 
 
+def deal_rows(
+    tr: Callable[..., str], order_id: int, page: int = 0
+) -> list[list[InlineKeyboardButton]]:
+    """The buyer of a `ready` order: everything is fine / call support."""
+    return [
+        [
+            button(
+                tr("buttons-deal_ok"), CDDeal(action="ok", id=order_id, page=page), style="success"
+            )
+        ]
+    ]
+
+
 def order_keyboard(
     i18n: I18nContext,
     order: Order,
@@ -65,6 +84,8 @@ def order_keyboard(
     pending: Pending | None = None,
 ) -> InlineKeyboardMarkup:
     rows = []
+    if order.status is OrderStatus.ready:
+        rows += deal_rows(i18n.get, order.id, page)
     if pending is not None:
         rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard
     if order.status in CHAT_STATUSES:

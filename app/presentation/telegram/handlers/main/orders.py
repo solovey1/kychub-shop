@@ -6,7 +6,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from dishka import FromDishka
 
-from app.presentation.telegram.callbacks.orders import CDCancel, CDExtAnswer, CDOrder, CDOrders
+from app.presentation.telegram.callbacks.orders import (
+    CDCancel,
+    CDDeal,
+    CDExtAnswer,
+    CDOrder,
+    CDOrders,
+)
 from app.presentation.telegram.flows.common.orders import OrdersFlow
 
 router: Final[Router] = Router(name=__name__)
@@ -41,3 +47,8 @@ async def extension(
     _: CallbackQuery, callback_data: CDExtAnswer, flow: FromDishka[OrdersFlow]
 ) -> Any:
     return await flow.answer_extension(callback_data)
+
+
+@router.callback_query(CDDeal.filter())
+async def deal(_: CallbackQuery, callback_data: CDDeal, flow: FromDishka[OrdersFlow]) -> Any:
+    return await flow.deal(callback_data)

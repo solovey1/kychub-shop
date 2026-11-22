@@ -6,12 +6,14 @@ from typing import Final
 from aiogram import html
 
 from app.application.i18n_text import fmt_usd
+from app.application.interactors.auto_confirm import confirm_deadline, confirm_hours
 from app.application.interactors.conversations import Posted
 from app.application.interactors.deadlines import ExtensionAnswer, ExtensionAsk
 from app.application.interactors.dispatch import Assigned, DispatchInteractor, DispatchResult
 from app.application.interactors.payouts import Refunded
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.orders import OrdersGateway
+from app.application.ports.repositories.settings import SettingsGateway
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.support import TicketStatus
 from app.domain.ledger import Withdrawal
@@ -49,6 +51,7 @@ class Effects:
     hub: EventHub
     notices: OrderNotices
     orders: OrdersGateway
+    settings: SettingsGateway
     dispatcher: DispatchInteractor
     config: AppConfig
 
@@ -112,8 +115,11 @@ class Effects:
         await self.offers.announce(result)
 
     async def result_submitted(self, order: Order) -> None:
+        """The executor is done: the buyer is asked to check (the auto-confirm clock runs)."""
+        until = confirm_deadline(order, await confirm_hours(self.settings))
         await _safe(
-            f"notifying reviewers about order {order.id}", self.notices.ready_for_review(order)
+            f"asking the buyer of order {order.id} to check it",
+            self.notices.ready_for_buyer(order, until),
         )
         await self._order_event(order.id, OrderStatus.ready, staff=True)
 
