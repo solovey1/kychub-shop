@@ -2,6 +2,7 @@
     uv run python scripts/emoji_pack.py --owner <telegram user id> [--update]
 Writes assets/emoji/ids.json {emoji: custom_emoji_id}. Never prints the token.
 """
+
 import argparse
 import asyncio
 import json
@@ -41,9 +42,10 @@ async def main(owner: int, update: bool) -> None:
                 sticker_type="custom_emoji",
             )
         stickers = (await bot.get_sticker_set(set_name)).stickers
-        ids = {s.emoji: s.custom_emoji_id for s in stickers}
+        # by upload order: Telegram may drop the FE0F selector from `s.emoji` (⚠️ ✏️ ⚙️)
+        ids = {e: s.custom_emoji_id for e, s in zip(emoji_map, stickers, strict=False)}
         (DIR / "ids.json").write_text(json.dumps(ids, ensure_ascii=False, indent=1), "utf-8")
-        print(f"{set_name}: {len(ids)} emoji -> assets/emoji/ids.json")
+        print(f"{set_name}: {len(ids)} emoji -> assets/emoji/ids.json")  # noqa: T201
 
 
 if __name__ == "__main__":
