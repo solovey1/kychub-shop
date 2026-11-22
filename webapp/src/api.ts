@@ -68,6 +68,8 @@ export type Order = OrderBrief & {
   extension: { request_id: number; minutes: number; until: string } | null;
   can_ask_cancel: boolean;
   cancel_request: CancelRequest | null; // the buyer's own request, waiting for the executor
+  deadline_at: string | null; // assigned and accepted: when the executor is due
+  executor_rating: { score: number | null; count: number } | null;
   can_rate: boolean; // completed, not rated yet
   rating: number | null;
 };

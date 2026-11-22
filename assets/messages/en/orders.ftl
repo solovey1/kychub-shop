@@ -15,6 +15,12 @@ messages-order-step_until = ⚙️ { $name }, due by { $time }
 messages-order-step_next = ▫️ { $name }
 messages-order-step_final = { $name }, { $time }
 messages-order-executor = 👤 Executor: { $alias }
+messages-order-executor_new = 👤 Executor: { $alias } · new executor
+messages-order-executor_rated =
+    👤 Executor: { $alias } · ⭐ { $score } ({ $n ->
+        [one] { $n } rating
+       *[other] { $n } ratings
+    })
 
 order-step-paid = Paid
 order-step-in_queue = In queue

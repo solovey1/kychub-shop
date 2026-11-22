@@ -131,6 +131,16 @@ class OrdersPresenter(BasePresenter):
             return messages.step_until(name=name, time=self._time(order.deadline_at))
         return messages.step_now(name=name)
 
+    def _executor(self, alias: str, rating: tuple[float | None, int]) -> str:
+        """Alias with the average score, or «new executor» while nobody rated him."""
+        score, count = rating
+        name = html.quote(alias)
+        if score is None or count == 0:
+            return self.i18n.get("messages-order-executor_new", alias=name)
+        return self.i18n.get(
+            "messages-order-executor_rated", alias=name, score=f"{score:.1f}", n=count
+        )
+
     def order(
         self,
         order: Order,
@@ -143,6 +153,7 @@ class OrdersPresenter(BasePresenter):
         confirm_at: datetime | None = None,
         dispute: Dispute | None = None,
         cancel: CancelState | None = None,
+        rating: tuple[float | None, int] = (None, 0),
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -159,9 +170,7 @@ class OrdersPresenter(BasePresenter):
             total=fmt_usd(order.price - order.discount),
             held="\n" + i18n.messages.order.held(amount=fmt_usd(reserved)) if reserved > 0 else "",
             steps=self._steps(order, events),
-            executor="\n\n" + i18n.messages.order.executor(alias=html.quote(alias))
-            if alias
-            else "",
+            executor="\n\n" + self._executor(alias, rating) if alias else "",
         )
         if pending is not None:
             until = extended_deadline(order, pending.minutes, datetime_now())

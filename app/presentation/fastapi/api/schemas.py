@@ -177,6 +177,11 @@ class OrderChatOut(PydanticModel):
         return cls(conversation_id=chat.conversation_id, unread=chat.unread, last=last)
 
 
+class ExecutorRatingOut(PydanticModel):
+    score: float | None  # average, None while nobody rated him
+    count: int
+
+
 class OrderOut(OrderBrief):
     chat: OrderChatOut | None = None
     executor_alias: str | None = None
@@ -191,6 +196,8 @@ class OrderOut(OrderBrief):
     extension: ExtensionAskOut | None = None
     can_ask_cancel: bool = False  # assigned, no dispute, no open request, under the limit
     cancel_request: CancelRequestOut | None = None  # the buyer's own request, waiting
+    deadline_at: datetime | None = None  # assigned and accepted: when the executor is due
+    executor_rating: ExecutorRatingOut | None = None
     can_rate: bool = False  # completed, not rated yet
     rating: int | None = None  # his score, once given
 

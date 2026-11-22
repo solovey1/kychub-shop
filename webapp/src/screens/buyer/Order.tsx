@@ -159,7 +159,18 @@ export function OrderScreen({ id }: { id: number }) {
       <Section>
         <Row title={t("order.total")} right={<Money value={o.total} />} />
         {o.reserved && <Row title={t("order.reserved")} sub={t("order.reservedNote")} right={<Money value={o.reserved} />} />}
-        {o.executor_alias && <Row title={t("order.executor")} right={o.executor_alias} />}
+        {o.executor_alias && (
+          <Row
+            title={t("order.executor")}
+            sub={
+              o.executor_rating?.score != null
+                ? `⭐ ${o.executor_rating.score.toFixed(1)} · ${t("order.ratings", { n: o.executor_rating.count })}`
+                : t("order.executorNew")
+            }
+            right={o.executor_alias}
+          />
+        )}
+        {o.deadline_at && <Row title={t("order.due")} right={fmtDate(o.deadline_at, true)} />}
         <Row title={t("order.created")} right={fmtDate(o.created_at)} />
       </Section>
       {lines.length > 0 && (

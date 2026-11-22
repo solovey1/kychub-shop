@@ -23,6 +23,7 @@ from app.presentation.fastapi.api.schemas import (
     CancelRequestOut,
     DisputeIn,
     DisputeOut,
+    ExecutorRatingOut,
     ExtensionAnswerIn,
     ExtensionAskOut,
     LedgerEntryOut,
@@ -76,6 +77,7 @@ async def _order(
     dispute = await orders.dispute(order)
     cancel = cancel_state(await orders.events(order_id))
     score = await orders.rating(order)
+    avg, count = await orders.executor_rating(order)
     asking = order.status is OrderStatus.assigned and dispute is None
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
@@ -98,6 +100,8 @@ async def _order(
         )
         if pending is not None and order.deadline_at is not None
         else None,
+        deadline_at=order.deadline_at if order.status is OrderStatus.assigned else None,
+        executor_rating=ExecutorRatingOut(score=avg, count=count) if order.executor_id else None,
         can_rate=order.status is OrderStatus.completed
         and order.executor_id is not None
         and score is None,

@@ -15,6 +15,13 @@ messages-order-step_until = ⚙️ { $name }, сдаст до { $time }
 messages-order-step_next = ▫️ { $name }
 messages-order-step_final = { $name }, { $time }
 messages-order-executor = 👤 Исполнитель: { $alias }
+messages-order-executor_new = 👤 Исполнитель: { $alias } · новый исполнитель
+messages-order-executor_rated =
+    👤 Исполнитель: { $alias } · ⭐ { $score } ({ $n ->
+        [one] { $n } оценка
+        [few] { $n } оценки
+       *[other] { $n } оценок
+    })
 
 order-step-paid = Оплачен
 order-step-in_queue = В очереди

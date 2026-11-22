@@ -76,6 +76,12 @@ class OrdersInteractor(BaseInteractor):
             return None
         return confirm_deadline(order, await confirm_hours(self.settings))
 
+    async def executor_rating(self, order: Order) -> tuple[float | None, int]:
+        """(average score, number of scores) of the order's executor; (None, 0): a new one."""
+        if order.executor_id is None:
+            return None, 0
+        return await self.executors.rating(order.executor_id)
+
     async def rating(self, order: Order) -> int | None:
         """The score the buyer gave this order."""
         return await self.executors.review_score(order.id)

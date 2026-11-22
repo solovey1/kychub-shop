@@ -56,7 +56,17 @@ class OrdersFlow(BaseFlow):
         dispute = await self.interactor.dispute(order)
         cancel = cancel_state(events)
         view, file = self.presenter.order(
-            order, page, events, alias, reorder, reserved, pending, confirm_at, dispute, cancel
+            order,
+            page,
+            events,
+            alias,
+            reorder,
+            reserved,
+            pending,
+            confirm_at,
+            dispute,
+            cancel,
+            await self.interactor.executor_rating(order),
         )
         await self.renderer.apply(view)
         if file is not None:
