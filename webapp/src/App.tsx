@@ -41,7 +41,7 @@ import { Failure, Hint, Loading } from "./ui/kit";
 import { Tabs } from "./ui/Tabs";
 import { useUnreadFeed } from "./unread";
 
-const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$/;
+const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$|^\/admin(\/[A-Za-z0-9/]+)?$/;
 const TOP = /^\/(orders|balance|admin|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
 
 function Shell({ me }: { me: Me }) {

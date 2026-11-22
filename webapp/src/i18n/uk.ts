@@ -461,6 +461,7 @@ export const uk: typeof ru = {
   "promo.add": "+ Промокод",
   "promo.new": "Новий промокод",
   "promo.code": "Код",
+  "promo.random": "Випадковий",
   "promo.kind": "Тип",
   "promo.kind.percent": "Знижка у відсотках",
   "promo.kind.amount": "Знижка в доларах",

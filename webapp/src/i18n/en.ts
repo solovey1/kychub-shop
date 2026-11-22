@@ -461,6 +461,7 @@ export const en: typeof ru = {
   "promo.add": "+ Promo code",
   "promo.new": "New promo code",
   "promo.code": "Code",
+  "promo.random": "Random",
   "promo.kind": "Type",
   "promo.kind.percent": "Percent discount",
   "promo.kind.amount": "Dollar discount",

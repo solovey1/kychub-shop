@@ -7,6 +7,9 @@ import { SelectField, SwitchRow, useExit, useSave } from "../kit";
 
 const KINDS: PromoKind[] = ["percent", "amount", "bonus"];
 const MONEY = /^\d{1,8}(\.\d{1,2})?$/;
+// no look-alikes (0/O, 1/I): a code is often read out or retyped
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const randomCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
 
 const value = (p: PromoBrief) => (p.kind === "percent" ? `${p.value}%` : `$${p.value}`);
 /** ISO (UTC) to the value of a datetime-local input, in the local zone. */
@@ -125,6 +128,9 @@ function Editor({ promo }: { promo?: Promo }) {
         {!promo && (
           <Field label={t("promo.code")}>
             <input value={code} maxLength={32} autoCapitalize="characters" onChange={(e) => setCode(e.target.value.toUpperCase())} />
+            <button type="button" className="link" onClick={() => setCode(randomCode())}>
+              {t("promo.random")}
+            </button>
           </Field>
         )}
         {promo ? (

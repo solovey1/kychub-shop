@@ -460,6 +460,7 @@ export const ru = {
   "promo.add": "+ Промокод",
   "promo.new": "Новый промокод",
   "promo.code": "Код",
+  "promo.random": "Случайный",
   "promo.kind": "Тип",
   "promo.kind.percent": "Скидка в процентах",
   "promo.kind.amount": "Скидка в долларах",
