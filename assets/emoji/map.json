@@ -1,0 +1,202 @@
+{
+ "✅": {
+  "name": "done",
+  "file": "done.svg",
+  "color": "green"
+ },
+ "💰": {
+  "name": "balance",
+  "file": "balance.svg",
+  "color": "green"
+ },
+ "📦": {
+  "name": "order",
+  "file": "order.svg",
+  "color": "green"
+ },
+ "🛒": {
+  "name": "cart",
+  "file": "cart.svg",
+  "color": "green"
+ },
+ "🛍": {
+  "name": "shop",
+  "file": "shop.svg",
+  "color": "green"
+ },
+ "💵": {
+  "name": "cash",
+  "file": "cash.svg",
+  "color": "green"
+ },
+ "💳": {
+  "name": "card",
+  "file": "card.svg",
+  "color": "green"
+ },
+ "🧾": {
+  "name": "receipt",
+  "file": "receipt.svg",
+  "color": "green"
+ },
+ "🟢": {
+  "name": "online",
+  "file": "online.svg",
+  "color": "green"
+ },
+ "⏳": {
+  "name": "hourglass",
+  "file": "hourglass.svg",
+  "color": "amber"
+ },
+ "⏱": {
+  "name": "timer",
+  "file": "timer.svg",
+  "color": "amber"
+ },
+ "⏰": {
+  "name": "alarm",
+  "file": "alarm.svg",
+  "color": "amber"
+ },
+ "🕓": {
+  "name": "clock",
+  "file": "clock.svg",
+  "color": "amber"
+ },
+ "❓": {
+  "name": "question",
+  "file": "question.svg",
+  "color": "amber"
+ },
+ "🔍": {
+  "name": "search",
+  "file": "search.svg",
+  "color": "amber"
+ },
+ "🔁": {
+  "name": "extend",
+  "file": "extend.svg",
+  "color": "amber"
+ },
+ "💬": {
+  "name": "message",
+  "file": "message.svg",
+  "color": "blue"
+ },
+ "📎": {
+  "name": "clip",
+  "file": "clip.svg",
+  "color": "blue"
+ },
+ "💡": {
+  "name": "info",
+  "file": "info.svg",
+  "color": "blue"
+ },
+ "📱": {
+  "name": "miniapp",
+  "file": "miniapp.svg",
+  "color": "blue"
+ },
+ "🌐": {
+  "name": "link",
+  "file": "link.svg",
+  "color": "blue"
+ },
+ "📤": {
+  "name": "upload",
+  "file": "upload.svg",
+  "color": "blue"
+ },
+ "📥": {
+  "name": "download",
+  "file": "download.svg",
+  "color": "blue"
+ },
+ "📋": {
+  "name": "list",
+  "file": "list.svg",
+  "color": "blue"
+ },
+ "🆘": {
+  "name": "support",
+  "file": "support.svg",
+  "color": "red"
+ },
+ "❌": {
+  "name": "error",
+  "file": "error.svg",
+  "color": "red"
+ },
+ "✖️": {
+  "name": "cancel",
+  "file": "cancel.svg",
+  "color": "red"
+ },
+ "🚫": {
+  "name": "blocked",
+  "file": "blocked.svg",
+  "color": "red"
+ },
+ "⚠️": {
+  "name": "warning",
+  "file": "warning.svg",
+  "color": "red"
+ },
+ "↩️": {
+  "name": "refund",
+  "file": "refund.svg",
+  "color": "red"
+ },
+ "⭐": {
+  "name": "rating",
+  "file": "rating.svg",
+  "color": "purple"
+ },
+ "🎟": {
+  "name": "promo",
+  "file": "promo.svg",
+  "color": "purple"
+ },
+ "💝": {
+  "name": "gift",
+  "file": "gift.svg",
+  "color": "purple"
+ },
+ "🌙": {
+  "name": "offline",
+  "file": "offline.svg",
+  "color": "gray"
+ },
+ "⚙️": {
+  "name": "settings",
+  "file": "settings.svg",
+  "color": "gray"
+ },
+ "✏️": {
+  "name": "edit",
+  "file": "edit.svg",
+  "color": "gray"
+ },
+ "🏠": {
+  "name": "home",
+  "file": "home.svg",
+  "color": "gray"
+ },
+ "🔒": {
+  "name": "lock",
+  "file": "lock.svg",
+  "color": "gray"
+ },
+ "👤": {
+  "name": "profile",
+  "file": "profile.svg",
+  "color": "gray"
+ },
+ "⚪️": {
+  "name": "neutral",
+  "file": "neutral.svg",
+  "color": "gray"
+ }
+}
