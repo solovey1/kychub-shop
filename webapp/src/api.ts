@@ -51,7 +51,9 @@ export type DisputeRow = {
   awaiting_until: string | null;
   opened_at: string;
 };
+export type OrderChat = { conversation_id: number; unread: number; last: Message | null };
 export type Order = OrderBrief & {
+  chat: OrderChat | null;
   executor_alias: string | null;
   result: string | null;
   result_files: number;
@@ -107,6 +109,7 @@ export type ExecutorOrder = QueueItem & {
   extension: { pending_minutes: number | null; can_request: boolean; options: number[] } | null;
   can_dispute: boolean;
   dispute: Dispute | null;
+  chat: OrderChat | null;
 };
 export type ExecutorListItem = {
   id: number;

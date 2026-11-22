@@ -153,6 +153,15 @@ const form = [
   { key: "plan", label: "Тариф", type: "select", required: false, options: ["Базовый", "Расширенный"], max_length: 64 },
   { key: "note", label: "Комментарий", type: "textarea", required: false, options: null, max_length: 500 },
 ];
+const orderChat = (unread: number, last: Msg) => ({ conversation_id: 1, unread, last });
+const BUYER_CHATS: Record<number, ReturnType<typeof orderChat>> = {
+  1042: orderChat(2, msg(4, "executor", false, "Если нужна другая страна, напишите — подберу замену без доплаты.", 3)),
+  1038: orderChat(120, msg(3, "executor", false, null, 30, "photo")),
+};
+const EXEC_CHATS: Record<number, ReturnType<typeof orderChat>> = {
+  1042: orderChat(3, msg(5, "buyer", false, "А можно сделать пораньше?", 2)),
+  1038: orderChat(0, msg(6, "executor", true, "Готово, проверьте скриншот.", 30)),
+};
 const execDetail = (id: number) => {
   const o = execOrders.find((x) => x.id === id) ?? execOrders[0];
   return {
@@ -163,6 +172,7 @@ const execDetail = (id: number) => {
     earning: "4.00",
     deadline_minutes: 90,
     deadline_at: o.deadline_at,
+    chat: EXEC_CHATS[o.id] ?? null,
     fields: [
       { label: "Страна", value: "США", is_file: false },
       { label: "Почта для регистрации", value: "buyer.mail@example.com", is_file: false },
@@ -1114,7 +1124,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const o = orders.find((x) => x.id === Number(m![1]));
     if (!o) throw 404;
     const done = o.status === "completed";
-    return { ...brief(o), executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null };
+    return { ...brief(o), chat: BUYER_CHATS[o.id] ?? null, executor_alias: o.alias, result: done ? o.result : null, result_files: o.id === 1030 ? 2 : 0, can_cancel: !!o.cancel, can_confirm: o.status === "ready", can_dispute: o.status === "assigned" || o.status === "ready", dispute: null, confirm_at: o.status === "ready" ? minutes(600) : null, reserved: ["in_queue", "assigned", "ready"].includes(o.status) ? o.total : null, extension: o.status === "assigned" ? { request_id: 1, minutes: 60, until: minutes(120) } : null };
   }
   if ((m = path.match(/^\/orders\/(\d+)\/cancel$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));

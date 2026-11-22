@@ -792,3 +792,13 @@ button.row:active {
 .msg.pending {
   opacity: 0.6;
 }
+.chat-last {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.chat-last.unread {
+  color: var(--fg);
+  font-weight: 500;
+}

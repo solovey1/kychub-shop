@@ -29,6 +29,7 @@ from app.presentation.fastapi.api.schemas import (
     LedgerEntryOut,
     OnlineIn,
     OnlineOut,
+    OrderChatOut,
     ResultFieldOut,
     ResultIn,
     StatsOut,
@@ -59,7 +60,11 @@ def _form(form: FormSchema, locale: str) -> list[ResultFieldOut]:
 
 
 async def _order(
-    order_id: int, user_id: int, locale: str, work: FulfillmentWorkInteractor
+    order_id: int,
+    user_id: int,
+    locale: str,
+    work: FulfillmentWorkInteractor,
+    chat: ConversationInteractor,
 ) -> ExecutorOrderOut:
     view = await work.get(user_id, order_id)
     if view is None:  # not his order looks like a missing one
@@ -87,6 +92,7 @@ async def _order(
         else None,
         can_dispute=view.order.status in DISPUTE_STATUSES and view.dispute is None,
         dispute=DisputeOut.of(view.dispute) if view.dispute else None,
+        chat=OrderChatOut.of(await chat.order_chat_summary(user_id, order_id), user_id),
     )
 
 
@@ -136,12 +142,13 @@ async def take(
     user: ExecutorUser,
     dispatcher: FromDishka[DispatchInteractor],
     work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
     effects: FromDishka[Effects],
 ) -> ExecutorOrderOut:
     if not await dispatcher.take(user.id, order_id):  # gone, taken, not permitted, at the limit
         raise HTTPException(409, "Order is not available")
     await effects.order_taken(order_id, user.id)
-    return await _order(order_id, user.id, user.language, work)
+    return await _order(order_id, user.id, user.language, work, chat)
 
 
 @router.get("/orders")
@@ -174,9 +181,12 @@ async def my_orders(
 @router.get("/orders/{order_id}")
 @inject
 async def get_order(
-    order_id: int, user: ExecutorUser, work: FromDishka[FulfillmentWorkInteractor]
+    order_id: int,
+    user: ExecutorUser,
+    work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
 ) -> ExecutorOrderOut:
-    return await _order(order_id, user.id, user.language, work)
+    return await _order(order_id, user.id, user.language, work, chat)
 
 
 @router.post("/orders/{order_id}/refuse")
@@ -202,12 +212,13 @@ async def submit_result(
     body: ResultIn,
     user: ExecutorUser,
     work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
     effects: FromDishka[Effects],
 ) -> ExecutorOrderOut:
     """Text fields only: a file field of the result form cannot be filled from the Mini App."""
     order = await work.submit(user.id, order_id, body.fields)  # OrderUnavailable -> 404
     await effects.result_submitted(order)
-    return await _order(order_id, user.id, user.language, work)
+    return await _order(order_id, user.id, user.language, work, chat)
 
 
 @router.post("/orders/{order_id}/dispute")
@@ -217,13 +228,14 @@ async def open_dispute(
     body: DisputeIn,
     user: ExecutorUser,
     work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
     disputes: FromDishka[DisputeInteractor],
     effects: FromDishka[Effects],
 ) -> ExecutorOrderOut:
     """Call support. Conflict `dispute_open` (409); not his order, or one not in work: 404."""
     news = await disputes.open(user.id, order_id, body.reason)
     await effects.dispute_opened(news)
-    return await _order(order_id, user.id, user.language, work)
+    return await _order(order_id, user.id, user.language, work, chat)
 
 
 @router.post("/orders/{order_id}/extension")
@@ -233,13 +245,14 @@ async def request_extension(
     body: ExtensionRequestIn,
     user: ExecutorUser,
     work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
     extension: FromDishka[ExtensionInteractor],
     effects: FromDishka[Effects],
 ) -> ExecutorOrderOut:
     """Conflict `extension_pending` / `extension_limit` (409); a passed deadline is a 400."""
     ask = await extension.request(user.id, order_id, body.minutes)
     await effects.extension_asked(ask)
-    return await _order(order_id, user.id, user.language, work)
+    return await _order(order_id, user.id, user.language, work, chat)
 
 
 @router.get("/stats")

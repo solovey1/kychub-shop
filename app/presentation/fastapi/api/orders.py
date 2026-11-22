@@ -23,6 +23,7 @@ from app.presentation.fastapi.api.schemas import (
     ExtensionAskOut,
     LedgerEntryOut,
     OrderBrief,
+    OrderChatOut,
     OrderListOut,
     OrderOut,
     usd,
@@ -52,7 +53,9 @@ async def list_orders(
     )
 
 
-async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOut:
+async def _order(
+    order_id: int, user: User, orders: OrdersInteractor, chat: ConversationInteractor
+) -> OrderOut:
     order = await orders.get(user.id, order_id)
     if order is None:
         raise HTTPException(404, "Not found")
@@ -64,6 +67,7 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
     return OrderOut(
         **OrderBrief.of(order, user.language).model_dump(),
         executor_alias=await orders.executor_alias(order),
+        chat=OrderChatOut.of(await chat.order_chat_summary(user.id, order_id), user.id),
         result=str(result.get("text", "")) if done else None,
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
@@ -85,9 +89,12 @@ async def _order(order_id: int, user: User, orders: OrdersInteractor) -> OrderOu
 @router.get("/orders/{order_id}")
 @inject
 async def get_order(
-    order_id: int, user: CurrentUser, orders: FromDishka[OrdersInteractor]
+    order_id: int,
+    user: CurrentUser,
+    orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
 ) -> OrderOut:
-    return await _order(order_id, user, orders)
+    return await _order(order_id, user, orders, chat)
 
 
 @router.post("/orders/{order_id}/extension")
@@ -97,13 +104,14 @@ async def answer_extension(
     body: ExtensionAnswerIn,
     user: CurrentUser,
     orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
     extension: FromDishka[ExtensionInteractor],
     effects: FromDishka[Effects],
 ) -> OrderOut:
     """Conflict `extension_stale` (409): the request is gone, nothing changed."""
     answer = await extension.answer(user.id, order_id, body.request_id, body.approve)
     await effects.extension_answered(answer)
-    return await _order(order_id, user, orders)
+    return await _order(order_id, user, orders, chat)
 
 
 @router.post("/orders/{order_id}/confirm")
@@ -112,13 +120,14 @@ async def confirm_order(
     order_id: int,
     user: CurrentUser,
     orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
     review: FromDishka[OrderReviewInteractor],
     effects: FromDishka[Effects],
 ) -> OrderOut:
     """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404."""
     order = await review.confirm_by_buyer(user.id, order_id)
     await effects.order_confirmed(order)
-    return await _order(order_id, user, orders)
+    return await _order(order_id, user, orders, chat)
 
 
 @router.post("/orders/{order_id}/dispute")
@@ -128,6 +137,7 @@ async def open_dispute(
     body: DisputeIn,
     user: CurrentUser,
     orders: FromDishka[OrdersInteractor],
+    chat: FromDishka[ConversationInteractor],
     disputes: FromDishka[DisputeInteractor],
     effects: FromDishka[Effects],
 ) -> OrderOut:
@@ -135,7 +145,7 @@ async def open_dispute(
     assigned / submitted: 404."""
     news = await disputes.open(user.id, order_id, body.reason)
     await effects.dispute_opened(news)
-    return await _order(order_id, user, orders)
+    return await _order(order_id, user, orders, chat)
 
 
 @router.post("/orders/{order_id}/cancel")

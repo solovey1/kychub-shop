@@ -5,6 +5,7 @@ import { ApiError, send, useFetch, type ExecutorOrder, type ResultField } from "
 import { named, t } from "../../i18n";
 import { alert, confirm, failure, success, useMainButton } from "../../telegram";
 import { Failure, Field, Loading, Money, Row, Section, list } from "../../ui/kit";
+import { ChatRow } from "../../ui/ChatRow";
 import { DisputeBlock } from "../../ui/Dispute";
 import { Left, duration } from "../../ui/Left";
 import { Track } from "../../ui/Track";
@@ -90,7 +91,7 @@ function ResultForm({ id, form, reload }: { id: number; form: ResultField[]; rel
 
 export function ExecOrder({ id }: { id: number }) {
   const [, go] = useLocation();
-  const { data: o, error, reload } = useFetch<ExecutorOrder>(`/executor/orders/${id}`, ["order"]);
+  const { data: o, error, reload } = useFetch<ExecutorOrder>(`/executor/orders/${id}`, ["order", "message"]);
   const { run } = useBusy();
   const [picking, setPicking] = useState(false);
   if (error && !o) return <Failure error={error} retry={reload} />;
@@ -99,8 +100,8 @@ export function ExecOrder({ id }: { id: number }) {
   const chat = () =>
     run(async () => {
       try {
-        const r = await send<{ conversation_id: number }>("POST", `/orders/${id}/chat`);
-        go(`/work/order/${id}/chat/${r.conversation_id}`);
+        const cid = o.chat?.conversation_id ?? (await send<{ conversation_id: number }>("POST", `/orders/${id}/chat`)).conversation_id;
+        go(`/work/order/${id}/chat/${cid}`);
       } catch (e) {
         await report(e);
       }
@@ -187,7 +188,7 @@ export function ExecOrder({ id }: { id: number }) {
       )}
       <Section>
         {(o.status === "assigned" || o.status === "ready") && (
-          <Row title={t("exec.writeBuyer")} chevron onClick={chat} />
+          <ChatRow title={t("exec.writeBuyer")} chat={o.chat} onClick={chat} />
         )}
         {o.status === "assigned" && <Row title={t("exec.refuse")} tone="bad" onClick={refuse} />}
       </Section>

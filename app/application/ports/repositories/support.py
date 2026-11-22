@@ -43,6 +43,9 @@ class SupportGateway(Protocol):
 
     async def ticket_conversation(self, ticket_id: int) -> Conversation | None: ...
 
+    async def find_order_conversation(self, order_id: int) -> Conversation | None:
+        """Read-only: None until somebody opens the chat."""
+
     async def order_conversation(self, order_id: int) -> Conversation:
         """Get or create; safe against two concurrent creators."""
 

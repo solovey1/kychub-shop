@@ -6,6 +6,7 @@ import { fmtDate, fmtMoney, t } from "../../i18n";
 import { alert, confirm, success } from "../../telegram";
 import { Failure, Loading, Money, Row, Section, list } from "../../ui/kit";
 import { duration } from "../../ui/Left";
+import { ChatRow } from "../../ui/ChatRow";
 import { DisputeBlock } from "../../ui/Dispute";
 import { Track } from "../../ui/Track";
 import { openSupport } from "./Orders";
@@ -29,7 +30,7 @@ function ResultLine({ line }: { line: string }) {
 
 export function OrderScreen({ id }: { id: number }) {
   const [, go] = useLocation();
-  const { data: o, error, reload } = useFetch<OrderData>(`/orders/${id}`, ["order"]);
+  const { data: o, error, reload } = useFetch<OrderData>(`/orders/${id}`, ["order", "message"]);
   const { run } = useBusy();
   if (error && !o) return <Failure error={error} retry={reload} />;
   if (!o) return <Loading />;
@@ -133,13 +134,13 @@ export function OrderScreen({ id }: { id: number }) {
       )}
       <Section>
         {(o.status === "assigned" || o.status === "ready") && (
-          <Row
+          <ChatRow
             title={t("order.writeExecutor")}
-            chevron
+            chat={o.chat}
             onClick={() =>
               chat(
                 (cid) => `/orders/${id}/chat/${cid}`,
-                () => send("POST", `/orders/${id}/chat`),
+                async () => (o.chat ? { conversation_id: o.chat.conversation_id } : send("POST", `/orders/${id}/chat`)),
               )
             }
           />

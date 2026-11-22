@@ -9,11 +9,13 @@ from pydantic import Field
 
 from app.application.cards import OrderCard
 from app.application.i18n_text import pick_i18n
+from app.application.interactors.conversations import OrderChat
 from app.application.models.base import PydanticModel
 from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.ledger import LedgerEntry
 from app.domain.order import Order
+from app.infrastructure.events import message_view
 
 
 def usd(amount: Decimal) -> str:
@@ -124,7 +126,34 @@ class DisputeRowOut(PydanticModel):
     opened_at: datetime
 
 
+class MessageOut(PydanticModel):
+    """Same fields as the `message` event of the WebSocket (`message_view`)."""
+
+    id: int
+    sender_role: str
+    mine: bool
+    text: str | None
+    media_type: str | None
+    created_at: datetime
+
+
+class OrderChatOut(PydanticModel):
+    """The order chat as its reader sees it from the order card."""
+
+    conversation_id: int
+    unread: int
+    last: MessageOut | None
+
+    @classmethod
+    def of(cls, chat: OrderChat | None, user_id: int) -> "OrderChatOut | None":
+        if chat is None:
+            return None
+        last = MessageOut(**message_view(chat.last, user_id)) if chat.last else None
+        return cls(conversation_id=chat.conversation_id, unread=chat.unread, last=last)
+
+
 class OrderOut(OrderBrief):
+    chat: OrderChatOut | None = None
     executor_alias: str | None = None
     result: str | None = None  # from the moment the executor is done (ready) on
     result_files: int = 0
@@ -207,17 +236,6 @@ class PostMessageIn(PydanticModel):
     text: str = Field(min_length=1, max_length=4000)
 
 
-class MessageOut(PydanticModel):
-    """Same fields as the `message` event of the WebSocket (`message_view`)."""
-
-    id: int
-    sender_role: str
-    mine: bool
-    text: str | None
-    media_type: str | None
-    created_at: datetime
-
-
 class MessagesOut(PydanticModel):
     items: list[MessageOut]  # oldest first
     has_more: bool
@@ -258,6 +276,7 @@ class ExecutorOrderOut(ExecutorOrderBrief):
     extension: ExtensionStateOut | None = None  # only while the order is assigned
     can_dispute: bool = False
     dispute: DisputeOut | None = None
+    chat: OrderChatOut | None = None
 
 
 class ExecutorOrderListItem(PydanticModel):

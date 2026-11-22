@@ -64,6 +64,13 @@ class Posted:
     needs_offer: bool  # an open ticket nobody has taken: managers have to be told
 
 
+@dataclass(frozen=True)
+class OrderChat:
+    conversation_id: int
+    unread: int
+    last: Message | None
+
+
 _Context = tuple[Participants, Ticket | None, Order | None]
 
 
@@ -305,6 +312,15 @@ class ConversationInteractor(BaseInteractor):
         return await self.support.unread_by_order(
             user_id, [o.id for o in orders if o.status in CHAT_STATUSES]
         )
+
+    async def order_chat_summary(self, user_id: int, order_id: int) -> OrderChat | None:
+        """None when there is no chat yet or the user may not read it."""
+        conversation = await self.support.find_order_conversation(order_id)
+        if conversation is None or await self.reader_role(user_id, conversation) is None:
+            return None
+        unread = await self.support.unread_by_order(user_id, [order_id])
+        page = await self.support.messages_page(conversation.id, None, 1)
+        return OrderChat(conversation.id, unread.get(order_id, 0), page[-1] if page else None)
 
     async def unread_by_ticket(self, user_id: int, tickets: list[Ticket]) -> dict[int, int]:
         return await self.support.unread_by_ticket(

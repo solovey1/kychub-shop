@@ -69,6 +69,13 @@ class SupportRepository(SupportGateway):
         conversation: Conversation | None = await self._helper.session.scalar(query)
         return conversation
 
+    async def find_order_conversation(self, order_id: int) -> Conversation | None:
+        query = select(Conversation).where(
+            Conversation.kind == ConversationKind.order, Conversation.order_id == order_id
+        )
+        conversation: Conversation | None = await self._helper.session.scalar(query)
+        return conversation
+
     async def order_conversation(self, order_id: int) -> Conversation:
         session = self._helper.session
         await session.execute(
