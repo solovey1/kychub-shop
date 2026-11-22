@@ -9,7 +9,10 @@ messages-balance-history_empty = Операций пока нет.
 messages-balance-credited = ➕ На ваш баланс зачислено { $amount }.
 messages-balance-debited = ➖ С вашего баланса списано { $amount }.
 
-messages-topup-choose = Выберите сумму пополнения.
+messages-topup-choose =
+    Выберите сумму пополнения.
+
+    💡 Баланс тратится на покупки в магазине, вывести его нельзя.
 messages-topup-disabled = Пополнение скоро будет доступно.
 messages-topup-custom_ask = Введите сумму в долларах, например 12.50.
 messages-topup-invalid = Не удалось распознать сумму. Введите число от { $min } до { $max } не более чем с двумя знаками после точки.

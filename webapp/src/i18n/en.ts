@@ -96,7 +96,7 @@ export const en: typeof ru = {
 
   "balance.title": "Balance",
   "balance.topup": "Top up in the bot",
-  "balance.hint": "Top-ups and purchases happen in the bot chat.",
+  "balance.hint": "The balance is spent in the shop and cannot be withdrawn. Top-ups and purchases are in the bot chat.",
   "balance.empty": "No transactions yet.",
   "balance.history": "History",
   "balance.held": "In orders",

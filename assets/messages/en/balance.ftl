@@ -9,7 +9,10 @@ messages-balance-history_empty = No activity yet.
 messages-balance-credited = ➕ { $amount } has been added to your balance.
 messages-balance-debited = ➖ { $amount } has been deducted from your balance.
 
-messages-topup-choose = Choose a top-up amount.
+messages-topup-choose =
+    Choose a top-up amount.
+
+    💡 The balance is spent in the shop and cannot be withdrawn.
 messages-topup-disabled = Top-ups will be available soon.
 messages-topup-custom_ask = Enter the amount in dollars, for example 12.50.
 messages-topup-invalid = Could not read the amount. Enter a number from { $min } to { $max } with at most two decimal places.
