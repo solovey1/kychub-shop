@@ -14,7 +14,7 @@ from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import OrderOfferKey
 from app.infrastructure.events import EventHub
 from app.infrastructure.telegram.notifier import Notifier, Translate
-from app.presentation.telegram.callbacks.executor import CDOrderAct
+from app.presentation.telegram.callbacks.executor import CDOrderAct, CDXOrder
 from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder
 from app.presentation.telegram.keyboards.common import button, markup
 
@@ -58,6 +58,7 @@ def _refuse_keyboard(
                         style="danger",
                     )
                 ],
+                [button(tr("buttons-open_order"), CDXOrder(id=order_id))],
             ]
         )
 

@@ -55,7 +55,11 @@ def _open_order(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
     return lambda tr: markup([[button(tr("buttons-open"), CDXOrder(id=order_id))]])
 
 
-def _result_markup(text: str) -> Callable[[Translate], InlineKeyboardMarkup]:
+def _buyer_open(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
+    return lambda tr: markup([[button(tr("buttons-open_order"), CDOrder(id=order_id))]])
+
+
+def _result_markup(text: str, order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
     def build(tr: Translate) -> InlineKeyboardMarkup:
         rows: list[list[InlineKeyboardButton]] = []
         if text and len(text) <= COPY_LIMIT:
@@ -68,7 +72,12 @@ def _result_markup(text: str) -> Callable[[Translate], InlineKeyboardMarkup]:
                     )
                 ]
             )
-        rows.append([button(tr("buttons-menu"), CDMenu())])
+        rows.append(
+            [
+                button(tr("buttons-open_order"), CDOrder(id=order_id)),
+                button(tr("buttons-menu"), CDMenu()),
+            ]
+        )
         return markup(rows)
 
     return build
@@ -152,7 +161,12 @@ class OrderNotices:
     async def dispute_closed(self, order: Order) -> None:
         for user_id in (order.user_id, order.executor_id):
             if user_id is not None:
-                await self.notifier.send(user_id, "messages-dispute-closed", id=str(order.id))
+                await self.notifier.send(
+                    user_id,
+                    "messages-dispute-closed",
+                    _buyer_open(order.id) if user_id == order.user_id else _open_order(order.id),
+                    id=str(order.id),
+                )
 
     async def confirm_reminder(self, order: Order, until: datetime) -> None:
         order_id = order.id
@@ -178,7 +192,7 @@ class OrderNotices:
                     + "\n\n"
                     + tr("messages-purchase-done_file")
                 ),
-                _result_markup(""),
+                _result_markup("", order.id),
             )
             await self.notifier.send_file(user_id, f"order-{order.id}.txt", text.encode("utf-8"))
         else:
@@ -186,7 +200,7 @@ class OrderNotices:
             await self.notifier.send(
                 user_id,
                 lambda tr, _: tr("messages-purchase-done", id=oid) + body,
-                _result_markup(text),
+                _result_markup(text, order.id),
             )
         await self.files(user_id, list(result.get("files", [])))
 
@@ -197,7 +211,10 @@ class OrderNotices:
     async def confirmed(self, order: Order) -> None:
         if order.executor_id is not None:
             await self.notifier.send(
-                order.executor_id, "messages-executor-confirmed", id=str(order.id)
+                order.executor_id,
+                "messages-executor-confirmed",
+                _open_order(order.id),
+                id=str(order.id),
             )
 
     async def sent_back(self, order: Order, comment: str) -> None:
@@ -214,12 +231,16 @@ class OrderNotices:
         await self.notifier.send(
             refund.buyer_id,
             "messages-order-refunded",
+            _buyer_open(refund.order_id),
             id=str(refund.order_id),
             amount=fmt_usd(refund.amount),
         )
         if refund.executor_id is not None:
             await self.notifier.send(
-                refund.executor_id, "messages-executor-order_closed", id=str(refund.order_id)
+                refund.executor_id,
+                "messages-executor-order_closed",
+                _open_order(refund.order_id),
+                id=str(refund.order_id),
             )
 
     async def reminder(self, reminder: Reminder) -> None:
@@ -306,12 +327,16 @@ class OrderNotices:
             await self.notifier.send(
                 order.user_id,
                 "messages-order-cancel_agreed",
+                _buyer_open(order_id),
                 id=str(order_id),
                 amount=fmt_usd(answer.refund.amount),
             )
             if answer.by_timer and order.executor_id is not None:
                 await self.notifier.send(
-                    order.executor_id, "messages-executor-cancel_by_timer", id=str(order_id)
+                    order.executor_id,
+                    "messages-executor-cancel_by_timer",
+                    _open_order(order_id),
+                    id=str(order_id),
                 )
             return
         await self.notifier.send(
@@ -395,12 +420,16 @@ class OrderNotices:
         await self.notifier.send(
             order.user_id,
             "messages-order-info_timeout",
+            _buyer_open(order.id),
             id=str(order.id),
             amount=fmt_usd(refund.amount),
         )
         if order.executor_id is not None:
             await self.notifier.send(
-                order.executor_id, "messages-executor-info_timeout", id=str(order.id)
+                order.executor_id,
+                "messages-executor-info_timeout",
+                _open_order(order.id),
+                id=str(order.id),
             )
 
     async def review_request(self, order: Order) -> None:
