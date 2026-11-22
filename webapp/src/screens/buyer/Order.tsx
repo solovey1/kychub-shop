@@ -147,16 +147,18 @@ export function OrderScreen({ id }: { id: number }) {
             }
           />
         )}
-        <Row
-          title={t("support.contact")}
-          chevron
-          onClick={() =>
-            chat(
-              (cid) => `/chat/${cid}`,
-              () => openSupport(id),
-            )
-          }
-        />
+        {!o.can_dispute && !o.dispute && (
+          <Row
+            title={t("support.contact")}
+            chevron
+            onClick={() =>
+              chat(
+                (cid) => `/chat/${cid}`,
+                () => openSupport(id),
+              )
+            }
+          />
+        )}
         {o.can_cancel && <Row title={t("order.cancel")} tone="bad" onClick={cancel} />}
       </Section>
     </div>

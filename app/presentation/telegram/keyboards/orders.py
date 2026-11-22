@@ -103,7 +103,8 @@ def order_keyboard(
         rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard
     if order.status in CHAT_STATUSES:
         rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
-    rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
+    else:  # in work, support comes through the dispute (or is already in it)
+        rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
     if reorder:
         rows.append(reorder_row(i18n, order))
     if order.status is OrderStatus.in_queue:  # nobody has taken it yet
