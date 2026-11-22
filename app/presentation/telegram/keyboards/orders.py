@@ -100,7 +100,11 @@ def order_keyboard(
     rows = []
     if order.status is OrderStatus.ready or (order.status in CHAT_STATUSES and not dispute):
         rows += deal_rows(
-            i18n.get, order.id, page, ok=order.status is OrderStatus.ready, ask=not dispute
+            i18n.get,
+            order.id,
+            page,
+            ok=order.status is OrderStatus.ready and not dispute,
+            ask=not dispute,
         )
     if pending is not None:
         rows += extension_keyboard(i18n.get, order.id, pending.request_id).inline_keyboard

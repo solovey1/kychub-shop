@@ -101,7 +101,7 @@ class OrdersFlow(BaseFlow):
     async def _ok(self, cd: CDDeal) -> None:
         try:
             order = await self.review.confirm_by_buyer(self.user.id, cd.id)
-        except OrderUnavailable:  # confirmed already (by him, support or the timer), or not his
+        except (OrderUnavailable, Conflict):  # done already, not his, or a dispute is open
             return await self.show(cd.id, cd.page)
         await self.renderer.apply(self.presenter.confirmed(order.id, cd.page))
         await self.effects.order_confirmed(order, ask_rating=True)

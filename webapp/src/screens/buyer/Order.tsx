@@ -57,7 +57,7 @@ export function OrderScreen({ id }: { id: number }) {
         success();
       } catch (e) {
         if (e instanceof ApiError && e.status === 404) await alert(t("order.alreadyDone"));
-        else return report(e);
+        else if (!(e instanceof ApiError && e.status === 409)) return report(e); // a dispute opened: just refresh
       }
       reload();
     });

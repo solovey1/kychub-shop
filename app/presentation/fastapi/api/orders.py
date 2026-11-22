@@ -90,7 +90,7 @@ async def _order(
         result=str(result.get("text", "")) if done else None,
         result_files=len(result.get("files", [])) if done else 0,
         can_cancel=order.status is OrderStatus.in_queue,
-        can_confirm=order.status is OrderStatus.ready,
+        can_confirm=order.status is OrderStatus.ready and dispute is None,
         can_dispute=order.status in DISPUTE_STATUSES
         and dispute is None
         and order.accept_until is None,
@@ -182,7 +182,8 @@ async def confirm_order(
     review: FromDishka[OrderReviewInteractor],
     effects: FromDishka[Effects],
 ) -> OrderOut:
-    """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404."""
+    """The buyer: everything is fine. Confirmed already (by him, support or the timer): 404;
+    a dispute is open: 409 `dispute_open`."""
     order = await review.confirm_by_buyer(user.id, order_id)
     await effects.order_confirmed(order, ask_rating=True)
     return await _order(order_id, user, orders, chat)

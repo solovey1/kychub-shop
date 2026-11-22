@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Final
 
 from app.application.cards import OrderCard
-from app.application.errors.shop import OrderUnavailable
+from app.application.errors.shop import Conflict, OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.cards import CardBuilder, earning_for, load_context, percent_for
@@ -100,6 +100,8 @@ class OrderReviewInteractor(BaseInteractor):
             order = await self._locked(order_id, OrderStatus.ready)
             if buyer_id is not None and order.user_id != buyer_id:
                 raise OrderUnavailable(order_id)
+            if buyer_id is not None and await self.disputes.open_for_order(order_id) is not None:
+                raise Conflict("dispute_open")  # support decides, not «everything is fine»
             await self.complete_locked(order, actor_id)
             if buyer_id is not None:
                 # he is looking at the order now: ask for the rating at once; the event (same one
