@@ -33,7 +33,7 @@ export function Offer({ id }: { id: number }) {
     <div className="screen">
       <div className="headline">
         <h1>{offer.product}</h1>
-        <p>{list(offer.country?.toUpperCase(), `№${offer.id}`)}</p>
+        <p>{list(offer.country?.toUpperCase(), `№${offer.code}`)}</p>
       </div>
       <Section>
         <Row title={t("offer.earning")} right={<Money value={offer.earning} signed />} />

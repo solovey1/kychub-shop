@@ -16,7 +16,7 @@ export function TicketOrder({ id }: { id: number }) {
   return (
     <details className="ticket-order" open>
       <summary>
-        {t("ticket.order", { id: o.id })}: {o.product}
+        {t("ticket.order", { id: o.code })}: {o.product}
       </summary>
       <div className="group">
         <Row title={list(o.variant, o.country && flag(o.country))} right={<Money value={o.total} />} />

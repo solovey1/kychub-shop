@@ -306,6 +306,7 @@ class MessagesOut(PydanticModel):
     items: list[MessageOut]  # oldest first
     has_more: bool
     can_post: bool
+    code: str  # the order or the ticket the conversation is about, as people read it
 
 
 class CardFieldOut(PydanticModel):

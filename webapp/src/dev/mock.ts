@@ -1245,6 +1245,29 @@ function route(method: string, url: URL, body: unknown): unknown {
   throw 404;
 }
 
+// Public codes (what people read instead of ids): the real API sends them next to every id; here
+// they are derived from the id, so the mock data above stays as it is.
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const codeOf = (id: number): string => {
+  let n = id * 7919 + 12345;
+  let out = "";
+  for (let i = 0; i < 5; i++, n = Math.floor(n / 31)) out += ALPHABET[(n + i * 7) % 32];
+  return out;
+};
+function withCodes(v: unknown, parent = ""): unknown {
+  if (Array.isArray(v)) return v.map((x) => withCodes(x, parent));
+  if (v === null || typeof v !== "object") return v;
+  const o: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) o[k] = withCodes(x, k);
+  const id = o.id;
+  if (typeof id === "number" && "product" in o && "status" in o) o.code = codeOf(id); // an order
+  else if (typeof id === "number" && "buyer_name" in o && "conversation_id" in o) o.code = codeOf(id); // a ticket
+  if (typeof o.order_id === "number") o.order_code = codeOf(o.order_id);
+  if (typeof o.order_id === "number" && "product" in o && "awaiting_role" in o) o.order_code = codeOf(o.order_id);
+  if (parent === "" && "can_post" in o && "items" in o && !("code" in o)) o.code = codeOf(1042); // a chat
+  return o;
+}
+
 const real = window.fetch.bind(window);
 window.fetch = async (input, init) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href);
@@ -1252,7 +1275,7 @@ window.fetch = async (input, init) => {
   await new Promise((r) => setTimeout(r, 120));
   try {
     const data = route(init?.method ?? "GET", url, typeof init?.body === "string" ? JSON.parse(init.body) : undefined);
-    return data instanceof Blob ? new Response(data) : Response.json(data);
+    return data instanceof Blob ? new Response(data) : Response.json(withCodes(data));
   } catch (e) {
     if (typeof e === "number") return Response.json({ detail: "Not found" }, { status: e });
     if (typeof e === "object" && e !== null && "status" in e) {

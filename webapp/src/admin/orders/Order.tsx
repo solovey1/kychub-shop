@@ -55,7 +55,7 @@ export function AdminOrderScreen({ id, viewer }: { id: number; viewer: string[] 
     <div className="screen">
       <div className="headline">
         <h1>{o.product}</h1>
-        <p>{list(o.variant, o.country?.toUpperCase(), `№${o.id}`)}</p>
+        <p>{list(o.variant, o.country?.toUpperCase(), `№${o.code}`)}</p>
       </div>
       <Section>
         <Row title={t("order.status")} right={named("status", o.status)} />
@@ -154,10 +154,11 @@ export function AssignScreen({ id }: { id: number }) {
     return <Failure error={error} retry={() => (order.reload(), execs.reload())} />;
   if (!order.data || !execs.data) return <Loading />;
   const expected = order.data.executor_id;
+  const code = order.data.code;
 
   const assign = (e: Assignable) =>
     act(async () => {
-      if (!(await confirm(t("assign.confirm", { alias: e.alias, id })))) return false;
+      if (!(await confirm(t("assign.confirm", { alias: e.alias, id: code })))) return false;
       await send("POST", `/admin/orders/${id}/assign`, { executor_id: e.id, expected_executor_id: expected });
       exit();
     });
@@ -165,7 +166,7 @@ export function AssignScreen({ id }: { id: number }) {
     <div className="screen">
       <div className="headline">
         <h1>{t("assign.title")}</h1>
-        <p>{`${order.data.product} · №${id}`}</p>
+        <p>{`${order.data.product} · №${order.data.code}`}</p>
       </div>
       <Section footer={t("assign.note")}>
         {execs.data.length === 0 && <Row title={t("assign.none")} />}

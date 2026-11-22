@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { ApiError, send, useFetch, type StaffMember } from "../../api";
+import { ApiError, send, useFetch, type StaffMember, type Ticket } from "../../api";
 import { useAct } from "../../admin/kit";
 import { t } from "../../i18n";
 import { alert, confirm } from "../../telegram";
@@ -8,6 +8,7 @@ import { Empty, Failure, Loading, Row, Section } from "../../ui/kit";
 export function Handover({ tid, me }: { tid: number; me: number }) {
   const [, go] = useLocation();
   const { data, error, reload } = useFetch<StaffMember[]>("/staff/managers");
+  const ticket = useFetch<Ticket>(`/tickets/${tid}`).data;
   const { act } = useAct((e) => {
     if (!(e instanceof ApiError) || e.status !== 404) return false;
     void alert(t("handover.gone")).then(() => go("/support/tickets", { replace: true }));
@@ -26,7 +27,7 @@ export function Handover({ tid, me }: { tid: number; me: number }) {
     <div className="screen">
       <div className="headline">
         <h1>{t("handover.title")}</h1>
-        <p>{t("ticket.title", { id: tid })}</p>
+        {ticket && <p>{t("ticket.title", { id: ticket.code })}</p>}
       </div>
       {others.length === 0 && <Empty text={t("handover.none")} />}
       {others.length > 0 && (

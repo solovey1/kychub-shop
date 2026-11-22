@@ -26,6 +26,7 @@ export type Me = {
 };
 export type OrderBrief = {
   id: number;
+  code: string; // what people read as the order number; `id` is only for paths
   status: Status;
   product: string;
   variant: string;
@@ -44,6 +45,7 @@ export type Dispute = {
 };
 export type DisputeRow = {
   order_id: number;
+  order_code: string;
   status: Status;
   product: string;
   variant: string;
@@ -95,7 +97,7 @@ export type Message = {
   media_type: string | null;
   created_at: string;
 };
-export type Messages = { items: Message[]; has_more: boolean; can_post: boolean };
+export type Messages = { items: Message[]; has_more: boolean; can_post: boolean; code: string };
 export type CardField = { label: string; value: string | null; is_file: boolean };
 export type ResultField = {
   key: string;
@@ -107,6 +109,7 @@ export type ResultField = {
 };
 export type QueueItem = {
   id: number;
+  code: string;
   status: Status;
   product: string;
   country: string | null;
@@ -129,6 +132,7 @@ export type ExecutorOrder = QueueItem & {
 };
 export type ExecutorListItem = {
   id: number;
+  code: string;
   status: Status;
   product: string;
   variant: string;
@@ -155,8 +159,10 @@ export type Wallet = {
 };
 export type Ticket = {
   id: number;
+  code: string;
   status: "open" | "taken" | "closed";
   order_id: number | null;
+  order_code: string | null;
   buyer_name: string;
   mine: boolean;
   conversation_id: number;
@@ -252,7 +258,7 @@ export type UserCard = UserBrief & {
   blocked: boolean;
   /** null: the viewer may not see money */
   balance: string | null;
-  orders: { id: number; status: Status; product: string; total: string; created_at: string }[];
+  orders: { id: number; code: string; status: Status; product: string; total: string; created_at: string }[];
 };
 export type ExecutorRow = {
   id: number;
@@ -277,6 +283,7 @@ export type ExecutorDetail = {
 };
 export type AdminOrderRow = {
   id: number;
+  code: string;
   status: Status;
   product: string;
   variant: string;
@@ -336,7 +343,7 @@ export type Promo = PromoBrief & {
   new_users_only: boolean;
   allowed_user_ids: number[];
   reusable: boolean;
-  usages: { user_id: number; name: string; order_id: number | null; created_at: string }[];
+  usages: { user_id: number; name: string; order_id: number | null; order_code: string | null; created_at: string }[];
 };
 export type Broadcast = {
   id: number;

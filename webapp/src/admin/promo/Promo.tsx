@@ -177,7 +177,7 @@ function Editor({ promo }: { promo?: Promo }) {
             <Row
               key={i}
               title={u.name}
-              sub={list(`ID ${u.user_id}`, u.order_id ? `№${u.order_id}` : null)}
+              sub={list(`ID ${u.user_id}`, u.order_code ? `№${u.order_code}` : null)}
               right={fmtDate(u.created_at)}
             />
           ))}

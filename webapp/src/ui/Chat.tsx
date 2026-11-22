@@ -82,7 +82,7 @@ export function Chat({
   header,
 }: {
   cid: number;
-  title?: string;
+  title?: string | ((code: string) => string); // a function gets the code of the order or ticket
   version?: number;
   onClose?: () => void;
   onHandover?: () => void;
@@ -91,6 +91,7 @@ export function Chat({
   const [items, setItems] = useState<Message[]>();
   const [hasMore, setHasMore] = useState(false);
   const [canPost, setCanPost] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState<ApiError>();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -106,7 +107,7 @@ export function Chat({
   useEffect(() => {
     stick.current = true;
     get<Messages>(`/conversations/${cid}/messages?limit=${PAGE}`).then(
-      (r) => (setItems(r.items), setHasMore(r.has_more), setCanPost(r.can_post), setError(undefined)),
+      (r) => (setItems(r.items), setHasMore(r.has_more), setCanPost(r.can_post), setCode(r.code), setError(undefined)),
       setError,
     );
   }, [cid, version]);
@@ -202,11 +203,12 @@ export function Chat({
   };
 
   if (error && !items) return <Loading />;
+  const shownTitle = typeof title === "function" ? (code ? title(code) : "") : title;
   return (
     <div className="chat">
-      {title && (
+      {shownTitle && (
         <div className="chat-bar">
-          <span>{title}</span>
+          <span>{shownTitle}</span>
           {onHandover && (
             <button className="link" onClick={onHandover}>
               {t("ticket.handover")}

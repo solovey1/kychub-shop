@@ -44,7 +44,7 @@ export function TicketChat({ tid, cid, admin }: { tid: number; cid: number; admi
     <Chat
       cid={cid}
       version={version}
-      title={t("ticket.title", { id: tid })}
+      title={(code) => t("ticket.title", { id: code })}
       onHandover={ticket && ticket.status !== "closed" && (admin || ticket.mine) ? () => go(`/ticket/${tid}/handover`) : undefined}
       onClose={ticket?.mine && ticket.status === "taken" ? close : undefined}
       header={ticket?.order_id ? <TicketOrder id={ticket.order_id} /> : undefined}

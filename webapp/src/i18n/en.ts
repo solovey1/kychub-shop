@@ -448,6 +448,7 @@ export const en: typeof ru = {
   "orders.filters": "Filters",
   "orders.allStatuses": "All statuses",
   "orders.buyerId": "Buyer ID",
+  "orders.number": "Order number",
   "orders.noneFound": "No orders found",
 
   "aorder.price": "Price",

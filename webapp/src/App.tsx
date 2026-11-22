@@ -76,14 +76,14 @@ function Shell({ me }: { me: Me }) {
       <Switch>
         <Route path="/orders" component={Orders} />
         <Route path="/orders/:id/chat/:cid">
-          {(p) => <Chat cid={Number(p.cid)} title={t("chat.order", { id: p.id })} />}
+          {(p) => <Chat cid={Number(p.cid)} title={(code) => t("chat.order", { id: code })} />}
         </Route>
         <Route path="/orders/:id">{(p) => <OrderScreen id={id(p)} />}</Route>
         <Route path="/balance" component={Balance} />
         <Route path="/chat/:cid">{(p) => <Chat cid={Number(p.cid)} title={t("support.title")} />}</Route>
         <Route path="/work/offer/:id">{(p) => <Offer id={id(p)} />}</Route>
         <Route path="/work/order/:id/chat/:cid">
-          {(p) => <Chat cid={Number(p.cid)} title={t("chat.order", { id: p.id })} />}
+          {(p) => <Chat cid={Number(p.cid)} title={(code) => t("chat.order", { id: code })} />}
         </Route>
         <Route path="/work/order/:id">{(p) => <ExecOrder id={id(p)} />}</Route>
         <Route path="/work/:seg">{(p) => <Work seg={p.seg as WorkSeg} />}</Route>

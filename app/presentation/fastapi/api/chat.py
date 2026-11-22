@@ -99,6 +99,11 @@ async def messages(
         items=[MessageOut(**message_view(m, user.id)) for m in items],
         has_more=has_more,
         can_post=await chat.can_post(user.id, conversation) is not None,
+        code=(
+            await chat.order_code(conversation.order_id)
+            if conversation.order_id
+            else await chat.ticket_code(conversation.ticket_id or 0)
+        ),
     )
 
 

@@ -103,7 +103,7 @@ function Queue() {
           key={o.id}
           title={o.product}
           sub={list(o.country?.toUpperCase(), t("queue.minutes", { n: o.deadline_minutes }))}
-          meta={`№${o.id}`}
+          meta={`№${o.code}`}
           right={<Money value={o.earning} signed />}
           onClick={() => go(`/work/offer/${o.id}`)}
         />
@@ -126,7 +126,7 @@ function Mine() {
             key={o.id}
             title={o.product}
             sub={list(o.variant, o.country?.toUpperCase())}
-            meta={`№${o.id}`}
+            meta={`№${o.code}`}
             right={
               <span className={statusTone(o.status)}>
                 {named("status", o.status)}

@@ -66,7 +66,7 @@ function Tickets({ admin }: { admin: boolean }) {
             <Row
               key={tk.id}
               title={tk.buyer_name}
-              sub={list(`№${tk.id}`, tk.order_id ? t("tickets.order", { id: tk.order_id }) : null)}
+              sub={list(`№${tk.code}`, tk.order_code ? t("tickets.order", { id: tk.order_code }) : null)}
               meta={fmtDate(tk.created_at)}
               right={scope === "all" ? named("ticket", tk.status) : undefined}
               chevron
@@ -93,7 +93,7 @@ function Review() {
           key={o.id}
           title={o.product}
           sub={list(o.variant, o.country?.toUpperCase())}
-          meta={`№${o.id}`}
+          meta={`№${o.code}`}
           rightSub={o.ready_at ? fmtDate(o.ready_at, true) : undefined}
           chevron
           onClick={() => go(`/support/review/${o.id}`)}
@@ -116,7 +116,7 @@ function Disputes() {
           key={d.order_id}
           title={d.product}
           sub={list(d.variant, d.country?.toUpperCase())}
-          meta={`№${d.order_id}`}
+          meta={`№${d.order_code}`}
           rightSub={d.awaiting_until ? fmtDate(d.awaiting_until, true) : undefined}
           chevron
           onClick={() => go(`/support/review/${d.order_id}`)}

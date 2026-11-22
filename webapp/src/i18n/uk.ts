@@ -448,6 +448,7 @@ export const uk: typeof ru = {
   "orders.filters": "Фільтри",
   "orders.allStatuses": "Усі статуси",
   "orders.buyerId": "ID покупця",
+  "orders.number": "Номер замовлення",
   "orders.noneFound": "Замовлень не знайдено",
 
   "aorder.price": "Ціна",

@@ -210,7 +210,7 @@ export function ExecOrder({ id }: { id: number }) {
     <div className="screen">
       <div className="headline">
         <h1>{o.product}</h1>
-        <p>{list(o.country?.toUpperCase(), `№${o.id}`)}</p>
+        <p>{list(o.country?.toUpperCase(), `№${o.code}`)}</p>
       </div>
       {o.accept_until && (
         <Section title={t("exec.acceptTitle")} footer={t("exec.acceptUntil", { time: fmtDate(o.accept_until, true) })}>

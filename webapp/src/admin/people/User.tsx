@@ -72,7 +72,7 @@ function Card({ user, viewer }: { user: UserCard; viewer: string[] }) {
           <Row
             key={o.id}
             title={o.product}
-            sub={list(`№${o.id}`, named("status", o.status), fmtDate(o.created_at))}
+            sub={list(`№${o.code}`, named("status", o.status), fmtDate(o.created_at))}
             right={<Money value={o.total} />}
             chevron={allowed(viewer, "staff")}
             onClick={allowed(viewer, "staff") ? () => go(`/admin/orders/${o.id}`) : undefined}

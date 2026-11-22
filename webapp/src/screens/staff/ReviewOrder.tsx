@@ -79,7 +79,7 @@ export function ReviewOrder({ id }: { id: number }) {
     <div className="screen">
       <div className="headline">
         <h1>{o.product}</h1>
-        <p>{list(o.variant, o.country?.toUpperCase(), `№${o.id}`)}</p>
+        <p>{list(o.variant, o.country?.toUpperCase(), `№${o.code}`)}</p>
       </div>
       <Section>
         <Row title={t("order.total")} right={<Money value={o.total} />} />

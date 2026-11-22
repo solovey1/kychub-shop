@@ -447,6 +447,7 @@ export const ru = {
   "orders.filters": "Фильтры",
   "orders.allStatuses": "Все статусы",
   "orders.buyerId": "ID покупателя",
+  "orders.number": "Номер заказа",
   "orders.noneFound": "Заказов не найдено",
 
   "aorder.price": "Цена",

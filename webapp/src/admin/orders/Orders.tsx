@@ -21,7 +21,12 @@ export function AdminOrders() {
   const [, go] = useLocation();
   const [status, setStatus] = useState("");
   const [buyer, setBuyer] = useState("");
-  const query = [status && `status=${status}`, buyer && `buyer_id=${buyer}`].filter(Boolean).join("&");
+  const [number, setNumber] = useState("");
+  const query = [
+    status && `status=${status}`,
+    buyer && `buyer_id=${buyer}`,
+    number.trim() && `number=${encodeURIComponent(number.trim())}`,
+  ].filter(Boolean).join("&");
   const { items, total, error, more } = usePaged<AdminOrderRow>(
     `/admin/orders${query ? `?${query}` : ""}`,
     ["order"],
@@ -38,6 +43,9 @@ export function AdminOrders() {
         <Field label={t("orders.buyerId")}>
           <input inputMode="numeric" value={buyer} onChange={(e) => setBuyer(e.target.value.replace(/\D/g, ""))} />
         </Field>
+        <Field label={t("orders.number")}>
+          <input value={number} maxLength={16} autoCapitalize="characters" onChange={(e) => setNumber(e.target.value)} />
+        </Field>
       </Section>
       {error && !items && <Failure error={error} />}
       {!items && !error && <Loading />}
@@ -49,7 +57,7 @@ export function AdminOrders() {
               key={o.id}
               title={o.product}
               sub={list(o.variant, o.country?.toUpperCase())}
-              meta={list(`№${o.id}`, o.executor_alias)}
+              meta={list(`№${o.code}`, o.executor_alias)}
               right={<Money value={o.total} />}
               rightSub={
                 <span className={statusTone(o.status)}>{named("status", o.status)}</span>

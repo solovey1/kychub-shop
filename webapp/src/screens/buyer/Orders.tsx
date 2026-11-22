@@ -37,7 +37,7 @@ export function Orders() {
               key={o.id}
               title={o.product}
               sub={list(o.variant, o.country?.toUpperCase())}
-              meta={`№${o.id}`}
+              meta={`№${o.code}`}
               right={<Money value={o.total} />}
               rightSub={
                 <span className={statusTone(o.status)}>
