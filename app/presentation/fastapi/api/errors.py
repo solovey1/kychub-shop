@@ -8,6 +8,7 @@ from app.application.errors.shop import (
     AliasTaken,
     ChatForbidden,
     Conflict,
+    ContactsBlocked,
     ExecutorExists,
     ExecutorNotFound,
     InvalidAmount,
@@ -46,7 +47,11 @@ UNPROCESSABLE: Final = (
 
 
 def _code(error: AppError) -> str:
-    return error.code if isinstance(error, (PromoError, Conflict)) else type(error).__name__
+    return (
+        error.code
+        if isinstance(error, (PromoError, Conflict, ContactsBlocked))
+        else type(error).__name__
+    )
 
 
 async def app_error_handler(_: Request, error: Exception) -> JSONResponse:

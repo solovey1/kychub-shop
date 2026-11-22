@@ -84,3 +84,5 @@ messages-dispute-reply = 🆘 По заказу №{ $id } открыт спор
 messages-dispute-reply_requested = 🆘 Поддержка просит ответить по заказу №{ $id } в чате до { $time }.
 messages-dispute-reminder = ⏰ Спор по заказу №{ $id }: осталось { $left }. Ответьте в чате до { $time }.
 messages-dispute-closed = ✅ Спор по заказу №{ $id } закрыт, заказ продолжается.
+buttons-order_open = 📦 Открыть заказ
+messages-contacts-staff = ⚠️ { $who } пытается передать контакты в заказе №{ $id }.

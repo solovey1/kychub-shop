@@ -105,6 +105,20 @@ class Conflict(AppError):  # noqa: N818
         self.code = code
 
 
+class ContactsBlocked(InvalidInput):
+    """A message of an order chat carried a contact (see contacts_filter). `escalate`: it is the
+    third attempt of this person, support is told once."""
+
+    code = "contacts_blocked"
+
+    def __init__(self, order_id: int, role: str, alias: str | None, escalate: bool) -> None:
+        super().__init__("contacts")
+        self.order_id = order_id
+        self.role = role
+        self.alias = alias
+        self.escalate = escalate
+
+
 class InvalidField(InvalidInput):
     """A rejected form field: `field` names it, the message says why."""
 

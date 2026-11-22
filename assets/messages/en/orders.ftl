@@ -84,3 +84,5 @@ messages-dispute-reply = 🆘 A dispute is open on order #{ $id }. Answer in the
 messages-dispute-reply_requested = 🆘 Support asks you to answer about order #{ $id } in the chat until { $time }.
 messages-dispute-reminder = ⏰ Dispute on order #{ $id }: { $left } left. Answer in the chat until { $time }.
 messages-dispute-closed = ✅ The dispute on order #{ $id } is closed, the order goes on.
+buttons-order_open = 📦 Open the order
+messages-contacts-staff = ⚠️ { $who } keeps trying to pass contacts in order #{ $id }.

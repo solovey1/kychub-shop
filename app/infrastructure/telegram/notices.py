@@ -89,6 +89,19 @@ class OrderNotices:
             time=until.strftime("%d.%m %H:%M") if until else "-",
         )
 
+    async def contacts_blocked(
+        self, order_id: int, role: str, alias: str | None, url: str
+    ) -> None:
+        """Support is told once when somebody keeps trying to pass contacts in an order chat."""
+        await self.notifier.staff(
+            lambda tr, _: tr(
+                "messages-contacts-staff",
+                id=str(order_id),
+                who=tr(f"dispute-who-{role}") + (f" {html.quote(alias)}" if alias else ""),
+            ),
+            lambda tr: _app_markup(tr("buttons-order_open"), url, f"/support/review/{order_id}"),
+        )
+
     async def dispute_opened(self, news: DisputeNews, url: str) -> None:
         """Support is told; the other side is asked to answer in the order chat."""
         order_id = news.order.id

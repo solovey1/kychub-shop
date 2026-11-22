@@ -1138,11 +1138,18 @@ function route(method: string, url: URL, body: unknown): unknown {
   if ((m = path.match(/^\/conversations\/(\d+)\/messages$/))) {
     const c = chats[Number(m[1])] ?? chats[2];
     if (method === "POST") {
-      const sent = msg(Date.now() % 100000, "buyer", true, (body as { text: string }).text, 0);
+      const text = (body as { text: string }).text;
+      if (/@\w{5,}|t\.me|\+?\d[\d\s-]{9,}/.test(text)) throw fail(422, "contacts_blocked", "contacts");
+      const sent = msg(Date.now() % 100000, "buyer", true, text, 0);
       c.items.push(sent);
       return sent;
     }
     return { items: c.items, has_more: false, can_post: c.can_post };
+  }
+  if ((m = path.match(/^\/conversations\/(\d+)\/files$/))) {
+    const sent = msg(Date.now() % 100000, "buyer", true, null, 0, "document");
+    (chats[Number(m[1])] ?? chats[2]).items.push(sent);
+    return sent;
   }
   if (path.match(/^\/files\//)) return new Blob([SVG], { type: "image/svg+xml" });
 
@@ -1225,7 +1232,7 @@ window.fetch = async (input, init) => {
   if (!url.pathname.startsWith("/api/")) return real(input, init);
   await new Promise((r) => setTimeout(r, 120));
   try {
-    const data = route(init?.method ?? "GET", url, init?.body ? JSON.parse(String(init.body)) : undefined);
+    const data = route(init?.method ?? "GET", url, typeof init?.body === "string" ? JSON.parse(init.body) : undefined);
     return data instanceof Blob ? new Response(data) : Response.json(data);
   } catch (e) {
     if (typeof e === "number") return Response.json({ detail: "Not found" }, { status: e });

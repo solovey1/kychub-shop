@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 
 from aiogram.types import InlineKeyboardMarkup, Message
 
-from app.application.errors.shop import ChatForbidden
+from app.application.errors.shop import ChatForbidden, ContactsBlocked
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.models.config import AppConfig
 from app.application.ports.storages.key_value import KvStorage
@@ -75,6 +75,9 @@ class RelayFlow(BaseFlow):
             posted = await self.chat.post(conversation.id, self.user.id, text, media)
         except ChatForbidden:
             return await self._say("messages-chat-forbidden")
+        except ContactsBlocked as blocked:
+            await self.effects.contacts_blocked(blocked)
+            return await self._say("messages-chat-contacts_blocked")
         await self.kv.set(ActiveConversationKey(user_id=self.user.id), conversation.id, ACTIVE_TTL)
         delivery = await self.effects.message_posted(posted, message.message_id)
         if posted.ticket_id is not None and posted.sender_role is ChatRole.buyer and self._app_on:

@@ -583,4 +583,10 @@ export const uk: typeof ru = {
   "support.disputes": "Спори",
   "disputes.empty": "Відкритих спорів немає.",
   "settings.disputeReply": "Строк відповіді в спорі, годин",
+  "chat.attach": "Прикріпити файл",
+  "chat.uploading": "Завантажуємо {name}…",
+  "chat.tooBig": "Файл більший за 20 МБ",
+  "chat.contacts": "Повідомлення не надіслано: контакти та посилання заборонені. Спілкуйтеся тут — так ми захищаємо угоду.",
+  "chat.uploadFailed": "Не вдалося завантажити файл. Спробуйте ще раз.",
+  "chat.download": "Завантажити файл",
 };

@@ -582,4 +582,10 @@ export const ru = {
   "support.disputes": "Споры",
   "disputes.empty": "Открытых споров нет.",
   "settings.disputeReply": "Срок ответа в споре, часов",
+  "chat.attach": "Прикрепить файл",
+  "chat.uploading": "Загружаем {name}…",
+  "chat.tooBig": "Файл больше 20 МБ",
+  "chat.contacts": "Сообщение не отправлено: контакты и ссылки запрещены. Общайтесь здесь — так мы защищаем сделку.",
+  "chat.uploadFailed": "Не удалось загрузить файл. Попробуйте ещё раз.",
+  "chat.download": "Скачать файл",
 };

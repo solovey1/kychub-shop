@@ -4,12 +4,21 @@ from typing import Final
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
+from aiogram.types import BufferedInputFile
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import StreamingResponse
 
-from app.application.errors.shop import ChatForbidden
+from app.application.errors.shop import ChatForbidden, ContactsBlocked
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.models.config import AppConfig
 from app.application.ports.repositories.users import UsersGateway
@@ -34,6 +43,9 @@ PING_EVERY: Final = 30
 UNAUTHORIZED_CLOSE: Final = 4401
 PAGE_MAX: Final = 100
 AUTH_WAIT: Final = 10
+FILE_MAX: Final = 20 * 1024 * 1024  # what the Bot API lets a bot download again
+PHOTO_MAX: Final = 10 * 1024 * 1024  # larger pictures go as documents
+PHOTO_TYPES: Final = frozenset({"image/jpeg", "image/png", "image/webp"})
 INLINE_TYPES: Final = frozenset(
     {"image/jpeg", "image/png", "image/webp", "video/mp4", "audio/ogg", "audio/mpeg"}
 )
@@ -102,6 +114,70 @@ async def post_message(
         posted = await chat.post(conversation_id, user.id, body.text, None)
     except ChatForbidden:  # may read, may not write: a closed ticket, an order chat of staff
         raise HTTPException(409, "Conversation is read-only") from None
+    except ContactsBlocked as blocked:  # 422 `contacts_blocked`
+        await effects.contacts_blocked(blocked)
+        raise
+    await effects.message_posted(posted)
+    message = await chat.message(posted.message_id)
+    assert message is not None
+    return MessageOut(**message_view(message, user.id))
+
+
+async def _telegram_file_id(
+    bot: Bot, user_id: int, data: bytes, name: str, content_type: str | None
+) -> dict[str, str]:
+    """The Bot API only knows files it has seen: the bot sends it to the sender himself (silently),
+    keeps the file id and deletes that message again, so no stand-in stays in his Telegram."""
+    upload = BufferedInputFile(data, filename=name)
+    if content_type in PHOTO_TYPES and len(data) <= PHOTO_MAX:
+        sent = await bot.send_photo(user_id, upload, disable_notification=True)
+        assert sent.photo
+        media = {"type": "photo", "file_id": sent.photo[-1].file_id}
+    else:
+        sent = await bot.send_document(user_id, upload, disable_notification=True)
+        assert sent.document
+        media = {"type": "document", "file_id": sent.document.file_id}
+    try:
+        await bot.delete_message(user_id, sent.message_id)
+    except TelegramAPIError:
+        pass  # the stand-in stays; the file id is good anyway
+    return media
+
+
+@router.post("/conversations/{conversation_id}/files")
+@inject
+async def post_file(
+    conversation_id: int,
+    file: UploadFile,
+    user: CurrentUser,
+    chat: FromDishka[ConversationInteractor],
+    effects: FromDishka[Effects],
+    bot: FromDishka[Bot],
+    caption: str | None = Form(None, max_length=1000),
+) -> MessageOut:
+    """A file or a photo up to 20 MB, with an optional caption (which passes the contacts filter
+    like any text). 404 not yours, 409 read-only, 413 too big, 422 contacts, 502 Telegram."""
+    conversation = await _readable(chat, user.id, conversation_id)
+    if await chat.can_post(user.id, conversation) is None:  # before anything is sent to Telegram
+        raise HTTPException(409, "Conversation is read-only")
+    data = await file.read(FILE_MAX + 1)
+    if len(data) > FILE_MAX:
+        raise HTTPException(413, "File is larger than 20 MB")
+    if not data:
+        raise HTTPException(422, "Empty file")
+    try:
+        media = await _telegram_file_id(
+            bot, user.id, data, file.filename or "file", file.content_type
+        )
+    except TelegramAPIError:
+        raise HTTPException(502, "Telegram did not accept the file") from None
+    try:
+        posted = await chat.post(conversation_id, user.id, caption, media)
+    except ChatForbidden:
+        raise HTTPException(409, "Conversation is read-only") from None
+    except ContactsBlocked as blocked:
+        await effects.contacts_blocked(blocked)
+        raise
     await effects.message_posted(posted)
     message = await chat.message(posted.message_id)
     assert message is not None

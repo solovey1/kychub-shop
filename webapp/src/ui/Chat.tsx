@@ -1,17 +1,43 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { report } from "../action";
-import { ApiError, blobUrl, get, send, type Message, type Messages } from "../api";
+import { ApiError, blobUrl, get, send, upload, type Message, type Messages } from "../api";
 import { fmtDate, named, t } from "../i18n";
 import { useLive } from "../live";
-import { success } from "../telegram";
+import { alert, success } from "../telegram";
 import { refreshUnread } from "../unread";
 import { Loading } from "./kit";
 
 const LIMIT = 4000;
 const COUNT_FROM = 3500;
 const PAGE = 30;
+const FILE_MAX = 20 * 1024 * 1024; // the Bot API limit, the server checks it too
+
+function Doc({ id }: { id: number }) {
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    try {
+      const url = await blobUrl(`/files/${id}`);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `file-${id}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (e) {
+      await report(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button className="doc" disabled={busy} onClick={save}>
+      {t("chat.download")}
+    </button>
+  );
+}
 
 function Media({ id, type }: { id: number; type: string }) {
+  if (type === "document") return <Doc id={id} />;
   const kind =
     type === "photo"
       ? "img"
@@ -67,6 +93,8 @@ export function Chat({
   const [error, setError] = useState<ApiError>();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const stick = useRef(true);
@@ -128,20 +156,47 @@ export function Chat({
     }
   };
 
+  const failed = async (e: unknown) => {
+    if (e instanceof ApiError && e.status === 409) setCanPost(false);
+    else if (e instanceof ApiError && e.code === "contacts_blocked") await alert(t("chat.contacts"));
+    else if (e instanceof ApiError && e.status === 413) await alert(t("chat.tooBig"));
+    else if (e instanceof ApiError && e.status === 502) await alert(t("chat.uploadFailed"));
+    else await report(e);
+  };
+  const clearBox = () => {
+    setText("");
+    if (box.current) box.current.style.height = "auto";
+  };
   const post = async () => {
     const body = text.trim();
     if (!body || sending) return;
     setSending(true);
     try {
       add(await send<Message>("POST", `/conversations/${cid}/messages`, { text: body }));
-      setText("");
-      if (box.current) box.current.style.height = "auto";
+      clearBox();
       success();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setCanPost(false);
-      else await report(e);
+      await failed(e);
     } finally {
       setSending(false);
+    }
+  };
+  // the text in the field, if any, becomes the caption of the file
+  const attach = async (file: File) => {
+    if (file.size > FILE_MAX) return alert(t("chat.tooBig"));
+    const form = new FormData();
+    form.append("file", file);
+    if (text.trim()) form.append("caption", text.trim());
+    setUploading(file.name);
+    stick.current = true;
+    try {
+      add(await upload<Message>(`/conversations/${cid}/files`, form));
+      clearBox();
+      success();
+    } catch (e) {
+      await failed(e);
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -183,6 +238,11 @@ export function Chat({
             </div>
           );
         })}
+        {uploading && (
+          <div className="msg mine pending">
+            <span className="text">{t("chat.uploading", { name: uploading })}</span>
+          </div>
+        )}
       </div>
       {items &&
         (canPost ? (
@@ -192,6 +252,21 @@ export function Chat({
                 {text.length}/{LIMIT}
               </span>
             )}
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void attach(file);
+              }}
+            />
+            <button className="attach" disabled={!!uploading} onClick={() => picker.current?.click()} aria-label={t("chat.attach")}>
+              <svg viewBox="0 0 24 24">
+                <path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />
+              </svg>
+            </button>
             <textarea
               ref={box}
               rows={1}

@@ -385,9 +385,10 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
       Authorization: `tma ${initData}`,
       // a free ngrok tunnel answers browser requests with its warning page; harmless elsewhere
       "ngrok-skip-browser-warning": "1",
-      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      // a form sets its own multipart header (with the boundary)
+      ...(body === undefined || body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
   });
   if (res.ok) return res;
   if (res.status === 401) {
@@ -414,6 +415,9 @@ export const send = async <T>(
   path: string,
   body?: unknown,
 ): Promise<T> => (await request(method, path, body ?? {})).json();
+
+export const upload = async <T>(path: string, form: FormData): Promise<T> =>
+  (await request("POST", path, form)).json();
 
 /** A file behind the auth header as a blob: URL, the caller revokes it. */
 export async function blobUrl(path: string): Promise<string> {

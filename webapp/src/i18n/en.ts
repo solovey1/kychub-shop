@@ -583,4 +583,10 @@ export const en: typeof ru = {
   "support.disputes": "Disputes",
   "disputes.empty": "No open disputes.",
   "settings.disputeReply": "Reply time in a dispute, hours",
+  "chat.attach": "Attach a file",
+  "chat.uploading": "Uploading {name}…",
+  "chat.tooBig": "The file is larger than 20 MB",
+  "chat.contacts": "Message not sent: contacts and links are not allowed. Talk here, it protects the deal.",
+  "chat.uploadFailed": "The file could not be uploaded. Try again.",
+  "chat.download": "Download the file",
 };

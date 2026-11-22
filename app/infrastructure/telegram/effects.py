@@ -5,6 +5,7 @@ from typing import Final
 
 from aiogram import html
 
+from app.application.errors.shop import ContactsBlocked
 from app.application.i18n_text import fmt_usd
 from app.application.interactors.auto_confirm import confirm_deadline, confirm_hours
 from app.application.interactors.conversations import Posted
@@ -154,6 +155,16 @@ class Effects:
             self.notices.extension_answered(answer),
         )
         await self._order_event(answer.order.id, OrderStatus.assigned)
+
+    async def contacts_blocked(self, error: ContactsBlocked) -> None:
+        """Call for every blocked message: only the third of a person reaches support."""
+        if error.escalate:
+            await _safe(
+                f"reporting contacts in order {error.order_id}",
+                self.notices.contacts_blocked(
+                    error.order_id, error.role, error.alias, self.config.server.url
+                ),
+            )
 
     async def dispute_opened(self, news: DisputeNews) -> None:
         url = self.config.server.url

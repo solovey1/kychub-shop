@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 
+from app.application.contacts_filter import find_contact
 from app.application.errors.shop import (
     ChatForbidden,
     Conflict,
+    ContactsBlocked,
     InvalidInput,
     ManagerNotFound,
     OrderUnavailable,
@@ -21,12 +23,13 @@ from app.domain.audit import AuditLog
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
 from app.domain.enums.support import ChatRole, ConversationKind, TicketStatus
-from app.domain.order import Order
+from app.domain.order import Order, OrderEvent
 from app.domain.support import Conversation, Message, Ticket
 from app.domain.user import User
 from app.utils.time import datetime_now
 
 CHAT_STATUSES = frozenset({OrderStatus.assigned, OrderStatus.ready})
+BLOCKS_BEFORE_NOTICE = 3
 
 
 @dataclass(frozen=True)
@@ -333,6 +336,7 @@ class ConversationInteractor(BaseInteractor):
                 raise ChatForbidden(conversation_id)
             participants, ticket, order = ctx
             if order is not None and role in (ChatRole.buyer, ChatRole.executor):
+                await self._no_contacts(order, sender_id, role, text)
                 await reply_seen(self.disputes, self.orders, order.id, role.value)
             message = Message(
                 conversation_id=conversation.id,
@@ -394,6 +398,35 @@ class ConversationInteractor(BaseInteractor):
         if message is None:
             return None
         return await self.support.conversation(message.conversation_id)
+
+    async def _no_contacts(
+        self, order: Order, sender_id: int, role: ChatRole, text: str | None
+    ) -> None:
+        """A buyer or an executor may not hand over contacts in an order chat (support is not
+        filtered). The attempt is kept as an event (the text is not), and the third one of the same
+        person is reported to the caller once."""
+        found = find_contact(text)
+        if found is None:
+            return
+        await self.orders.add_event(
+            OrderEvent(
+                order_id=order.id,
+                actor_id=sender_id,
+                type="blocked_message",
+                payload={"by": role.value, "found": found},
+            )
+        )
+        attempts = sum(
+            1
+            for e in await self.orders.events(order.id)
+            if e.type == "blocked_message" and e.actor_id == sender_id
+        )
+        alias = None
+        if role is ChatRole.executor:
+            profile = await self.executors.get_profile(sender_id)
+            alias = profile.alias if profile else None
+        await self.uow.commit()
+        raise ContactsBlocked(order.id, role.value, alias, attempts == BLOCKS_BEFORE_NOTICE)
 
     async def _is_staff(self, user_id: int) -> bool:
         user = await self.users.get(user_id)

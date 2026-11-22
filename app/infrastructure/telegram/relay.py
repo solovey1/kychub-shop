@@ -5,6 +5,7 @@ from typing import Final
 
 from aiogram import Bot, html
 from aiogram.exceptions import TelegramAPIError
+from aiogram.types import InlineKeyboardMarkup
 
 from app.application.interactors.conversations import ConversationInteractor, Posted, Recipient
 from app.application.models.config import AppConfig
@@ -24,6 +25,7 @@ CAPTION_LIMIT: Final = 1024
 NO_CAPTION: Final = frozenset({"sticker", "video_note"})
 NOTICE_TTL: Final = timedelta(days=7)
 NOTICE_CHARS: Final = 200
+PARAGRAPH: Final = chr(10) * 2
 
 
 @dataclass(frozen=True)
@@ -118,8 +120,8 @@ class Relay:
                 recipient.user_id, f"{header}\n\n{body}", reply_markup=markup
             )
             return message.message_id
-        if source_message_id is None:
-            raise ValueError("media needs the source message")
+        if source_message_id is None:  # uploaded in the Mini App: sent again by its file id
+            return await self._by_file_id(posted, recipient, header, markup)
         caption: str | None = None
         if posted.media.get("type") in NO_CAPTION:
             await self.bot.send_message(recipient.user_id, header)
@@ -134,6 +136,23 @@ class Relay:
             reply_markup=markup,
         )
         return copy.message_id
+
+    async def _by_file_id(
+        self, posted: Posted, recipient: Recipient, header: str, markup: InlineKeyboardMarkup
+    ) -> int:
+        assert posted.media is not None
+        room = CAPTION_LIMIT - len(header) - 2
+        caption = header + (f"{PARAGRAPH}{_fit(posted.text, room)}" if posted.text else "")
+        file_id = posted.media["file_id"]
+        if posted.media.get("type") == "photo":
+            sent = await self.bot.send_photo(
+                recipient.user_id, file_id, caption=caption, reply_markup=markup
+            )
+        else:
+            sent = await self.bot.send_document(
+                recipient.user_id, file_id, caption=caption, reply_markup=markup
+            )
+        return sent.message_id
 
     async def _notice(self, posted: Posted, ticket_id: int, recipient: Recipient) -> None:
         """«New message in the ticket» with a button to the chat; replaces the previous notice."""
