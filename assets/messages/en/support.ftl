@@ -1,3 +1,15 @@
+messages-support =
+    💬 <b>Support</b>
+
+    { $order }Describe your question and a manager will reply. Usually within an hour.
+messages-support-open =
+    💬 <b>Support</b>
+
+    { $order }You have an open ticket #{ $id }.
+messages-support-order = 📦 Order #{ $id }
+messages-support-write = ✍️ Write your question in one message, a photo or a file is fine.
+buttons-support_write = ✍️ Write to support
+
 messages-manager-done = Done.
 messages-manager-usage = Usage: /manager_add &lt;tg_id&gt; or /manager_del &lt;tg_id&gt;
 messages-manager-err_exists = This user is already a manager.
@@ -16,18 +28,16 @@ messages-chat-order_closed = This order is no longer in work, so its chat is clo
 messages-chat-saved = Message saved. The reply will arrive in this chat.
 messages-chat-undelivered = The message could not be delivered: the recipient is unavailable. It is saved in the history.
 
-buttons-chat_reply = Reply
-buttons-chat_close = Close ticket
-buttons-chat_open = Open chat
+buttons-chat_reply = ↩️ Reply
+buttons-chat_close = ✖️ Close ticket
+buttons-chat_open = 💬 Open chat
 
-buttons-support = Support
-buttons-chat_support = Contact support
-buttons-chat_executor = Message the executor
+buttons-support = 💬 Support
+buttons-chat_support = 🆘 Contact support
+buttons-chat_executor = 💬 Message the executor
 buttons-chat_buyer = Message the buyer
 
 messages-chat-order_missing = Order not found.
-messages-chat-support_new = Ticket #{ $id } created. Write your question in one message, photos and files are fine.
-messages-chat-support_again = You already have an open ticket #{ $id }. Write here.
 messages-chat-no_executor = No executor has been assigned yet.
 messages-chat-order_buyer = Everything you write now goes to the executor of order #{ $id }. They will not see your name.
 messages-chat-order_executor = Everything you write now goes to the buyer of order #{ $id }.
@@ -58,5 +68,5 @@ messages-ticket-notice =
 
     { $text }
 messages-ticket-joined = 🎧 Support has joined
-messages-chat-tip = ✅ Sent. It is easier to reply in the app.
+messages-chat-tip = ✅ Sent. The reply will come here, the conversation lives in the app.
 messages-chat-use_app = Reply in the app: a message from the bot will not reach the ticket.

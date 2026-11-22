@@ -19,6 +19,8 @@ _EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 _NUMBER_RE = re.compile(r"-?[0-9]+(\.[0-9]+)?", re.ASCII)
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _MAX_REGEX_LEN = 256
+_MAX_HINT_LEN = 200
+_MAX_PLACEHOLDER_LEN = 64  # Telegram limit of input_field_placeholder
 
 
 class FormField(BaseModel):
@@ -29,6 +31,8 @@ class FormField(BaseModel):
     regex: Optional[str] = None
     options: Optional[list[str]] = None
     hidden_from_executor: bool = False
+    hint: Optional[dict[str, str]] = None  # shown under the question, per locale
+    placeholder: Optional[dict[str, str]] = None  # grey text of the input field, per locale
     max_length: int = 512
     _compiled: Optional[re.Pattern[str]] = PrivateAttr(default=None)
 
@@ -40,6 +44,9 @@ class FormField(BaseModel):
             raise ValueError("label must contain 'ru'")
         if not 1 <= self.max_length <= 4096:
             raise ValueError("max_length must be 1..4096")
+        for texts, limit in ((self.hint, _MAX_HINT_LEN), (self.placeholder, _MAX_PLACEHOLDER_LEN)):
+            if texts and any(len(t) > limit for t in texts.values()):
+                raise ValueError(f"hint/placeholder longer than {limit}")
         if self.regex is not None:
             if len(self.regex) > _MAX_REGEX_LEN:
                 raise ValueError(f"regex longer than {_MAX_REGEX_LEN}")

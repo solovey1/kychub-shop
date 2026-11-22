@@ -28,7 +28,9 @@ class OrdersFlow(BaseFlow):
         if order is None:
             await self.renderer.apply(self.presenter.not_found(page))
             return
-        view, file = self.presenter.order(order, page)
+        events = await self.interactor.events(order.id)
+        alias = await self.interactor.executor_alias(order)
+        view, file = self.presenter.order(order, page, events, alias)
         await self.renderer.apply(view)
         if file is not None:
             await self.renderer.send_file(f"order-{order.id}.txt", file)

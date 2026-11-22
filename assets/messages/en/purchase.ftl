@@ -1,11 +1,31 @@
-messages-purchase-ask =
-    <b>{ $product }</b>
-    { $variant }
+messages-purchase-head = 🧾 <b>{ $product }</b>, { $details }
+messages-purchase-line_done = ✅ { $label }: { $value }
+messages-purchase-line_now = ✏️ <b>{ $label }</b>
+messages-purchase-line_next = ▫️ { $label }
+messages-purchase-line_next_optional = ▫️ { $label } (optional)
+messages-purchase-ask = Enter { $label }
+messages-purchase-choose = Choose { $label }
+messages-purchase-hint_file = 📎 Send a photo or a file
+messages-purchase-file_value = 📎 file
+messages-purchase-prompt = ✏️ { $label }
+messages-purchase-invalid = ⚠️ { $reason }
+messages-purchase-confirm_title = 🧾 <b>Check your order</b>
+messages-purchase-line_price = 💵 Price: { $amount }
+messages-purchase-line_discount = 🎟 Discount { $code }: −{ $amount }
+messages-purchase-line_total = <b>Total: { $total }</b>, balance { $balance }
+messages-purchase-line_missing = ⚠️ Short by { $amount }
+messages-purchase-promo_error = ⚠️ Promo code not applied: { $reason }
+messages-purchase-promo_ask = 🎟 Send the promo code in one message.
+messages-purchase-edit_pick = ✏️ What to change?
+messages-purchase-cancelled = ✖️ Order cancelled.
+messages-purchase-accepted =
+    ✅ <b>Order #{ $id } is paid</b>
 
-    Question { $step } of { $total }
-    { $label }
-messages-purchase-hint_file = Send a file or a photo.
-messages-purchase-invalid = Not accepted: { $reason }
+    { $next }
+messages-purchase-next_done = The result comes in the next message.
+messages-purchase-next_queue = Looking for an executor.
+messages-purchase-next_work = Already in progress.
+messages-purchase-done = 🎉 <b>Order #{ $id } is complete</b>
 messages-purchase-reason_required = an answer is required.
 messages-purchase-reason_too_long = the value is too long.
 messages-purchase-reason_email = this does not look like an email address.
@@ -15,21 +35,9 @@ messages-purchase-reason_format = the value does not match the expected format.
 messages-purchase-reason_control = remove control characters.
 messages-purchase-reason_not_file = a file or a photo is expected.
 messages-purchase-reason_not_text = text is expected.
-messages-purchase-confirm_title = <b>Order summary</b>
-messages-purchase-line_promo = Promo code: { $code }
-messages-purchase-line_price = Price: { $amount }
-messages-purchase-line_discount = Discount: -{ $amount }
-messages-purchase-line_total = Total: <b>{ $amount }</b>
-messages-purchase-line_balance = Balance: { $amount }
-messages-purchase-promo_error = Promo code not applied: { $reason }
-messages-purchase-promo_ask = Send the promo code in one message.
-messages-purchase-cancelled = Order cancelled.
 messages-purchase-expired = The order session has expired. Open the product again.
 messages-purchase-out_of_stock = This item is out of stock. You have not been charged.
 messages-purchase-unavailable = This product is unavailable. You have not been charged.
-messages-purchase-insufficient = Not enough funds. Total { $total }, balance { $balance }, short by { $missing }.
-messages-purchase-accepted = Order #{ $id } is accepted and in progress. You can follow it in "My orders".
-messages-purchase-done = <b>Order #{ $id } is complete</b>
 messages-purchase-done_file = The result is attached.
 messages-purchase-admin_manual =
     New manual order #{ $id }
@@ -48,8 +56,11 @@ messages-promo-reason_not_allowed = this code is not available to you.
 messages-promo-reason_new_users_only = the code is for new customers only.
 messages-promo-reason_already_used = you have already used this code.
 
-buttons-pay = Pay { $amount }
-buttons-promo = Promo code
-buttons-skip = Skip
-buttons-copy = Copy
-buttons-topup = Top up balance
+buttons-pay = ✅ Pay { $amount }
+buttons-promo = 🎟 Promo code
+buttons-skip = ⏭ Skip
+buttons-copy = 📋 Copy
+buttons-topup = 💳 Top up
+buttons-topup_missing = 💳 Top up { $amount }
+buttons-edit = ✏️ Edit answers
+buttons-prev = ↩️ Same as last time: { $value }

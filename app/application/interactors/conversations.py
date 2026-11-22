@@ -66,6 +66,15 @@ class ConversationInteractor(BaseInteractor):
     users: UsersGateway
     executors: ExecutorsGateway
 
+    async def current_ticket(
+        self, user_id: int, order_id: int | None
+    ) -> tuple[Ticket, Conversation] | None:
+        """The user's open ticket for this order (or the general one). Creates nothing."""
+        if order_id is not None and await self.orders.get_for_user(user_id, order_id) is None:
+            raise OrderUnavailable(order_id)
+        ticket = await self.support.open_ticket_of(user_id, order_id)
+        return None if ticket is None else (ticket, await self.ticket_conversation(ticket.id))
+
     async def open_ticket(
         self, user_id: int, order_id: int | None
     ) -> tuple[Ticket, Conversation, bool]:

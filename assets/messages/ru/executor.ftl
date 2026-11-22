@@ -1,7 +1,7 @@
-buttons-cabinet = Кабинет исполнителя
+buttons-cabinet = 🧰 Кабинет исполнителя
 
 messages-executor-cabinet =
-    <b>Кабинет исполнителя</b>
+    🧰 <b>Кабинет исполнителя</b>
     Псевдоним: { $alias }
     Статус: { $status }
     Одновременно заказов: { $limit }
@@ -31,30 +31,31 @@ units-hours = { $n } ч
 units-minutes = { $n } мин
 
 messages-card =
-    <b>Заказ № { $id }</b>
+    📦 <b>Заказ № { $id }</b>
     { $product }
     { $place }
-    Выплата исполнителю: { $earning } · срок: { $deadline }
+    💵 Вы получите { $earning }
+    ⏱ Срок до { $deadline }
 
-    { $fields }
+    <blockquote>{ $fields }</blockquote>
 messages-card-file = (файл)
 
-buttons-take = Взять
-buttons-refuse = Отказаться
+buttons-take = ✅ Взять
+buttons-refuse = ✖️ Отказаться
 
 messages-executor-offer =
-    <b>Новый заказ</b>
+    🆕 <b>Новый заказ</b>
 
     { $card }
 messages-executor-assigned =
-    <b>Вам назначен заказ</b>
+    📌 <b>Вам назначен заказ</b>
 
     { $card }
-messages-executor-taken = Заказ № { $id } взят. Если не успеваете, откажитесь: он вернётся в очередь.
+messages-executor-taken = ✅ Заказ № { $id } взят. Если не успеваете, откажитесь: он вернётся в очередь.
 messages-executor-take_failed = Заказ № { $id } уже недоступен: его взял другой исполнитель, либо нет допуска или свободного места.
 messages-executor-refused = Вы отказались от заказа № { $id }.
 messages-executor-refuse_failed = Заказ № { $id } уже нельзя вернуть в очередь.
 messages-executor-offer_taken = Заказ № { $id } взят другим исполнителем.
 messages-executor-offer_cancelled = Заказ № { $id } отменён покупателем.
-messages-executor-overdue = Срок заказа № { $id } истёк, заказ вернулся в очередь.
+messages-executor-overdue = ⏱ Срок заказа № { $id } истёк, заказ вернулся в очередь.
 messages-executor-no_executor = Для заказа № { $id } нет подходящего исполнителя.

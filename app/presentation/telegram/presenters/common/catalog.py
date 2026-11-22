@@ -12,6 +12,7 @@ from aiogram.types import (
 )
 from aiogram_i18n import I18nContext
 
+from app.application.cards import fmt_duration
 from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.catalog import CategoryPage, ProductCard
 from app.domain.catalog import Product
@@ -43,6 +44,9 @@ class CatalogPresenter(BasePresenter):
         ]
         if description := pick_i18n(product.description_i18n, locale):
             parts.append(html.quote(description))
+        if card.deadline_minutes:
+            time = fmt_duration(self.i18n.get, card.deadline_minutes)
+            parts.append(self.i18n.messages.product.deadline(time=time))
         parts.append(self.i18n.messages.product.choose())
         return View(text="\n\n".join(parts), reply_markup=product_keyboard(self.i18n, card))
 

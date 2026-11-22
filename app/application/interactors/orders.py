@@ -10,7 +10,7 @@ from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
 from app.domain.enums.order import OrderStatus
-from app.domain.order import Order
+from app.domain.order import Order, OrderEvent
 
 
 @dataclass(frozen=True)
@@ -29,6 +29,12 @@ class OrdersInteractor(BaseInteractor):
 
     async def get(self, user_id: int, order_id: int) -> Order | None:
         return await self.gateway.get_for_user(user_id, order_id)
+
+    async def active(self, user_id: int) -> list[Order]:
+        return await self.gateway.active_for_user(user_id)
+
+    async def events(self, order_id: int) -> list[OrderEvent]:
+        return await self.gateway.events(order_id)
 
     async def executor_alias(self, order: Order) -> str | None:
         """The only thing a buyer may know about the executor."""

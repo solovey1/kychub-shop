@@ -26,8 +26,9 @@ async def menu(_: CallbackQuery, state: FSMContext, flow: FromDishka[CommonMenuF
 
 @router.callback_query(CDLang.filter())
 async def language(
-    _: CallbackQuery, callback_data: CDLang, flow: FromDishka[CommonMenuFlow]
+    _: CallbackQuery, callback_data: CDLang, state: FSMContext, flow: FromDishka[CommonMenuFlow]
 ) -> Any:
+    await state.clear()
     if not callback_data.code:
         return await flow.language()
     return await flow.set_language(callback_data.code)

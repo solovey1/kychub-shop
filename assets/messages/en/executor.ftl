@@ -1,7 +1,7 @@
-buttons-cabinet = Executor desk
+buttons-cabinet = 🧰 Executor desk
 
 messages-executor-cabinet =
-    <b>Executor desk</b>
+    🧰 <b>Executor desk</b>
     Alias: { $alias }
     Status: { $status }
     Orders at once: { $limit }
@@ -31,30 +31,31 @@ units-hours = { $n } h
 units-minutes = { $n } min
 
 messages-card =
-    <b>Order #{ $id }</b>
+    📦 <b>Order #{ $id }</b>
     { $product }
     { $place }
-    Executor pay: { $earning } · deadline: { $deadline }
+    💵 You get { $earning }
+    ⏱ Due in { $deadline }
 
-    { $fields }
+    <blockquote>{ $fields }</blockquote>
 messages-card-file = (file)
 
-buttons-take = Take
-buttons-refuse = Refuse
+buttons-take = ✅ Take
+buttons-refuse = ✖️ Refuse
 
 messages-executor-offer =
-    <b>New order</b>
+    🆕 <b>New order</b>
 
     { $card }
 messages-executor-assigned =
-    <b>An order is assigned to you</b>
+    📌 <b>An order is assigned to you</b>
 
     { $card }
-messages-executor-taken = Order #{ $id } is yours. If you cannot make it, refuse: it goes back to the queue.
+messages-executor-taken = ✅ Order #{ $id } is yours. If you cannot make it, refuse: it goes back to the queue.
 messages-executor-take_failed = Order #{ $id } is no longer available: another executor took it, or you have no permission or free slot.
 messages-executor-refused = You refused order #{ $id }.
 messages-executor-refuse_failed = Order #{ $id } can no longer be returned to the queue.
 messages-executor-offer_taken = Order #{ $id } was taken by another executor.
 messages-executor-offer_cancelled = Order #{ $id } was cancelled by the buyer.
-messages-executor-overdue = The deadline of order #{ $id } has passed, it went back to the queue.
+messages-executor-overdue = ⏱ The deadline of order #{ $id } has passed, it went back to the queue.
 messages-executor-no_executor = No suitable executor for order #{ $id }.

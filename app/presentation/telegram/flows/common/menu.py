@@ -5,6 +5,8 @@ from aiogram_i18n import I18nContext
 from aiogram_i18n.cores import FluentRuntimeCore
 
 from app.application.interactors.balance import BalanceInteractor
+from app.application.interactors.orders import OrdersInteractor
+from app.application.models.config import AppConfig
 from app.domain.user import User
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.presenters.common.menu import CommonMenuPresenter
@@ -15,6 +17,8 @@ from app.presentation.telegram.view.renderer import Renderer
 class CommonMenuFlow(BaseFlow):
     user: User
     balance: BalanceInteractor
+    orders: OrdersInteractor
+    config: AppConfig
     presenter: CommonMenuPresenter
     renderer: Renderer
     i18n: I18nContext
@@ -22,7 +26,10 @@ class CommonMenuFlow(BaseFlow):
 
     async def greeting(self) -> Any:
         amount = await self.balance.balance(self.user.id)
-        return await self.renderer.apply(self.presenter.greeting(self.user, amount))
+        active = await self.orders.active(self.user.id)
+        return await self.renderer.apply(
+            self.presenter.greeting(self.user, amount, active, self.config.server.url)
+        )
 
     async def language(self) -> Any:
         return await self.renderer.apply(self.presenter.language())

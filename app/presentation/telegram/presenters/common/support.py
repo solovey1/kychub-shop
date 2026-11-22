@@ -25,6 +25,12 @@ def preview(
 class SupportPresenter(BasePresenter):
     i18n: I18nContext
 
+    def screen(
+        self, key: str, markup: InlineKeyboardMarkup | None = None, /, **kwargs: str
+    ) -> View:
+        """A support screen: edits the message the button was under."""
+        return View(text=self.i18n.get(key, **kwargs), reply_markup=markup)
+
     def note(self, key: str, markup: InlineKeyboardMarkup | None = None, /, **kwargs: str) -> View:
         """A short answer in a new message, so the conversation above stays where it is."""
         return View(text=self.i18n.get(key, **kwargs), reply_markup=markup, mode=RenderMode.NEW)

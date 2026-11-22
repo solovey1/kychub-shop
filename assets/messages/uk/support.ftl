@@ -1,3 +1,15 @@
+messages-support =
+    💬 <b>Підтримка</b>
+
+    { $order }Опишіть питання, і менеджер відповість. Зазвичай протягом години.
+messages-support-open =
+    💬 <b>Підтримка</b>
+
+    { $order }У вас відкрито тікет №{ $id }.
+messages-support-order = 📦 Замовлення №{ $id }
+messages-support-write = ✍️ Напишіть питання одним повідомленням, можна з фото або файлом.
+buttons-support_write = ✍️ Написати в підтримку
+
 messages-manager-done = Готово.
 messages-manager-usage = Використання: /manager_add &lt;tg_id&gt; або /manager_del &lt;tg_id&gt;
 messages-manager-err_exists = Цей користувач уже менеджер.
@@ -16,18 +28,16 @@ messages-chat-order_closed = Замовлення вже не в роботі, �
 messages-chat-saved = Повідомлення збережено. Відповідь прийде в цей чат.
 messages-chat-undelivered = Не вдалося доставити повідомлення: отримувач недоступний. Воно збережене в історії.
 
-buttons-chat_reply = Відповісти
-buttons-chat_close = Закрити тікет
-buttons-chat_open = Відкрити чат
+buttons-chat_reply = ↩️ Відповісти
+buttons-chat_close = ✖️ Закрити тікет
+buttons-chat_open = 💬 Відкрити чат
 
-buttons-support = Підтримка
-buttons-chat_support = Звернутися в підтримку
-buttons-chat_executor = Написати виконавцю
+buttons-support = 💬 Підтримка
+buttons-chat_support = 🆘 Звернутися в підтримку
+buttons-chat_executor = 💬 Написати виконавцю
 buttons-chat_buyer = Написати покупцю
 
 messages-chat-order_missing = Замовлення не знайдено.
-messages-chat-support_new = Тікет № { $id } створено. Напишіть питання одним повідомленням, можна з фото або файлом.
-messages-chat-support_again = У вас уже є відкритий тікет № { $id }. Пишіть сюди.
 messages-chat-no_executor = Виконавця ще не призначено.
 messages-chat-order_buyer = Усе, що ви напишете зараз, отримає виконавець замовлення № { $id }. Він не побачить ваше ім'я.
 messages-chat-order_executor = Усе, що ви напишете зараз, отримає покупець замовлення № { $id }.
@@ -58,5 +68,5 @@ messages-ticket-notice =
 
     { $text }
 messages-ticket-joined = 🎧 Підтримка підключилася
-messages-chat-tip = ✅ Надіслано. Відповідати зручніше в застосунку.
+messages-chat-tip = ✅ Надіслано. Відповідь прийде сюди, листування — у застосунку.
 messages-chat-use_app = Відповідайте в застосунку: повідомлення з бота в тікет не піде.

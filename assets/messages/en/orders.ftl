@@ -1,23 +1,48 @@
-messages-orders-title = <b>My orders</b>
+messages-orders-title = 📦 <b>My orders</b>
 messages-orders-empty = You have no orders yet.
 messages-orders-not_found = Order not found.
 messages-order =
-    <b>Order #{ $id }</b>
-    { $product }
-    { $variant }
+    📦 <b>Order #{ $id }</b>
+    { $product }, { $variant }
+    💵 Total: { $total }
 
-    Status: { $status }
-    Date: { $date }
-    Total: { $total }
+    { $steps }{ $executor }
+messages-order-step_done = ✅ { $name }, { $time }
+messages-order-step_done_notime = ✅ { $name }
+messages-order-step_now = ⚙️ { $name }
+messages-order-step_until = ⚙️ { $name }, due by { $time }
+messages-order-step_next = ▫️ { $name }
+messages-order-step_final = { $name }, { $time }
+messages-order-executor = 👤 Executor: { $alias }
 
-order-status-awaiting_input = awaiting input
-order-status-paid = paid
-order-status-in_queue = queued
-order-status-assigned = in progress
-order-status-ready = ready for review
-order-status-completed = completed
-order-status-failed = failed
-order-status-refunded = refunded
-order-status-cancelled = cancelled
+order-step-paid = Paid
+order-step-in_queue = In queue
+order-step-assigned = In progress
+order-step-ready = Under review
+order-step-completed = Completed
+order-step-failed = ❌ Failed
+order-step-refunded = ↩️ Refunded
+order-step-cancelled = 🚫 Cancelled
 
-buttons-order_item = #{ $id } · { $title } · { $status }
+order-icon-awaiting_input = 🧾
+order-icon-paid = 💵
+order-icon-in_queue = 🕓
+order-icon-assigned = ⚙️
+order-icon-ready = 🔍
+order-icon-completed = ✅
+order-icon-failed = ❌
+order-icon-refunded = ↩️
+order-icon-cancelled = 🚫
+
+order-status-awaiting_input = { order-icon-awaiting_input } awaiting input
+order-status-paid = { order-icon-paid } paid
+order-status-in_queue = { order-icon-in_queue } in queue
+order-status-assigned = { order-icon-assigned } in progress
+order-status-ready = { order-icon-ready } under review
+order-status-completed = { order-icon-completed } completed
+order-status-failed = { order-icon-failed } failed
+order-status-refunded = { order-icon-refunded } refunded
+order-status-cancelled = { order-icon-cancelled } cancelled
+
+buttons-order_item = { $icon } #{ $id }, { $title }, { $total }
+buttons-open_order = 📦 Open order

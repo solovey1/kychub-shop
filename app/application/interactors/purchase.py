@@ -72,6 +72,11 @@ class PurchaseInteractor(BaseInteractor):
         form = FormSchema.model_validate(product.input_schema or {"fields": []})
         return Prepared(variant, product, country, form)
 
+    async def previous_answers(self, user_id: int, product_id: int) -> dict[str, str]:
+        """What this user answered the last time they ordered this product."""
+        order = await self.orders.last_for_product(user_id, product_id)
+        return dict(order.input_data) if order else {}
+
     async def quote(self, user_id: int, variant_id: int, promo_code: str | None) -> Quote:
         """Price preview. Writes nothing."""
         variant, product = await self._load(variant_id)
