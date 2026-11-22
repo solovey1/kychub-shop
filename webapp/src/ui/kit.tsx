@@ -21,6 +21,11 @@ export function Section({
   );
 }
 
+/** Unread count: a filled circle, `99+` past two digits, nothing for zero. */
+export function Badge({ n }: { n: number }) {
+  return n > 0 ? <span className="badge">{n > 99 ? "99+" : n}</span> : null;
+}
+
 export function Row({
   title,
   sub,
@@ -29,6 +34,7 @@ export function Row({
   rightSub,
   tone,
   chevron,
+  unread,
   onClick,
 }: {
   title: ReactNode;
@@ -38,6 +44,7 @@ export function Row({
   rightSub?: ReactNode;
   tone?: "bad" | "link";
   chevron?: boolean;
+  unread?: number;
   onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
@@ -54,6 +61,7 @@ export function Row({
           {rightSub && <span className="row-sub">{rightSub}</span>}
         </span>
       )}
+      {!!unread && <Badge n={unread} />}
       {chevron && <i className="chevron" />}
     </Tag>
   );
@@ -87,7 +95,7 @@ export function Segments<K extends string>({
   small,
 }: {
   value: K;
-  items: [K, string][];
+  items: [K, ReactNode][];
   onChange: (key: K) => void;
   small?: boolean;
 }) {

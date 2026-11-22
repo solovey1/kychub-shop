@@ -4,6 +4,7 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { useExpired, useFetch, type Me } from "./api";
 import { setLang, t } from "./i18n";
 import { startLive } from "./live";
+import { canGoBack, parentOf } from "./nav";
 import { Balance } from "./screens/buyer/Balance";
 import { OrderScreen } from "./screens/buyer/Order";
 import { Orders } from "./screens/buyer/Orders";
@@ -13,10 +14,11 @@ import { Work, type WorkSeg } from "./screens/executor/Work";
 import { ReviewOrder } from "./screens/staff/ReviewOrder";
 import { Support, type SupportSeg } from "./screens/staff/Support";
 import { TicketChat } from "./screens/staff/TicketChat";
-import { initData, startTelegram, tg, useBackButton } from "./telegram";
+import { initData, startTelegram, tg, useBackButton, useKeyboard } from "./telegram";
 import { Chat } from "./ui/Chat";
 import { Failure, Hint, Loading } from "./ui/kit";
 import { Tabs } from "./ui/Tabs";
+import { useUnreadFeed } from "./unread";
 
 const LINK = /^\/(chat|ticket|orders)\/[0-9/]+$/;
 const TOP = /^\/(orders|balance|work\/(queue|mine|wallet)|support\/(tickets|review))$/;
@@ -24,8 +26,11 @@ const TOP = /^\/(orders|balance|work\/(queue|mine|wallet)|support\/(tickets|revi
 function Shell({ me }: { me: Me }) {
   const [path, go] = useLocation();
   const top = TOP.test(path);
-  useBackButton(!top, () => history.back());
+  const keyboard = useKeyboard();
+  // nothing before this screen (opened by a bot button): back leads to its parent, not out of the app
+  useBackButton(!top, () => (canGoBack() ? history.back() : go(parentOf(path), { replace: true })));
   useEffect(startLive, []);
+  useUnreadFeed();
   useEffect(() => {
     // a bot button opens the app as /app/?to=/chat/5: go there once and drop the parameter
     const to = new URLSearchParams(location.search).get("to");
@@ -70,7 +75,7 @@ function Shell({ me }: { me: Me }) {
           <Redirect to="/orders" replace />
         </Route>
       </Switch>
-      {top && <Tabs tabs={tabs} />}
+      {!keyboard && <Tabs tabs={tabs} />}
     </div>
   );
 }

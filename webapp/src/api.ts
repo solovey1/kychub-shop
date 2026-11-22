@@ -30,6 +30,7 @@ export type OrderBrief = {
   country: string | null;
   total: string;
   created_at: string;
+  unread: number;
 };
 export type Order = OrderBrief & {
   executor_alias: string | null;
@@ -86,6 +87,7 @@ export type ExecutorListItem = {
   variant: string;
   country: string | null;
   deadline_at: string | null;
+  unread: number;
 };
 export type Stats = {
   completed: number;
@@ -110,6 +112,7 @@ export type Ticket = {
   mine: boolean;
   conversation_id: number;
   created_at: string;
+  unread: number;
 };
 export type StaffOrderBrief = OrderBrief & { executor_id: number | null; ready_at: string | null };
 export type StaffOrder = StaffOrderBrief & {

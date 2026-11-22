@@ -15,6 +15,10 @@ interface TgWebApp {
   initData: string;
   initDataUnsafe: { user?: { id: number; language_code?: string } };
   themeParams: Record<string, string>;
+  viewportHeight: number;
+  viewportStableHeight: number;
+  onEvent(type: "viewportChanged", cb: () => void): void;
+  offEvent(type: "viewportChanged", cb: () => void): void;
   colorScheme: "light" | "dark";
   MainButton: TgMainButton;
   BackButton: TgButton;

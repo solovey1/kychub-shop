@@ -2,21 +2,35 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useFetch, type StaffOrderBrief, type Ticket } from "../../api";
 import { fmtDate, named, t } from "../../i18n";
-import { Empty, Failure, Loading, Row, Section, Segments, list } from "../../ui/kit";
+import { useUnread } from "../../unread";
+import { Badge, Empty, Failure, Loading, Row, Section, Segments, list } from "../../ui/kit";
 
 export type SupportSeg = "tickets" | "review";
 type Scope = "open" | "mine" | "all";
 
 export function Support({ seg, admin }: { seg: SupportSeg; admin: boolean }) {
   const [, go] = useLocation();
+  const unread = useUnread();
   return (
     <div className="screen">
       <Segments
         value={seg}
         onChange={(s) => go(`/support/${s}`, { replace: true })}
         items={[
-          ["tickets", t("support.tickets")],
-          ["review", t("support.review")],
+          [
+            "tickets",
+            <>
+              {t("support.tickets")}
+              <Badge n={unread.tickets} />
+            </>,
+          ],
+          [
+            "review",
+            <>
+              {t("support.review")}
+              <Badge n={unread.review} />
+            </>,
+          ],
         ]}
       />
       {seg === "tickets" ? <Tickets admin={admin} /> : <Review />}
@@ -27,7 +41,7 @@ export function Support({ seg, admin }: { seg: SupportSeg; admin: boolean }) {
 function Tickets({ admin }: { admin: boolean }) {
   const [, go] = useLocation();
   const [scope, setScope] = useState<Scope>("open");
-  const { data, error, reload } = useFetch<Ticket[]>(`/tickets?scope=${scope}`, ["ticket"]);
+  const { data, error, reload } = useFetch<Ticket[]>(`/tickets?scope=${scope}`, ["ticket", "message"]);
   const scopes: [Scope, string][] = [
     ["open", t("tickets.open")],
     ["mine", t("tickets.mine")],
@@ -49,6 +63,7 @@ function Tickets({ admin }: { admin: boolean }) {
               meta={fmtDate(tk.created_at)}
               right={scope === "all" ? named("ticket", tk.status) : undefined}
               chevron
+              unread={tk.unread}
               onClick={() => go(`/ticket/${tk.id}/${tk.conversation_id}`)}
             />
           ))}

@@ -4,6 +4,7 @@ import { ApiError, blobUrl, get, send, type Message, type Messages } from "../ap
 import { fmtDate, named, t } from "../i18n";
 import { useLive } from "../live";
 import { success } from "../telegram";
+import { refreshUnread } from "../unread";
 import { Loading } from "./kit";
 
 const LIMIT = 4000;
@@ -67,6 +68,7 @@ export function Chat({
   const stick = useRef(true);
   const keep = useRef<number | undefined>(undefined);
   const older = useRef(false);
+  const marked = useRef(0);
 
   useEffect(() => {
     stick.current = true;
@@ -75,6 +77,19 @@ export function Chat({
       setError,
     );
   }, [cid, version]);
+
+  useEffect(() => {
+    marked.current = 0;
+  }, [cid]);
+  // the last message of somebody else is on screen: tell the server (his own are read already)
+  useEffect(() => {
+    const last = items?.[items.length - 1];
+    if (!last || last.mine || last.id <= marked.current) return;
+    marked.current = last.id;
+    send("POST", `/conversations/${cid}/read`, { message_id: last.id }).then(refreshUnread, () => {
+      marked.current = 0;
+    });
+  }, [items, cid]);
 
   useLayoutEffect(() => {
     const el = list.current;

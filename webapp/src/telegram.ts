@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const tg = window.Telegram?.WebApp;
 export const initData = tg?.initData ?? "";
@@ -70,4 +70,17 @@ export function useBackButton(show: boolean, onClick: () => void) {
       b.hide();
     };
   }, [show]);
+}
+
+/** The on-screen keyboard is up: the viewport is much shorter than the stable one. */
+export function useKeyboard() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!tg) return;
+    const check = () => setOpen(tg.viewportHeight < tg.viewportStableHeight - 100);
+    check();
+    tg.onEvent("viewportChanged", check);
+    return () => tg.offEvent("viewportChanged", check);
+  }, []);
+  return open;
 }

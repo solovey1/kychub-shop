@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
 import { useFetch, usePaged, type ExecutorListItem, type QueueItem } from "../../api";
 import { named, t } from "../../i18n";
-import { Empty, Failure, Loading, Money, Row, Section, Segments, list } from "../../ui/kit";
+import { useUnread } from "../../unread";
+import { Badge, Empty, Failure, Loading, Money, Row, Section, Segments, list } from "../../ui/kit";
 import { Left } from "../../ui/Left";
 import { WalletScreen } from "./Wallet";
 
@@ -10,6 +11,7 @@ const ENDED = ["cancelled", "failed", "refunded"];
 
 export function Work({ seg }: { seg: WorkSeg }) {
   const [, go] = useLocation();
+  const unread = useUnread();
   return (
     <div className="screen">
       <Segments
@@ -17,7 +19,13 @@ export function Work({ seg }: { seg: WorkSeg }) {
         onChange={(s) => go(`/work/${s}`, { replace: true })}
         items={[
           ["queue", t("work.queue")],
-          ["mine", t("work.mine")],
+          [
+            "mine",
+            <>
+              {t("work.mine")}
+              <Badge n={unread.work} />
+            </>,
+          ],
           ["wallet", t("work.wallet")],
         ]}
       />
@@ -50,7 +58,7 @@ function Queue() {
 
 function Mine() {
   const [, go] = useLocation();
-  const { items, total, error, more } = usePaged<ExecutorListItem>("/executor/orders", ["order"]);
+  const { items, total, error, more } = usePaged<ExecutorListItem>("/executor/orders", ["order", "message"]);
   if (error && !items) return <Failure error={error} />;
   if (!items) return <Loading />;
   if (!items.length) return <Empty text={t("mine.empty")} />;
@@ -69,6 +77,7 @@ function Mine() {
               </span>
             }
             rightSub={o.status === "assigned" && o.deadline_at ? <Left until={o.deadline_at} /> : undefined}
+            unread={o.unread}
             onClick={() => go(`/work/order/${o.id}`)}
           />
         ))}

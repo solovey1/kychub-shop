@@ -54,6 +54,10 @@ window.Telegram = {
     initData: "mock",
     initDataUnsafe: { user: { id: 1, language_code: query.get("lang") ?? "ru" } },
     themeParams: theme,
+    viewportHeight: innerHeight,
+    viewportStableHeight: innerHeight,
+    onEvent: () => {},
+    offEvent: () => {},
     colorScheme: dark ? "dark" : "light",
     MainButton: {
       ...button(mainEl),
@@ -88,11 +92,12 @@ type Brief = {
   country: string | null;
   total: string;
   created_at: string;
+  unread?: number;
 };
 const orders: (Brief & { alias: string | null; result: string | null; cancel?: boolean })[] = [
-  { id: 1042, status: "assigned", product: "Аккаунт Instagram, прогретый", variant: "30 дней", country: "us", total: "12.50", created_at: ago(35), alias: "Орион", result: null },
+  { id: 1042, status: "assigned", product: "Аккаунт Instagram, прогретый", variant: "30 дней", country: "us", total: "12.50", created_at: ago(35), alias: "Орион", result: null, unread: 2 },
   { id: 1041, status: "in_queue", product: "Аккаунт Instagram, прогретый", variant: "7 дней", country: "de", total: "8.00", created_at: ago(12), alias: null, result: null, cancel: true },
-  { id: 1038, status: "ready", product: "Регистрация Google Ads", variant: "С верификацией", country: null, total: "45.00", created_at: ago(300), alias: "Фокс", result: null },
+  { id: 1038, status: "ready", product: "Регистрация Google Ads", variant: "С верификацией", country: null, total: "45.00", created_at: ago(300), alias: "Фокс", result: null, unread: 120 },
   { id: 1030, status: "completed", product: "Прокси, 10 штук", variant: "Residential", country: "pl", total: "20.00", created_at: ago(2000), alias: "Фокс", result: "http://user1:pass1@10.0.0.1:8080\nhttp://user2:pass2@10.0.0.2:8080" },
   { id: 1027, status: "completed", product: "Ключ активации", variant: "Pro, 1 год", country: null, total: "6.00", created_at: ago(4000), alias: null, result: "XK4T-9PLM-27QA-RW88" },
   { id: 1020, status: "cancelled", product: "Аккаунт Facebook", variant: "Старый, 2019", country: "ua", total: "15.00", created_at: ago(6000), alias: null, result: null },
@@ -138,9 +143,9 @@ const queue = [
   { id: 1053, status: "in_queue", product: "Прокси, 10 штук", country: "pl", earning: "2.20", deadline_minutes: 60 },
 ];
 const execOrders = [
-  { id: 1042, status: "assigned", product: "Аккаунт Instagram, прогретый", variant: "30 дней", country: "us", deadline_at: minutes(52) },
-  { id: 1038, status: "ready", product: "Регистрация Google Ads", variant: "С верификацией", country: null, deadline_at: minutes(-20) },
-  { id: 1030, status: "completed", product: "Прокси, 10 штук", variant: "Residential", country: "pl", deadline_at: null },
+  { id: 1042, status: "assigned", product: "Аккаунт Instagram, прогретый", variant: "30 дней", country: "us", deadline_at: minutes(52), unread: 3 },
+  { id: 1038, status: "ready", product: "Регистрация Google Ads", variant: "С верификацией", country: null, deadline_at: minutes(-20), unread: 0 },
+  { id: 1030, status: "completed", product: "Прокси, 10 штук", variant: "Residential", country: "pl", deadline_at: null, unread: 0 },
 ];
 const form = [
   { key: "login", label: "Логин", type: "text", required: true, options: null, max_length: 64 },
@@ -169,14 +174,14 @@ const execDetail = (id: number) => {
 };
 
 const tickets = [
-  { id: 71, status: "open", order_id: 1042, buyer_name: "Андрей К.", mine: false, conversation_id: 3, created_at: ago(14) },
-  { id: 70, status: "open", order_id: null, buyer_name: "Maria", mine: false, conversation_id: 3, created_at: ago(95) },
-  { id: 68, status: "taken", order_id: 1030, buyer_name: "Игорь", mine: true, conversation_id: 3, created_at: ago(300) },
-  { id: 60, status: "closed", order_id: 1011, buyer_name: "Олег", mine: true, conversation_id: 4, created_at: ago(900) },
+  { id: 71, status: "open", order_id: 1042, buyer_name: "Андрей К.", mine: false, conversation_id: 3, created_at: ago(14), unread: 1 },
+  { id: 70, status: "open", order_id: null, buyer_name: "Maria", mine: false, conversation_id: 3, created_at: ago(95), unread: 0 },
+  { id: 68, status: "taken", order_id: 1030, buyer_name: "Игорь", mine: true, conversation_id: 3, created_at: ago(300), unread: 4 },
+  { id: 60, status: "closed", order_id: 1011, buyer_name: "Олег", mine: true, conversation_id: 4, created_at: ago(900), unread: 0 },
 ];
 
 function brief(o: Brief) {
-  return { id: o.id, status: o.status, product: o.product, variant: o.variant, country: o.country, total: o.total, created_at: o.created_at };
+  return { id: o.id, status: o.status, product: o.product, variant: o.variant, country: o.country, total: o.total, created_at: o.created_at, unread: o.unread ?? 0 };
 }
 
 function route(method: string, url: URL, body: unknown): unknown {
@@ -192,6 +197,8 @@ function route(method: string, url: URL, body: unknown): unknown {
       balance: "128.40",
       executor: roles.includes("executor") ? { hold: "12.40", available: "58.75" } : null,
     };
+  if (path === "/unread") return { orders: 2, support: 1, work: 1, tickets: 2, review: 1 };
+  if (path.match(/^\/conversations\/\d+\/read$/)) return { ok: true };
   if (path === "/orders") return { items: orders.map(brief), total: orders.length, page: 0, page_size: 20 };
   if ((m = path.match(/^\/orders\/(\d+)$/))) {
     const o = orders.find((x) => x.id === Number(m![1]));
