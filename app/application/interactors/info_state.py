@@ -71,7 +71,9 @@ async def resume_locked(
         return None
     now = datetime_now()
     if order.deadline_at is not None:
-        order.deadline_at += max(now - order.paused_at, timedelta(0))
+        # at most the 24 h the buyer is given: a longer pause (a dispute) is not credited
+        paused = min(max(now - order.paused_at, timedelta(0)), timedelta(hours=INFO_HOURS))
+        order.deadline_at += paused
     order.paused_at = None
     await orders.add_event(
         OrderEvent(

@@ -361,11 +361,15 @@ class ConversationInteractor(BaseInteractor):
                 await self._no_contacts(order, sender_id, role, text)
                 await reply_seen(self.disputes, self.orders, order.id, role.value)
             resumed_until = None
-            if order is not None and role is ChatRole.buyer and order.paused_at is not None:
-                # the lock the info-timeout job takes: his answer a moment before the 24 h ends
-                # resumes the order, a moment after finds it refunded and the chat closed
+            if order is not None and role is ChatRole.buyer:
+                # the lock the info-timeout job takes, and the pause is read from the locked row:
+                # his answer a moment before the 24 h ends resumes the order, a moment after finds
+                # it refunded and the chat closed
+                waited = order.paused_at is not None  # (the lock refreshes the same object)
                 locked = await self.orders.get_for_update(order.id)
-                if locked is None or locked.status not in CHAT_STATUSES:
+                if locked is None or (
+                    waited and locked.status not in CHAT_STATUSES
+                ):  # it was waiting for his answer and the timer closed it first
                     raise ChatForbidden(conversation_id)
                 resumed_until = await resume_locked(self.orders, locked, sender_id)
             if order is not None and before_store is not None:

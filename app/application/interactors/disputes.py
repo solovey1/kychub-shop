@@ -27,6 +27,7 @@ from typing import Final
 from app.application.errors.shop import Conflict, InvalidInput, OrderUnavailable
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.dispute_state import close_dispute
+from app.application.interactors.info_state import resume_locked
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.application.interactors.payouts import Refunded
 from app.application.ports.repositories.disputes import DisputesGateway
@@ -127,6 +128,7 @@ class DisputeInteractor(BaseInteractor):
                 awaiting_until=datetime_now() + timedelta(hours=await reply_hours(self.settings)),
             )
             await self.disputes.add(dispute)
+            await resume_locked(self.orders, order, user_id)  # a dispute ends the data pause
             await self.orders.add_event(
                 OrderEvent(
                     order_id=order_id,
