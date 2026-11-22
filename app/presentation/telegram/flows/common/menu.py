@@ -9,6 +9,7 @@ from app.application.interactors.orders import OrdersInteractor
 from app.application.models.config import AppConfig
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.domain.user import User
+from app.infrastructure.events import EventHub
 from app.presentation.telegram.flows.base import BaseFlow
 from app.presentation.telegram.flows.common.nav import ScreenTracker
 from app.presentation.telegram.presenters.common.menu import CommonMenuPresenter
@@ -28,6 +29,7 @@ class CommonMenuFlow(BaseFlow):
     core: FluentRuntimeCore
     helper: MessageHelper
     screens: ScreenTracker
+    hub: EventHub
 
     async def _card(self, *, new: bool = False) -> Any:
         amount = await self.balance.balance(self.user.id)
@@ -62,6 +64,7 @@ class CommonMenuFlow(BaseFlow):
         if code not in self.core.available_locales:
             return await self.language()
         await self.i18n.set_locale(code)  # UserManager persists it, the context switches over
+        await self.hub.publish([self.user.id], {"type": "me"})  # an open Mini App switches too
         await (
             self.helper.delete()
         )  # the language screen; the bottom labels change with a new start

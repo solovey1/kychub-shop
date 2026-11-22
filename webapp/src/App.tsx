@@ -193,7 +193,7 @@ function Shell({ me }: { me: Me }) {
 
 export default function App() {
   const expired = useExpired();
-  const { data: me, error, reload } = useFetch<Me>(initData ? "/me" : null);
+  const { data: me, error, reload } = useFetch<Me>(initData ? "/me" : null, ["me"]);
   useEffect(startTelegram, []);
   setLang(me?.language ?? tg?.initDataUnsafe.user?.language_code);
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
