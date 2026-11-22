@@ -69,8 +69,8 @@ buttons-skip = ⏭ Пропустити
 buttons-copy = 📋 Скопіювати
 buttons-topup = 💳 Поповнити
 buttons-topup_missing = 💳 Поповнити на { $amount }
-buttons-edit = ✏️ Змінити дані
-buttons-new_account = ➕ Нові дані
+buttons-edit = ✏️ Змінити відповіді
+buttons-prev = ↩️ Як минулого разу: { $value }
 buttons-done = ✅ Готово
 
 messages-purchase-line_online = 🟢 Виконавців у мережі: { $count }
@@ -78,9 +78,3 @@ messages-purchase-line_offline = 🌙 Зараз усі не в мережі —
 messages-purchase-how_it_works =
     ℹ️ <b>Як це працює</b>
     💰 Гроші чекають у резерві → 🧑‍💻 виконавець виконує замовлення → ✅ ви перевіряєте й підтверджуєте. Щось не так — одразу 🆘 у підтримку.
-
-messages-purchase-pick_account =
-    👤 <b>Для якого акаунта оформити?</b>
-    { $product }
-    Візьму дані з минулих замовлень, вводити заново не доведеться 🙌
-messages-purchase-account_from = Акаунт із замовлення №{ $id } ({ $date })

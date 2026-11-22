@@ -1,5 +1,5 @@
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Final
 from uuid import uuid4
 
@@ -11,7 +11,7 @@ from app.application.errors.base import InsufficientFunds
 from app.application.errors.shop import InvalidInput, OutOfStock, ProductUnavailable, PromoError
 from app.application.i18n_text import pick_i18n
 from app.application.interactors.dispatch import DispatchInteractor
-from app.application.interactors.purchase import Prepared, PurchaseInteractor, valid_answers
+from app.application.interactors.purchase import Prepared, PurchaseInteractor
 from app.application.models.config import AppConfig
 from app.application.models.form_schema import FieldType
 from app.application.ports.telegram.messages_helper import MessageHelper
@@ -37,8 +37,8 @@ logger: Final[logging.Logger] = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class PurchaseFlow(BaseFlow):
-    """One card message is edited through the questions and the checkout (FSM data: variant_id,
-    idx, answers, ask, sets, promo_code, message_id, prompt_id, editing, purchase_token)."""
+    """One card message is edited through the questions and the checkout (FSM data:
+    variant_id, idx, answers, promo_code, prev, message_id, prompt_id, editing, purchase_token)."""
 
     user: User
     interactor: PurchaseInteractor
@@ -116,41 +116,22 @@ class PurchaseFlow(BaseFlow):
             if isinstance(update := self.helper.update, CallbackQuery):  # a stale button
                 return await self._alert(update)
             return await self._say("unavailable")
-        sets = await self.interactor.answer_sets(self.user.id, prep) if prep.form.fields else []
+        prev = (
+            await self.interactor.previous_answers(self.user.id, prep.product.id)
+            if prep.form.fields
+            else {}
+        )
         await self.helper.fsm.update_data(
             variant_id=variant_id,
             idx=0,
             answers={},
-            ask=list(range(len(prep.form.fields))),  # the questions still to put to the buyer
-            sets=[asdict(s) for s in sets],
             promo_code=None,
+            prev=prev,
             files=[],
             group=None,
             group_open=None,
             editing=False,
             message_id=self.helper.find_message_id(),
-        )
-        if sets:
-            await self._render(self.presenter.accounts(prep, sets))
-        else:
-            await self._step(prep, current=False)
-
-    async def _use_set(self, prep: Prepared, data: dict[str, Any], cd: CDPurchase) -> None:
-        """An earlier account: take what still fits, ask only for the rest. "new": the whole form,
-        nothing prefilled (a different account)."""
-        sets = data.get("sets", [])
-        if cd.action == "acct" and not 0 <= cd.value < len(sets):
-            return
-        answers = (
-            valid_answers(prep.form, sets[cd.value]["answers"]) if cd.action == "acct" else {}
-        )
-        ask = [
-            i
-            for i, f in enumerate(prep.form.fields)
-            if f.key not in answers and (f.required or not answers)
-        ]
-        await self.helper.fsm.update_data(
-            answers=answers, ask=ask, idx=ask[0] if ask else len(prep.form.fields), editing=False
         )
         await self._step(prep, current=False)
 
@@ -173,6 +154,7 @@ class PurchaseFlow(BaseFlow):
                 prep,
                 data["answers"],
                 idx,
+                data.get("prev", {}),
                 current=current,
                 reason=reason,
                 files=len(data.get("files", [])),
@@ -187,12 +169,7 @@ class PurchaseFlow(BaseFlow):
     ) -> None:
         field = prep.form.fields[data["idx"]]
         # a changed answer goes straight back to the checkout
-        idx = len(prep.form.fields)
-        if not data.get("editing"):  # the next question that is still to be asked
-            idx = next(
-                (i for i in data.get("ask") or range(len(prep.form.fields)) if i > data["idx"]),
-                idx,
-            )
+        idx = len(prep.form.fields) if data.get("editing") else data["idx"] + 1
         await self.helper.fsm.update_data(
             answers={**data["answers"], field.key: value},
             idx=idx,
@@ -284,14 +261,14 @@ class PurchaseFlow(BaseFlow):
             case "promo":
                 await self.helper.fsm.set_state(PurchaseForm.promo)
                 await self._render(self.presenter.ask_promo())
-            case "back" | "edit":
-                await self._confirm(prep, current=False, pick=cd.action == "edit")
+            case "back":
+                await self._confirm(prep, current=False)
+            case "edit":
+                await self._confirm(prep, current=False, pick=True)
             case "field" if 0 <= cd.value < len(fields):
                 await self.helper.fsm.update_data(idx=cd.value, editing=True, files=[])
                 await self._step(prep, current=False)
-            case "acct" | "new":
-                await self._use_set(prep, data, cd)
-            case "choice" | "skip" if data["idx"] < len(fields):
+            case "choice" | "skip" | "prev" if data["idx"] < len(fields):
                 await self._pick(prep, data, cd)
 
     async def _done(self) -> None:
@@ -307,11 +284,13 @@ class PurchaseFlow(BaseFlow):
             await self._accept(prep, data, value, current=False)
 
     async def _pick(self, prep: Prepared, data: dict[str, Any], cd: CDPurchase) -> None:
-        """An answer given with a button: an option, or "skip"."""
+        """An answer given with a button: an option, "skip" or the previous answer."""
         field = prep.form.fields[data["idx"]]
         options = field.options or []
         if cd.action == "choice":
             value = options[cd.value] if 0 <= cd.value < len(options) else None
+        elif cd.action == "prev":
+            value = self.presenter.prev_value(field, data.get("prev", {}))
         else:
             value = "" if not field.required else None
         if value is not None:

@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -8,7 +7,7 @@ from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import order_ref
 from app.application.interactors.promo import PromoService, discount_for
-from app.application.models.form_schema import FieldType, FormSchema
+from app.application.models.form_schema import FormSchema
 from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
@@ -30,36 +29,6 @@ class Quote:
     balance: Decimal
     promo_code_id: int | None = None
     promo_error: str | None = None
-
-
-ACCOUNT_SETS = 3  # answer sets offered to the buyer
-ACCOUNT_SCAN = 20  # orders looked through to find them
-LABEL_LIMIT = 24
-_SECRET_KEY = re.compile(r"pass|pwd|password|secret|token|cookie|code|otp|2fa", re.I)
-_LABEL_TYPES = (FieldType.login, FieldType.email, FieldType.text)
-
-
-@dataclass(frozen=True)
-class AnswerSet:
-    """Answers of an earlier order. `label` is None when no field can name the account."""
-
-    answers: dict[str, str]
-    label: str | None
-    code: str
-    date: str  # DD.MM
-
-
-def valid_answers(form: FormSchema, raw: dict[str, str]) -> dict[str, str]:
-    """What of the old answers still fits the current form. Files never carry over."""
-    found: dict[str, str] = {}
-    for field in form.fields:
-        if field.type is FieldType.file or not raw.get(field.key):
-            continue
-        try:
-            found[field.key] = field.validate_value(raw[field.key])
-        except ValueError:
-            continue
-    return found
 
 
 @dataclass(frozen=True)
@@ -120,33 +89,10 @@ class PurchaseInteractor(BaseInteractor):
     async def is_first_order(self, user_id: int) -> bool:
         return await self.orders.count_for_user(user_id) == 0
 
-    async def answer_sets(self, user_id: int, prep: Prepared) -> list[AnswerSet]:
-        """Distinct answer sets of earlier orders of this product, newest first."""
-        found: list[AnswerSet] = []
-        seen: set[tuple[tuple[str, str], ...]] = set()
-        orders = await self.orders.recent_with_input(user_id, prep.product.id, ACCOUNT_SCAN)
-        for order in orders:
-            answers = valid_answers(prep.form, dict(order.input_data))
-            key = tuple(sorted(answers.items()))
-            if not answers or key in seen:
-                continue
-            seen.add(key)
-            label = next(
-                (
-                    answers[f.key]
-                    for f in prep.form.fields
-                    if f.type in _LABEL_TYPES
-                    and f.key in answers
-                    and not _SECRET_KEY.search(f.key)
-                ),
-                None,
-            )
-            if label and len(label) > LABEL_LIMIT:
-                label = label[: LABEL_LIMIT - 1] + "…"
-            found.append(AnswerSet(answers, label, order.code, f"{order.created_at:%d.%m}"))
-            if len(found) == ACCOUNT_SETS:
-                break
-        return found
+    async def previous_answers(self, user_id: int, product_id: int) -> dict[str, str]:
+        """What this user answered the last time they ordered this product."""
+        order = await self.orders.last_for_product(user_id, product_id)
+        return dict(order.input_data) if order else {}
 
     async def quote(self, user_id: int, variant_id: int, promo_code: str | None) -> Quote:
         """Price preview. Writes nothing."""

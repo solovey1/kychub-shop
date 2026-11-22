@@ -68,8 +68,8 @@ buttons-skip = ⏭ Skip
 buttons-copy = 📋 Copy
 buttons-topup = 💳 Top up
 buttons-topup_missing = 💳 Top up { $amount }
-buttons-edit = ✏️ Edit details
-buttons-new_account = ➕ New details
+buttons-edit = ✏️ Edit answers
+buttons-prev = ↩️ Same as last time: { $value }
 buttons-done = ✅ Done
 
 messages-purchase-line_online = 🟢 Executors online: { $count }
@@ -77,9 +77,3 @@ messages-purchase-line_offline = 🌙 Everyone is offline right now — your ord
 messages-purchase-how_it_works =
     ℹ️ <b>How it works</b>
     💰 Your money waits in reserve → 🧑‍💻 an executor does the job → ✅ you check and confirm. Something wrong? 🆘 Support is one tap away.
-
-messages-purchase-pick_account =
-    👤 <b>Which account is this for?</b>
-    { $product }
-    I will reuse the details from your earlier orders, no retyping 🙌
-messages-purchase-account_from = Account from order #{ $id } ({ $date })

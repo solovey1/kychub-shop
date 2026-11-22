@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import ColumnElement, cast, exists, func, select
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ColumnElement, exists, func, select
 
 from app.application.ports.repositories.orders import OrdersGateway
 from app.domain.catalog import Category, Country, Product, ProductVariant
@@ -89,19 +88,16 @@ class OrdersRepository(OrdersGateway):
             found.setdefault(event.order_id, []).append(event)
         return found
 
-    async def recent_with_input(self, user_id: int, product_id: int, limit: int) -> list[Order]:
+    async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
         query = (
             select(Order)
             .join(ProductVariant, ProductVariant.id == Order.variant_id)
-            .where(
-                Order.user_id == user_id,
-                ProductVariant.product_id == product_id,
-                Order.input_data != cast({}, JSONB),
-            )
+            .where(Order.user_id == user_id, ProductVariant.product_id == product_id)
             .order_by(Order.id.desc())
-            .limit(limit)
+            .limit(1)
         )
-        return list(await self._helper.session.scalars(query))
+        order: Order | None = await self._helper.session.scalar(query)
+        return order
 
     async def reorderable(
         self, user_id: int, limit: int
