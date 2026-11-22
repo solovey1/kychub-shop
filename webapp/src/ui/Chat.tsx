@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { report } from "../action";
 import { ApiError, blobUrl, get, send, type Message, type Messages } from "../api";
 import { fmtDate, named, t } from "../i18n";
@@ -51,11 +51,13 @@ export function Chat({
   title,
   version = 0,
   onClose,
+  header,
 }: {
   cid: number;
   title?: string;
   version?: number;
   onClose?: () => void;
+  header?: ReactNode;
 }) {
   const [items, setItems] = useState<Message[]>();
   const [hasMore, setHasMore] = useState(false);
@@ -144,6 +146,7 @@ export function Chat({
   if (error && !items) return <Loading />;
   return (
     <div className="chat">
+      {header}
       {title && (
         <div className="chat-bar">
           <span>{title}</span>

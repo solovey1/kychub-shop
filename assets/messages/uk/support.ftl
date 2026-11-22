@@ -41,7 +41,7 @@ messages-chat-media_animation = [анімація]
 messages-chat-media_sticker = [стікер]
 messages-chat-media_video_note = [кружечок]
 
-messages-ticket-order = Замовлення: № { $id }
+messages-ticket-order = 📦 Замовлення №{ $id }: { $product }, { $variant }, { $total }, { $status }
 messages-ticket-new =
     <b>Новий тікет № { $id }</b>
     Користувач: { $name }{ $order }

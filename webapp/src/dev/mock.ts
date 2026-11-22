@@ -259,6 +259,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     const scope = q.get("scope");
     return tickets.filter((t) => (scope === "open" ? t.status === "open" : scope === "mine" ? t.mine : true));
   }
+  if ((m = path.match(/^\/tickets\/(\d+)$/))) return tickets.find((x) => x.id === Number(m![1])) ?? tickets[0];
   if (path.match(/^\/tickets\/\d+\/(take|close)$/)) return path.endsWith("take") ? { conversation_id: 3 } : { ok: true };
   if (path === "/staff/orders") return orders.filter((o) => o.status === "ready").map((o) => ({ ...brief(o), executor_id: 7, ready_at: ago(25) }));
   if ((m = path.match(/^\/staff\/orders\/(\d+)$/))) {
@@ -266,6 +267,7 @@ function route(method: string, url: URL, body: unknown): unknown {
     return {
       ...brief(o),
       executor_id: 7,
+      executor_alias: o.alias,
       ready_at: ago(25),
       earning: "11.50",
       fields: [

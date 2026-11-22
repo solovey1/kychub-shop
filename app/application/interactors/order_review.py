@@ -46,6 +46,7 @@ class ReviewView:
     card: OrderCard
     text: str
     files: list[str]
+    executor_alias: str | None
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,16 @@ class OrderReviewInteractor(BaseInteractor):
             return None
         card = await self.cards.build(order, order.executor_id, hide_private=False)
         result = order.result or {}
-        return ReviewView(order, card, str(result.get("text", "")), list(result.get("files", [])))
+        profile = (
+            await self.executors.get_profile(order.executor_id) if order.executor_id else None
+        )
+        return ReviewView(
+            order,
+            card,
+            str(result.get("text", "")),
+            list(result.get("files", [])),
+            profile.alias if profile else None,
+        )
 
     async def list_by_status(self, status: OrderStatus, limit: int) -> list[Order]:
         return await self.orders.list_by_status(status, limit)

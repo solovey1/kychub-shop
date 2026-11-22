@@ -152,6 +152,8 @@ export const ru = {
   "ticket.taken": "В работе",
   "ticket.closed": "Закрыт",
   "ticket.title": "Тикет №{id}",
+  "ticket.order": "Заказ №{id}",
+  "ticket.openOrder": "Открыть заказ",
   "ticket.take": "Взять тикет",
   "ticket.close": "Закрыть тикет",
   "ticket.closeConfirm": "Закрыть тикет? Покупатель больше не сможет писать в него.",

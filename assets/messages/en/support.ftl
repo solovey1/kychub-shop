@@ -41,7 +41,7 @@ messages-chat-media_animation = [animation]
 messages-chat-media_sticker = [sticker]
 messages-chat-media_video_note = [video note]
 
-messages-ticket-order = Order: #{ $id }
+messages-ticket-order = 📦 Order #{ $id }: { $product }, { $variant }, { $total }, { $status }
 messages-ticket-new =
     <b>New ticket #{ $id }</b>
     User: { $name }{ $order }

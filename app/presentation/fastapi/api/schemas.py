@@ -252,6 +252,7 @@ class StaffOrderBrief(OrderBrief):
 
 
 class StaffOrderOut(StaffOrderBrief):
+    executor_alias: str | None
     earning: str
     fields: list[CardFieldOut]  # includes the fields hidden from executors
     result: str

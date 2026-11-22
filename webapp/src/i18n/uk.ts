@@ -153,6 +153,8 @@ export const uk: typeof ru = {
   "ticket.taken": "У роботі",
   "ticket.closed": "Закрито",
   "ticket.title": "Тікет №{id}",
+  "ticket.order": "Замовлення №{id}",
+  "ticket.openOrder": "Відкрити замовлення",
   "ticket.take": "Взяти тікет",
   "ticket.close": "Закрити тікет",
   "ticket.closeConfirm": "Закрити тікет? Покупець більше не зможе писати в нього.",

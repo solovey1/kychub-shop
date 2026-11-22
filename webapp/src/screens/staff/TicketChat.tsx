@@ -5,14 +5,13 @@ import { ApiError, send, useFetch, type Ticket } from "../../api";
 import { alert, confirm, success, useMainButton } from "../../telegram";
 import { t } from "../../i18n";
 import { Chat } from "../../ui/Chat";
+import { TicketOrder } from "./TicketOrder";
 
 export function TicketChat({ tid, cid }: { tid: number; cid: number }) {
   const [, go] = useLocation();
   const [version, setVersion] = useState(0);
-  const open = useFetch<Ticket[]>("/tickets?scope=open", ["ticket"]);
-  const mine = useFetch<Ticket[]>("/tickets?scope=mine", ["ticket"]);
+  const { data: ticket, reload } = useFetch<Ticket>(`/tickets/${tid}`, ["ticket"]);
   const { busy, run } = useBusy();
-  const ticket = [...(mine.data ?? []), ...(open.data ?? [])].find((x) => x.id === tid);
 
   const take = () =>
     run(async () => {
@@ -20,8 +19,7 @@ export function TicketChat({ tid, cid }: { tid: number; cid: number }) {
         await send("POST", `/tickets/${tid}/take`);
         success();
         setVersion((v) => v + 1);
-        open.reload();
-        mine.reload();
+        reload();
       } catch (e) {
         if (e instanceof ApiError && e.status === 409) {
           await alert(t("ticket.gone"));
@@ -48,6 +46,7 @@ export function TicketChat({ tid, cid }: { tid: number; cid: number }) {
       version={version}
       title={t("ticket.title", { id: tid })}
       onClose={ticket?.mine && ticket.status === "taken" ? close : undefined}
+      header={ticket?.order_id ? <TicketOrder id={ticket.order_id} /> : undefined}
     />
   );
 }

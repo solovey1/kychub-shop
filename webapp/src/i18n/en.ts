@@ -153,6 +153,8 @@ export const en: typeof ru = {
   "ticket.taken": "In progress",
   "ticket.closed": "Closed",
   "ticket.title": "Ticket no. {id}",
+  "ticket.order": "Order no. {id}",
+  "ticket.openOrder": "Open order",
   "ticket.take": "Take ticket",
   "ticket.close": "Close ticket",
   "ticket.closeConfirm": "Close the ticket? The buyer can no longer write to it.",

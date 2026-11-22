@@ -116,6 +116,7 @@ export type Ticket = {
 };
 export type StaffOrderBrief = OrderBrief & { executor_id: number | null; ready_at: string | null };
 export type StaffOrder = StaffOrderBrief & {
+  executor_alias: string | null;
   earning: string;
   fields: CardField[];
   result: string;

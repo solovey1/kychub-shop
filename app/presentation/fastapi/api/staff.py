@@ -9,8 +9,9 @@ from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.order_review import OrderReviewInteractor
 from app.domain.enums.order import OrderStatus
 from app.domain.enums.roles import Role
+from app.domain.support import Ticket
 from app.infrastructure.telegram.effects import Effects
-from app.presentation.fastapi.api.auth import StaffUser
+from app.presentation.fastapi.api.auth import CurrentUser, StaffUser
 from app.presentation.fastapi.api.schemas import (
     CancelOut,
     OrderBrief,
@@ -39,18 +40,40 @@ async def tickets(
     rows = await chat.list_tickets(user.id, scope)
     unread = await chat.unread_by_ticket(user.id, [row[0] for row in rows])
     return [
-        TicketOut(
-            id=ticket.id,
-            status=ticket.status.value,
-            order_id=ticket.order_id,
-            buyer_name=unescape(name),
-            mine=ticket.manager_id == user.id,
-            conversation_id=conversation_id,
-            created_at=ticket.created_at,
-            unread=unread.get(ticket.id, 0),
-        )
+        _ticket_out(ticket, name, conversation_id, user.id, unread.get(ticket.id, 0))
         for ticket, name, conversation_id in rows
     ]
+
+
+def _ticket_out(
+    ticket: Ticket, name: str, conversation_id: int, user_id: int, unread: int
+) -> TicketOut:
+    return TicketOut(
+        id=ticket.id,
+        status=ticket.status.value,
+        order_id=ticket.order_id,
+        buyer_name=unescape(name),
+        mine=ticket.manager_id == user_id,
+        conversation_id=conversation_id,
+        created_at=ticket.created_at,
+        unread=unread,
+    )
+
+
+@router.get("/tickets/{ticket_id}")
+@inject
+async def get_ticket(
+    ticket_id: int, user: CurrentUser, chat: FromDishka[ConversationInteractor]
+) -> TicketOut:
+    """Whoever may read the ticket chat; anyone else gets the same 404 as for a missing one."""
+    card = await chat.ticket_card(ticket_id)
+    if card is None:
+        raise HTTPException(404, "Not found")
+    conversation = await chat.ticket_conversation(ticket_id)
+    if await chat.reader_role(user.id, conversation) is None:
+        raise HTTPException(404, "Not found")
+    unread = await chat.unread_by_ticket(user.id, [card[0]])
+    return _ticket_out(card[0], card[1], conversation.id, user.id, unread.get(ticket_id, 0))
 
 
 @router.post("/tickets/{ticket_id}/take")
@@ -111,6 +134,7 @@ async def staff_order(
     return StaffOrderOut(
         **OrderBrief.of(view.order, user.language).model_dump(),
         executor_id=view.order.executor_id,
+        executor_alias=view.executor_alias,
         ready_at=view.order.ready_at,
         earning=usd(view.card.earning),
         fields=card_fields(view.card, user.language),

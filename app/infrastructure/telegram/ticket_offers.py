@@ -5,7 +5,9 @@ from typing import Callable, Final
 
 from aiogram.types import InlineKeyboardMarkup
 
+from app.application.i18n_text import fmt_usd, pick_i18n
 from app.application.interactors.conversations import Posted
+from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.storages.key_value import KvStorage
 from app.application.storage.keys.impl import TicketOfferKey
 from app.infrastructure.telegram.notifier import Notifier, Translate
@@ -32,6 +34,7 @@ class TicketOffers:
 
     notifier: Notifier
     kv: KvStorage
+    orders: OrdersGateway
 
     async def announce(self, posted: Posted) -> None:
         """Only for an open ticket that has not been announced yet. A ticket nobody could be
@@ -48,17 +51,26 @@ class TicketOffers:
         if await self.kv.exists(key):
             return
 
-        def text(tr: Translate, _: str) -> str:
-            order = (
-                "\n" + tr("messages-ticket-order", id=str(posted.order_id))
-                if posted.order_id is not None
-                else ""
-            )
+        order = await self.orders.get(posted.order_id) if posted.order_id is not None else None
+
+        def text(tr: Translate, locale: str) -> str:
+            line = ""
+            if order is not None:
+                snap = order.snapshot
+                variant = snap.get("variant") or {}
+                line = "\n" + tr(
+                    "messages-ticket-order",
+                    id=str(order.id),
+                    product=pick_i18n(snap.get("product"), locale),
+                    variant=pick_i18n(variant.get("title"), locale),
+                    total=fmt_usd(order.price - order.discount),
+                    status=tr(f"order-status-{order.status.value}"),
+                )
             return tr(
                 "messages-ticket-new",
                 id=str(ticket_id),
                 name=posted.buyer_name,
-                order=order,
+                order=line,
                 text=preview(tr, posted.text, posted.media, PREVIEW_CHARS),
             )
 
