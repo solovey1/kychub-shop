@@ -6,12 +6,13 @@ from aiogram import html
 from aiogram_i18n import I18nContext
 
 from app.application.cards import fmt_duration
-from app.application.i18n_text import country_flag, fmt_usd, pick_i18n
+from app.application.i18n_text import country_flag, fmt_time, fmt_usd, pick_i18n
 from app.application.interactors.deadlines import ExtensionAnswer, Pending, extended_deadline
 from app.application.interactors.disputes import DisputeNews
 from app.domain.dispute import Dispute
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
+from app.domain.user import User
 from app.presentation.telegram.callbacks.executor import CDXOrder
 from app.presentation.telegram.callbacks.orders import CDOrders
 from app.presentation.telegram.keyboards.common import button, markup
@@ -50,7 +51,7 @@ def _times(events: list[OrderEvent]) -> dict[str, datetime]:
     return at
 
 
-def dispute_line(i18n: I18nContext, dispute: Dispute, me: str) -> str:
+def dispute_line(i18n: I18nContext, dispute: Dispute, me: str, tz: str | None) -> str:
     """The banner of an open dispute for the buyer (`me`="buyer") or the executor."""
     if dispute.awaiting_role is None or dispute.awaiting_until is None:
         return i18n.messages.order.dispute()
@@ -59,14 +60,16 @@ def dispute_line(i18n: I18nContext, dispute: Dispute, me: str) -> str:
         if dispute.awaiting_role == me
         else f"dispute-from-{dispute.awaiting_role}"
     )
-    return i18n.messages.order.dispute_wait(
-        who=who, time=dispute.awaiting_until.strftime("%d.%m %H:%M")
-    )
+    return i18n.messages.order.dispute_wait(who=who, time=fmt_time(dispute.awaiting_until, tz))
 
 
 @dataclass(frozen=True)
 class OrdersPresenter(BasePresenter):
     i18n: I18nContext
+    user: User
+
+    def _time(self, at: datetime) -> str:
+        return fmt_time(at, self.user.timezone)
 
     def orders(self, orders: list[Order], total: int, page: int) -> View:
         if not orders:
@@ -110,12 +113,12 @@ class OrdersPresenter(BasePresenter):
         messages = Keys(self.i18n, "messages-order")
         if step not in at:
             return messages.step_done_notime(name=self._name(step))
-        return messages.step_done(name=self._name(step), time=at[step].strftime("%H:%M"))
+        return messages.step_done(name=self._name(step), time=self._time(at[step]))
 
     def _final(self, status: str, at: dict[str, datetime]) -> str:
         if status not in at:
             return self._name(status)
-        time = at[status].strftime("%H:%M")
+        time = self._time(at[status])
         return self.i18n.messages.order.step_final(name=self._name(status), time=time)
 
     def _current(self, order: Order, at: dict[str, datetime]) -> str:
@@ -124,7 +127,7 @@ class OrdersPresenter(BasePresenter):
         if order.status is OrderStatus.completed:
             return self._done(order.status, at)
         if order.status is OrderStatus.assigned and order.deadline_at:
-            return messages.step_until(name=name, time=order.deadline_at.strftime("%H:%M"))
+            return messages.step_until(name=name, time=self._time(order.deadline_at))
         return messages.step_now(name=name)
 
     def order(
@@ -161,16 +164,16 @@ class OrdersPresenter(BasePresenter):
         if pending is not None:
             until = extended_deadline(order, pending.minutes, datetime_now())
             text += "\n\n" + i18n.messages.order.extension(
-                duration=fmt_duration(i18n.get, pending.minutes), time=until.strftime("%H:%M")
+                duration=fmt_duration(i18n.get, pending.minutes), time=self._time(until)
             )
         if dispute is not None:
-            text += "\n\n" + dispute_line(i18n, dispute, "buyer")
+            text += "\n\n" + dispute_line(i18n, dispute, "buyer", self.user.timezone)
         if order.status is OrderStatus.ready and order.result:
             shown = html.quote(str(order.result.get("text", ""))[:RESULT_SHOWN])
             text += "\n\n" + i18n.messages.order.check(
                 result=f"<code>{shown}</code>" if shown else "-",
                 files=str(len(order.result.get("files", []))),
-                time=confirm_at.strftime("%d.%m %H:%M") if confirm_at else "-",
+                time=self._time(confirm_at) if confirm_at else "-",
             )
         if order.status is OrderStatus.completed and order.result:
             return result_view(
@@ -201,7 +204,7 @@ class OrdersPresenter(BasePresenter):
         )
         return View(
             text=self.i18n.messages.dispute.opened(
-                id=str(order.id), time=until.strftime("%d.%m %H:%M") if until else "-"
+                id=str(order.id), time=self._time(until) if until else "-"
             ),
             reply_markup=back,
         )
@@ -225,9 +228,7 @@ class OrdersPresenter(BasePresenter):
         messages = Keys(self.i18n, "messages-order")
         order = answer.order
         if answer.approved and order.deadline_at is not None:
-            text = messages.extension_yes(
-                id=str(order.id), time=order.deadline_at.strftime("%H:%M")
-            )
+            text = messages.extension_yes(id=str(order.id), time=self._time(order.deadline_at))
         else:
             text = messages.extension_no(id=str(order.id))
         return View(text=text)

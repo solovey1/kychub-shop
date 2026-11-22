@@ -5,7 +5,7 @@ from html import escape
 from aiogram_i18n import I18nContext
 
 from app.application.cards import fmt_duration, render_card
-from app.application.i18n_text import fmt_usd, pick_i18n
+from app.application.i18n_text import fmt_date, fmt_time, fmt_usd, pick_i18n
 from app.application.interactors.executor_wallet import WalletSummary
 from app.application.interactors.executors import CabinetOverview
 from app.application.interactors.fulfillment_work import ExecutorOrderView
@@ -13,6 +13,7 @@ from app.application.interactors.stats import Stats
 from app.application.models.form_schema import FieldType, FormField
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
+from app.domain.user import User
 from app.presentation.telegram.keyboards.executor import (
     back_to_cabinet,
     balance_keyboard,
@@ -34,6 +35,7 @@ from app.utils.time import datetime_now
 @dataclass(frozen=True)
 class ExecutorPresenter(BasePresenter):
     i18n: I18nContext
+    user: User
 
     def cabinet(self, overview: CabinetOverview) -> View:
         i18n = self.i18n
@@ -85,7 +87,7 @@ class ExecutorPresenter(BasePresenter):
             status=i18n.get(f"order-status-{order.status}"),
         )
         if order.deadline_at is not None and order.status is OrderStatus.assigned:
-            until = order.deadline_at.strftime("%d.%m.%Y %H:%M")
+            until = fmt_time(order.deadline_at, self.user.timezone)
             text += "\n" + i18n.messages.executor.until(time=until)
         ext = view.extension
         can_extend = (
@@ -98,7 +100,7 @@ class ExecutorPresenter(BasePresenter):
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
         if view.dispute is not None:
-            text += "\n\n" + dispute_line(i18n, view.dispute, "executor")
+            text += "\n\n" + dispute_line(i18n, view.dispute, "executor", self.user.timezone)
         return View(
             text=text,
             reply_markup=order_keyboard(i18n, order, page, can_extend, view.dispute is not None),
@@ -169,7 +171,7 @@ class ExecutorPresenter(BasePresenter):
         if summary.entries:
             history = "\n".join(
                 i18n.messages.balance.entry(
-                    date=e.created_at.strftime("%d.%m.%Y"),
+                    date=fmt_date(e.created_at, self.user.timezone),
                     kind=i18n.get(f"ledger-kind-{e.kind}"),
                     amount=("+" if e.amount > 0 else "") + fmt_usd(e.amount),
                 )

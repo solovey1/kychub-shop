@@ -7,7 +7,7 @@ from aiogram import html
 from aiogram.types import ReplyKeyboardMarkup
 from aiogram_i18n import I18nContext
 
-from app.application.i18n_text import fmt_usd
+from app.application.i18n_text import fmt_time, fmt_usd
 from app.application.interactors.catalog import VariantView
 from app.domain.catalog import Product
 from app.domain.enums.roles import Role
@@ -54,7 +54,9 @@ class CommonMenuPresenter(BasePresenter):
         if active:
             deadlines = [o.deadline_at for o in active if o.executor_id and o.deadline_at]
             line = "\n" + (
-                messages.orders_until(count=len(active), time=min(deadlines).strftime("%H:%M"))
+                messages.orders_until(
+                    count=len(active), time=fmt_time(min(deadlines), user.timezone)
+                )
                 if deadlines
                 else messages.orders(count=len(active))
             )

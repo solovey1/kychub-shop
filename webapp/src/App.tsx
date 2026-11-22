@@ -21,7 +21,7 @@ import { ProductForm } from "./admin/catalog/Product";
 import { ServiceForm } from "./admin/catalog/Service";
 import { Stock } from "./admin/catalog/Stock";
 import { VariantForm } from "./admin/catalog/Variant";
-import { useExpired, useFetch, type Me } from "./api";
+import { send, useExpired, useFetch, type Me } from "./api";
 import { setLang, t } from "./i18n";
 import { startLive } from "./live";
 import { canGoBack, parentOf } from "./nav";
@@ -196,6 +196,11 @@ export default function App() {
   const { data: me, error, reload } = useFetch<Me>(initData ? "/me" : null);
   useEffect(startTelegram, []);
   setLang(me?.language ?? tg?.initDataUnsafe.user?.language_code);
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  useEffect(() => {
+    // the bot writes times in the user's own zone: tell it which one that is
+    if (me && zone && zone !== me.timezone) void send("PUT", "/me/timezone", { timezone: zone }).catch(() => {});
+  }, [me?.id, me?.timezone, zone]);
 
   if (!initData) return <Hint title={t("gate.title")} text={t("gate.text")} />;
   if (expired) return <Hint title={t("expired.title")} text={t("expired.text")} action />;

@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable, Final
 
 from aiogram import Bot
@@ -7,6 +8,7 @@ from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.types import BufferedInputFile, InlineKeyboardMarkup, Message
 from aiogram_i18n.cores import FluentRuntimeCore
 
+from app.application.i18n_text import fmt_time
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.users import UsersGateway
 from app.const import DEFAULT_LOCALE
@@ -29,34 +31,43 @@ class Notifier:
     users: UsersGateway
     executors: ExecutorsGateway
 
-    async def _locale(self, user_id: int) -> str:
+    async def _who(self, user_id: int) -> tuple[str, str | None]:
+        """The recipient's language and time zone."""
         user = await self.users.get(user_id)
-        return user.language if user else DEFAULT_LOCALE
+        return (user.language, user.timezone) if user else (DEFAULT_LOCALE, None)
 
-    def _tr(self, locale: str) -> Translate:
-        return lambda key, **kw: self.core.get(key, locale, **kw)
+    def _tr(self, locale: str, tz: str | None = None) -> Translate:
+        """A `datetime` argument is written in the recipient's time zone, so callers pass the
+        moment itself and every recipient (buyer, executor, staff) reads his own clock."""
+
+        def tr(key: str, **kw: Any) -> str:
+            kw = {k: fmt_time(v, tz) if isinstance(v, datetime) else v for k, v in kw.items()}
+            return self.core.get(key, locale, **kw)
+
+        return tr
 
     async def translator(self, user_id: int) -> Translate:
         """A translator into the user's own language."""
-        return self._tr(await self._locale(user_id))
+        return self._tr(*await self._who(user_id))
 
-    def _render(self, locale: str, key: Text, kwargs: dict[str, Any]) -> str:
-        if callable(key):
-            return key(self._tr(locale), locale)
-        return self.core.get(key, locale, **kwargs)
+    def _render(self, locale: str, tz: str | None, key: Text, kwargs: dict[str, Any]) -> str:
+        tr = self._tr(locale, tz)
+        return key(tr, locale) if callable(key) else tr(key, **kwargs)
 
-    def _markup(self, locale: str, markup: Markup | None) -> InlineKeyboardMarkup | None:
-        return markup(self._tr(locale)) if callable(markup) else markup
+    def _markup(
+        self, locale: str, tz: str | None, markup: Markup | None
+    ) -> InlineKeyboardMarkup | None:
+        return markup(self._tr(locale, tz)) if callable(markup) else markup
 
     async def send(
         self, user_id: int, key: Text, reply_markup: Markup | None = None, **kwargs: Any
     ) -> Message | None:
         try:
-            locale = await self._locale(user_id)
+            locale, tz = await self._who(user_id)
             return await self.bot.send_message(
                 user_id,
-                self._render(locale, key, kwargs),
-                reply_markup=self._markup(locale, reply_markup),
+                self._render(locale, tz, key, kwargs),
+                reply_markup=self._markup(locale, tz, reply_markup),
             )
         except TelegramAPIError:
             logger.info("could not notify user %s", user_id)
@@ -74,12 +85,12 @@ class Notifier:
     ) -> bool:
         """Replaces the text; the keyboard is removed unless a new one is given."""
         try:
-            locale = await self._locale(chat_id)
+            locale, tz = await self._who(chat_id)
             await self.bot.edit_message_text(
-                self._render(locale, key, kwargs),
+                self._render(locale, tz, key, kwargs),
                 chat_id=chat_id,
                 message_id=message_id,
-                reply_markup=self._markup(locale, reply_markup),
+                reply_markup=self._markup(locale, tz, reply_markup),
             )
             return True
         except TelegramAPIError:

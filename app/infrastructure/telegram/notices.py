@@ -86,7 +86,7 @@ class OrderNotices:
             "messages-order-ready",
             lambda tr: _deal_markup(tr, order_id),
             id=str(order_id),
-            time=until.strftime("%d.%m %H:%M") if until else "-",
+            time=until or "-",
         )
 
     async def contacts_blocked(
@@ -126,7 +126,7 @@ class OrderNotices:
             key,
             lambda tr: _reply_markup(tr, url, order_id, buyer),
             id=str(order_id),
-            time=dispute.awaiting_until.strftime("%d.%m %H:%M"),
+            time=dispute.awaiting_until,
         )
 
     async def dispute_reminder(self, reminder: DisputeReminder, url: str) -> None:
@@ -135,7 +135,7 @@ class OrderNotices:
         if user_id is None or dispute.awaiting_until is None:
             return
         order_id, buyer, left = order.id, user_id == order.user_id, reminder.left_minutes
-        until = dispute.awaiting_until.strftime("%d.%m %H:%M")
+        until = dispute.awaiting_until
         await self.notifier.send(
             user_id,
             lambda tr, _: tr(
@@ -159,7 +159,7 @@ class OrderNotices:
             "messages-order-confirm_reminder",
             lambda tr: _deal_markup(tr, order_id),
             id=str(order_id),
-            time=until.strftime("%d.%m %H:%M"),
+            time=until,
         )
 
     async def deliver(self, order: Order) -> None:
@@ -225,7 +225,7 @@ class OrderNotices:
         if order.executor_id is None or order.deadline_at is None:
             return
         order_id, left = order.id, reminder.left_minutes
-        until = order.deadline_at.strftime("%H:%M")
+        until = order.deadline_at
         await self.notifier.send(
             order.executor_id,
             lambda tr, _: tr(
@@ -246,7 +246,7 @@ class OrderNotices:
         """To the buyer, who sees the executor's alias at most: never a name or an id."""
         order = ask.order
         order_id, rid, minutes = order.id, ask.request_id, ask.minutes
-        until = extended_deadline(order, minutes, datetime_now()).strftime("%H:%M")
+        until = extended_deadline(order, minutes, datetime_now())
         await self.notifier.send(
             order.user_id,
             lambda tr, _: tr(
@@ -268,7 +268,7 @@ class OrderNotices:
             key,
             _open_order(order.id),
             id=str(order.id),
-            time=order.deadline_at.strftime("%H:%M"),
+            time=order.deadline_at,
         )
 
     async def review_request(self, order: Order) -> None:
