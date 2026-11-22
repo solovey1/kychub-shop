@@ -107,6 +107,7 @@ async def executors(_: UsersUser, people: People) -> list[ExecutorRowOut]:
             id=r.profile.user_id,
             alias=r.profile.alias,
             is_active=r.profile.is_active,
+            online=r.profile.is_online,
             in_work=r.in_work,
             completed=r.completed,
             avg_score=r.avg_score,
@@ -132,6 +133,7 @@ async def executor(
         alias=profile.alias,
         name=unescape(detail.name),
         is_active=profile.is_active,
+        online=profile.is_online,
         max_parallel=profile.max_parallel_orders,
         percent_override=profile.percent_override,
         permissions=[

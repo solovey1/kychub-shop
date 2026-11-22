@@ -454,6 +454,17 @@ button.row:active {
   font-size: 13px;
   color: var(--hint);
 }
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--hint);
+}
+.dot.on {
+  background: var(--good, #34c759);
+}
 .arrows {
   display: flex;
   gap: 6px;

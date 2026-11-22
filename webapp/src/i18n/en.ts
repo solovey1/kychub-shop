@@ -99,6 +99,10 @@ export const en: typeof ru = {
 
   "work.queue": "Queue",
   "work.mine": "Mine",
+  "work.online": "I am online",
+  "work.onlineNote": "On: orders come to you. Turn it off to stop getting new ones: orders you already have stay with you.",
+  "people.offline": "offline",
+  "people.online": "online",
   "work.wallet": "Wallet",
   "queue.empty": "No orders right now. New ones appear here on their own.",
   "queue.minutes": "{n} minute|{n} minutes",

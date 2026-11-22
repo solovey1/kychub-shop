@@ -43,6 +43,7 @@ class ExecutorPresenter(BasePresenter):
         else:
             permissions = i18n.messages.executor.no_permissions()
         text = i18n.messages.executor.cabinet(
+            online=i18n.get(f"messages-executor-online_{'on' if profile.is_online else 'off'}"),
             alias=escape(profile.alias),
             status=i18n.get(f"messages-executor-status_{'on' if profile.is_active else 'off'}"),
             limit=str(profile.max_parallel_orders),
@@ -53,7 +54,7 @@ class ExecutorPresenter(BasePresenter):
             ),
             permissions=permissions,
         )
-        return View(text=text, reply_markup=cabinet_keyboard(i18n))
+        return View(text=text, reply_markup=cabinet_keyboard(i18n, profile.is_online))
 
     def text(self, key: str, **kwargs: str) -> View:
         return View(text=self.i18n.get(key, **kwargs))

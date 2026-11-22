@@ -20,9 +20,15 @@ from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.keyboards.common import button, markup, pager
 
 
-def cabinet_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
+def cabinet_keyboard(i18n: I18nContext, online: bool) -> InlineKeyboardMarkup:
+    toggle = (
+        button(i18n.buttons.go_offline(), CDCabinet(section="offline"))
+        if online
+        else button(i18n.buttons.go_online(), CDCabinet(section="online"), style="success")
+    )
     return markup(
         [
+            [toggle],
             [button(i18n.buttons.my_orders(), CDXOrders())],
             [
                 button(i18n.buttons.balance_short(), CDCabinet(section="balance")),

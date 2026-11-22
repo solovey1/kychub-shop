@@ -2,6 +2,7 @@ buttons-cabinet = 🧰 Кабинет исполнителя
 
 messages-executor-cabinet =
     🧰 <b>Кабинет исполнителя</b>
+    { $online }
     Псевдоним: { $alias }
     Статус: { $status }
     Одновременно заказов: { $limit }
@@ -9,6 +10,8 @@ messages-executor-cabinet =
 
     Допуски:
     { $permissions }
+messages-executor-online_on = 🟢 В сети — заказы приходят
+messages-executor-online_off = ⚪️ Не в сети — заказы не приходят
 messages-executor-no_permissions = пока нет, обратитесь к администратору
 messages-executor-status_on = принимает заказы
 messages-executor-status_off = отключён
@@ -59,3 +62,6 @@ messages-executor-offer_taken = Заказ № { $id } взят другим и�
 messages-executor-offer_cancelled = Заказ № { $id } отменён покупателем.
 messages-executor-overdue = ⏱ Срок заказа № { $id } истёк, заказ вернулся в очередь.
 messages-executor-no_executor = Для заказа № { $id } нет подходящего исполнителя.
+
+buttons-go_offline = ⚪️ Выйти из сети
+buttons-go_online = 🟢 Выйти в сеть

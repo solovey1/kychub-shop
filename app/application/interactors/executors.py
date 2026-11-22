@@ -19,6 +19,7 @@ from app.domain.audit import AuditLog
 from app.domain.enums.roles import Role
 from app.domain.executor import ExecutorProfile
 from app.domain.user import User
+from app.utils.time import datetime_now
 
 _ALIAS_RE: Final = re.compile(r"[\w.\-]{2,32}")
 
@@ -133,6 +134,7 @@ class ExecutorAdminInteractor(BaseInteractor):
 
 @dataclass(frozen=True)
 class ExecutorCabinetInteractor(BaseInteractor):
+    uow: UnitOfWork
     executors: ExecutorsGateway
 
     async def overview(self, user_id: int) -> CabinetOverview | None:
@@ -143,3 +145,22 @@ class ExecutorCabinetInteractor(BaseInteractor):
         for service, country in await self.executors.permission_rows(user_id):
             permissions.setdefault(service.title, []).append(country)
         return CabinetOverview(profile, permissions)
+
+    async def set_online(self, user_id: int, online: bool) -> bool | None:
+        """The executor's own switch. True: it changed (going online -> the caller dispatches
+        the waiting queue); False: it was already so; None: no executor profile.
+        Orders already assigned stay with him."""
+        try:
+            profile = await self.executors.get_profile_for_update(user_id)
+            if profile is None:
+                await self.uow.rollback()
+                return None
+            changed = profile.is_online != online
+            if changed:
+                profile.is_online = online
+                profile.online_changed_at = datetime_now()
+            await self.uow.commit()
+            return changed
+        except BaseException:
+            await self.uow.rollback()
+            raise

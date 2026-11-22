@@ -105,7 +105,15 @@ function Executors() {
             score: e.avg_score === null ? t("none") : e.avg_score.toFixed(1),
           })}
           dim={!e.is_active}
-          right={e.is_active ? undefined : <span className="off">{t("admin.off")}</span>}
+          right={
+            e.is_active ? (
+              <span className="off">
+                <span className={`dot${e.online ? " on" : ""}`} />
+                {e.online ? t("people.online") : t("people.offline")}
+              </span>
+            ) : (
+              <span className="off">{t("admin.off")}</span>
+            )}
           chevron
           onClick={() => go(`/admin/people/e/${e.id}`)}
         />

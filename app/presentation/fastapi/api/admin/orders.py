@@ -116,6 +116,7 @@ async def assignable(order_id: int, _: StaffUser, interactor: Orders) -> list[As
             alias=p.alias,
             load=load,
             max_parallel=p.max_parallel_orders,
+            online=p.is_online,
             current=p.user_id == current,
         )
         for p, load in await interactor.assignable(order_id)

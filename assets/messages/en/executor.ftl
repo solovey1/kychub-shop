@@ -2,6 +2,7 @@ buttons-cabinet = 🧰 Executor desk
 
 messages-executor-cabinet =
     🧰 <b>Executor desk</b>
+    { $online }
     Alias: { $alias }
     Status: { $status }
     Orders at once: { $limit }
@@ -9,6 +10,8 @@ messages-executor-cabinet =
 
     Permissions:
     { $permissions }
+messages-executor-online_on = 🟢 Online — orders are coming
+messages-executor-online_off = ⚪️ Offline — no orders
 messages-executor-no_permissions = none yet, ask an administrator
 messages-executor-status_on = accepting orders
 messages-executor-status_off = switched off
@@ -59,3 +62,6 @@ messages-executor-offer_taken = Order #{ $id } was taken by another executor.
 messages-executor-offer_cancelled = Order #{ $id } was cancelled by the buyer.
 messages-executor-overdue = ⏱ The deadline of order #{ $id } has passed, it went back to the queue.
 messages-executor-no_executor = No suitable executor for order #{ $id }.
+
+buttons-go_offline = ⚪️ Go offline
+buttons-go_online = 🟢 Go online

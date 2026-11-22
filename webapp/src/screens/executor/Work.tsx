@@ -1,5 +1,7 @@
 import { useLocation } from "wouter";
-import { useFetch, usePaged, type ExecutorListItem, type QueueItem } from "../../api";
+import { report, useBusy } from "../../action";
+import { SwitchRow } from "../../admin/kit";
+import { send, useFetch, usePaged, type ExecutorListItem, type QueueItem } from "../../api";
 import { named, t } from "../../i18n";
 import { useUnread } from "../../unread";
 import { Badge, Empty, Failure, Loading, Money, Row, Section, Segments, list, statusTone } from "../../ui/kit";
@@ -13,6 +15,7 @@ export function Work({ seg }: { seg: WorkSeg }) {
   const unread = useUnread();
   return (
     <div className="screen">
+      <OnlineSwitch />
       <Segments
         value={seg}
         onChange={(s) => go(`/work/${s}`, { replace: true })}
@@ -30,6 +33,30 @@ export function Work({ seg }: { seg: WorkSeg }) {
       />
       {seg === "queue" ? <Queue /> : seg === "mine" ? <Mine /> : <WalletScreen />}
     </div>
+  );
+}
+
+function OnlineSwitch() {
+  const { data, reload } = useFetch<{ online: boolean }>("/executor/online");
+  const { run } = useBusy();
+  if (!data) return null;
+  return (
+    <Section footer={t("work.onlineNote")}>
+      <SwitchRow
+        label={t("work.online")}
+        checked={data.online}
+        onChange={(online) =>
+          run(async () => {
+            try {
+              await send("PUT", "/executor/online", { online });
+            } catch (e) {
+              await report(e);
+            }
+            reload();
+          })
+        }
+      />
+    </Section>
   );
 }
 

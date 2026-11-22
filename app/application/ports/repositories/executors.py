@@ -53,10 +53,11 @@ class ExecutorsGateway(Protocol):
         exclude: set[int],
         only: int | None = None,
         ignore_load: bool = False,
+        include_offline: bool = False,
     ) -> list[Candidate]:
-        """Active executors permitted for the service and country (any country when None)
-        with load below their limit (unless `ignore_load`), least loaded first, then most
-        completed orders."""
+        """Active online (unless `include_offline`) executors permitted for the service and
+        country (any country when None) with load below their limit (unless `ignore_load`),
+        least loaded first, then most completed orders."""
 
     async def review_exists(self, order_id: int) -> bool: ...
 

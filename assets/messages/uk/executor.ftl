@@ -2,6 +2,7 @@ buttons-cabinet = 🧰 Кабінет виконавця
 
 messages-executor-cabinet =
     🧰 <b>Кабінет виконавця</b>
+    { $online }
     Псевдонім: { $alias }
     Статус: { $status }
     Одночасно замовлень: { $limit }
@@ -9,6 +10,8 @@ messages-executor-cabinet =
 
     Допуски:
     { $permissions }
+messages-executor-online_on = 🟢 У мережі — замовлення надходять
+messages-executor-online_off = ⚪️ Не в мережі — замовлення не надходять
 messages-executor-no_permissions = поки немає, зверніться до адміністратора
 messages-executor-status_on = приймає замовлення
 messages-executor-status_off = вимкнено
@@ -59,3 +62,6 @@ messages-executor-offer_taken = Замовлення № { $id } узяв інш
 messages-executor-offer_cancelled = Замовлення № { $id } скасовано покупцем.
 messages-executor-overdue = ⏱ Термін замовлення № { $id } минув, воно повернулося в чергу.
 messages-executor-no_executor = Для замовлення № { $id } немає відповідного виконавця.
+
+buttons-go_offline = ⚪️ Вийти з мережі
+buttons-go_online = 🟢 Вийти в мережу

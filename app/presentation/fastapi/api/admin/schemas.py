@@ -237,6 +237,7 @@ class ExecutorRowOut(PydanticModel):
     id: int
     alias: str
     is_active: bool
+    online: bool
     in_work: int
     completed: int
     avg_score: float | None
@@ -274,6 +275,7 @@ class ExecutorDetailOut(PydanticModel):
     alias: str
     name: str
     is_active: bool
+    online: bool
     max_parallel: int
     percent_override: int | None
     permissions: list[ServicePermissionOut]
@@ -353,6 +355,7 @@ class AssignableOut(PydanticModel):
     alias: str
     load: int
     max_parallel: int
+    online: bool
     current: bool
 
 

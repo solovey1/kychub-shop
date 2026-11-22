@@ -8,6 +8,7 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import ConversationInteractor
 from app.application.interactors.dispatch import DispatchInteractor
 from app.application.interactors.executor_wallet import ExecutorWalletInteractor
+from app.application.interactors.executors import ExecutorCabinetInteractor
 from app.application.interactors.fulfillment_work import FulfillmentWorkInteractor
 from app.application.interactors.stats import ExecutorStats
 from app.application.models.form_schema import FormSchema
@@ -20,6 +21,8 @@ from app.presentation.fastapi.api.schemas import (
     ExecutorOrderListOut,
     ExecutorOrderOut,
     LedgerEntryOut,
+    OnlineIn,
+    OnlineOut,
     ResultFieldOut,
     ResultIn,
     StatsOut,
@@ -65,6 +68,33 @@ async def _order(
         result_form=form,
         result=dict(result.get("fields", {})) if result else None,
     )
+
+
+@router.get("/online")
+@inject
+async def get_online(
+    user: ExecutorUser, cabinet: FromDishka[ExecutorCabinetInteractor]
+) -> OnlineOut:
+    overview = await cabinet.overview(user.id)
+    if overview is None:
+        raise HTTPException(404, "Not found")
+    return OnlineOut(online=overview.profile.is_online)
+
+
+@router.put("/online")
+@inject
+async def set_online(
+    body: OnlineIn,
+    user: ExecutorUser,
+    cabinet: FromDishka[ExecutorCabinetInteractor],
+    effects: FromDishka[Effects],
+) -> OnlineOut:
+    changed = await cabinet.set_online(user.id, body.online)
+    if changed is None:
+        raise HTTPException(404, "Not found")
+    if changed and body.online:
+        await effects.executor_online(user.id)
+    return OnlineOut(online=body.online)
 
 
 @router.get("/queue")

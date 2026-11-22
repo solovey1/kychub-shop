@@ -80,6 +80,7 @@ class ExecutorsRepository(ExecutorsGateway):
         exclude: set[int],
         only: int | None = None,
         ignore_load: bool = False,
+        include_offline: bool = False,
     ) -> list[Candidate]:
         mine = Order.executor_id == ExecutorProfile.user_id
         load = (
@@ -104,6 +105,7 @@ class ExecutorsRepository(ExecutorsGateway):
             select(ExecutorProfile.user_id, load, completed)
             .where(
                 ExecutorProfile.is_active,
+                true() if include_offline else ExecutorProfile.is_online,
                 exists(permitted.correlate(ExecutorProfile)),
                 true() if ignore_load else load < ExecutorProfile.max_parallel_orders,
             )

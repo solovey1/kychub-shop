@@ -70,6 +70,27 @@ class DispatchInteractor(BaseInteractor):
                     break
         return found
 
+    async def dispatch_waiting(self, executor_id: int) -> list[DispatchResult]:
+        """The executor just went online: dispatch again every waiting order he may take, so he
+        gets the offers / auto-assignments now and not at the next stale sweep. Every order in
+        its own transaction, under the order lock (like `take`).
+        ponytail: same 200-order scan as `queue_for`."""
+        results: list[DispatchResult] = []
+        for order in await self.orders.queue(QUEUE_SCAN):
+            ctx = await load_context(self.catalog, order)
+            if not await self._candidates(order, ctx, only=executor_id):
+                continue
+            try:
+                result = await self.dispatch(order.id)
+            except Exception:
+                logger.exception(
+                    "dispatching order %s for executor %s failed", order.id, executor_id
+                )
+                continue
+            if result.kind != "skipped":
+                results.append(result)
+        return results
+
     async def eligible(self, order_id: int) -> list[int]:
         order = await self.orders.get(order_id)
         if order is None:
@@ -131,7 +152,12 @@ class DispatchInteractor(BaseInteractor):
             if ctx is None or ctx.service is None:
                 raise Conflict("not_permitted")
             if not await self.executors.candidates(
-                ctx.service.id, ctx.variant.country_code, set(), executor_id, ignore_load=True
+                ctx.service.id,
+                ctx.variant.country_code,
+                set(),
+                executor_id,
+                ignore_load=True,
+                include_offline=True,
             ):
                 raise Conflict("not_permitted")
             previous = order.executor_id

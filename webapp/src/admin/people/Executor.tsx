@@ -78,7 +78,7 @@ function Editor({
     <div className="screen">
       <div className="headline">
         <h1>{executor.alias}</h1>
-        <p>{list(executor.name, `ID ${executor.id}`)}</p>
+        <p>{list(executor.name, `ID ${executor.id}`, executor.online ? t("people.online") : t("people.offline"))}</p>
       </div>
       <Section footer={t("people.percentNote")}>
         <SwitchRow label={t("admin.active")} checked={active} onChange={setActive} />

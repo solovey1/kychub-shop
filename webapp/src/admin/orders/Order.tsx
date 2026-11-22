@@ -174,7 +174,14 @@ export function AssignScreen({ id }: { id: number }) {
             key={e.id}
             title={e.alias}
             sub={t("assign.load", { n: e.load, max: e.max_parallel })}
-            right={e.current ? <span className="hint">{t("assign.current")}</span> : undefined}
+            dim={!e.online}
+            right={
+              e.current ? (
+                <span className="hint">{t("assign.current")}</span>
+              ) : e.online ? undefined : (
+                <span className="off">{t("people.offline")}</span>
+              )
+            }
             chevron={!e.current}
             onClick={e.current ? undefined : () => assign(e)}
           />

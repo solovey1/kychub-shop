@@ -221,6 +221,14 @@ class WalletDetailOut(PydanticModel):
     entries: list[LedgerEntryOut]
 
 
+class OnlineIn(PydanticModel):
+    online: bool
+
+
+class OnlineOut(PydanticModel):
+    online: bool
+
+
 class WalletIn(PydanticModel):
     address: str = Field(min_length=1, max_length=128)
 

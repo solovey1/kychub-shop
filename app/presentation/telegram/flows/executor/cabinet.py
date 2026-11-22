@@ -49,6 +49,8 @@ class CabinetFlow(BaseFlow):
                 return await self.renderer.apply(self.presenter.ask_wallet())
             case "withdraw":
                 return await self.withdraw()
+            case "online" | "offline":
+                return await self.set_online(cd.section == "online")
             case _:
                 return await self.show()
 
@@ -57,6 +59,12 @@ class CabinetFlow(BaseFlow):
         if overview is None:
             return await self.renderer.apply(self.presenter.text("messages-executor-no_profile"))
         return await self.renderer.apply(self.presenter.cabinet(overview))
+
+    async def set_online(self, online: bool) -> Any:
+        changed = await self.interactor.set_online(self.user.id, online)
+        await self.show()
+        if changed and online:  # after the cabinet: the offers arrive below it
+            await self.effects.executor_online(self.user.id)
 
     async def balance(self, notice: str | None = None) -> Any:
         summary = await self.wallet.summary(self.user.id)

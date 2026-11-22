@@ -599,15 +599,17 @@ type MExecutor = {
   id: number;
   alias: string;
   is_active: boolean;
+  online: boolean;
   max_parallel: number;
   percent_override: number | null;
   permissions: { service_id: number; countries: string[] }[];
 };
+let selfOnline = true;
 const mExecutors: MExecutor[] = [
-  { id: 4, alias: "Орион", is_active: true, max_parallel: 5, percent_override: null, permissions: [{ service_id: 1, countries: ["us", "de"] }, { service_id: 2, countries: ["us"] }] },
-  { id: 9, alias: "Фокс", is_active: true, max_parallel: 3, percent_override: 45, permissions: [{ service_id: 1, countries: ["us", "pl"] }] },
-  { id: 7, alias: "Ника", is_active: true, max_parallel: 10, percent_override: null, permissions: [{ service_id: 2, countries: ["de", "pl", "us"] }] },
-  { id: 8, alias: "Кеша", is_active: false, max_parallel: 2, percent_override: null, permissions: [] },
+  { id: 4, alias: "Орион", is_active: true, online: true, max_parallel: 5, percent_override: null, permissions: [{ service_id: 1, countries: ["us", "de"] }, { service_id: 2, countries: ["us"] }] },
+  { id: 9, alias: "Фокс", is_active: true, online: true, max_parallel: 3, percent_override: 45, permissions: [{ service_id: 1, countries: ["us", "pl"] }] },
+  { id: 7, alias: "Ника", is_active: true, online: false, max_parallel: 10, percent_override: null, permissions: [{ service_id: 2, countries: ["de", "pl", "us"] }] },
+  { id: 8, alias: "Кеша", is_active: false, online: false, max_parallel: 2, percent_override: null, permissions: [] },
 ];
 
 type MOrder = {
@@ -749,13 +751,14 @@ function peopleRoute(method: string, path: string, body: unknown, q: URLSearchPa
     if (method === "POST") {
       if (mExecutors.some((e) => e.alias === b.alias)) throw fail(409, "AliasTaken", "alias is taken");
       if (mExecutors.some((e) => e.id === b.tg_id)) throw fail(409, "ExecutorExists", "already an executor");
-      mExecutors.push({ id: b.tg_id as number, alias: b.alias as string, is_active: true, max_parallel: 3, percent_override: null, permissions: [] });
+      mExecutors.push({ id: b.tg_id as number, alias: b.alias as string, is_active: true, online: false, max_parallel: 3, percent_override: null, permissions: [] });
       return ok;
     }
     return mExecutors.map((e) => ({
       id: e.id,
       alias: e.alias,
       is_active: e.is_active,
+      online: e.online,
       in_work: mOrders.filter((o) => o.executor_id === e.id && o.status === "assigned").length,
       completed: mOrders.filter((o) => o.executor_id === e.id && o.status === "completed").length,
       avg_score: e.id === 8 ? null : 4.6,
@@ -818,6 +821,7 @@ function peopleRoute(method: string, path: string, body: unknown, q: URLSearchPa
         alias: e.alias,
         load: mOrders.filter((x) => x.executor_id === e.id && x.status === "assigned").length,
         max_parallel: e.max_parallel,
+        online: e.online,
         current: e.id === o.executor_id,
       }));
   }
@@ -1138,6 +1142,10 @@ function route(method: string, url: URL, body: unknown): unknown {
   }
   if (path.match(/^\/files\//)) return new Blob([SVG], { type: "image/svg+xml" });
 
+  if (path === "/executor/online") {
+    if (method === "PUT") selfOnline = (body as { online: boolean }).online;
+    return { online: selfOnline };
+  }
   if (path === "/executor/queue") return queue;
   if ((m = path.match(/^\/executor\/orders\/(\d+)\/take$/))) return execDetail(Number(m[1]));
   if (path === "/executor/orders") return { items: execOrders, total: execOrders.length, page: 0, page_size: 20 };

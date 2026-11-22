@@ -207,6 +207,7 @@ export type ExecutorRow = {
   id: number;
   alias: string;
   is_active: boolean;
+  online: boolean;
   in_work: number;
   completed: number;
   avg_score: number | null;
@@ -216,6 +217,7 @@ export type ExecutorDetail = {
   alias: string;
   name: string;
   is_active: boolean;
+  online: boolean;
   max_parallel: number;
   percent_override: number | null;
   permissions: { service_id: number; countries: string[] }[];
@@ -249,7 +251,7 @@ export type AdminOrder = AdminOrderRow & {
   entries: { id: number; user_id: number; account: string; kind: string; amount: string; created_at: string }[];
   actions: string[];
 };
-export type Assignable = { id: number; alias: string; load: number; max_parallel: number; current: boolean };
+export type Assignable = { id: number; alias: string; load: number; max_parallel: number; online: boolean; current: boolean };
 export type Withdrawal = {
   id: number;
   executor_id: number;

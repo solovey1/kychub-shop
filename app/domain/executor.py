@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, true
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, false, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.utils.custom_types import Int64
@@ -17,6 +18,9 @@ class ExecutorProfile(Base, TimestampMixin):
     )
     alias: Mapped[str] = mapped_column(unique=True)
     is_active: Mapped[bool] = mapped_column(default=True, server_default=true())
+    # The executor's own switch: offline ones get no offers and no auto-assignments.
+    is_online: Mapped[bool] = mapped_column(default=False, server_default=false())
+    online_changed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     percent_override: Mapped[Optional[int]] = mapped_column()
     max_parallel_orders: Mapped[int] = mapped_column(default=1, server_default="1")
     # Payout wallet is set by the executor; payouts are a stub for now (spec 15b).

@@ -58,6 +58,16 @@ class Effects:
         )
         await self._order_event(order_id, OrderStatus.cancelled, queue=True)
 
+    async def executor_online(self, executor_id: int) -> None:
+        """He went online: offer / assign the waiting orders he may take right away."""
+        try:
+            results = await self.dispatcher.dispatch_waiting(executor_id)
+        except Exception:
+            logger.exception("dispatching the queue for executor %s failed", executor_id)
+            return
+        for result in results:
+            await self.offers.announce(result)
+
     async def order_taken(self, order_id: int, executor_id: int) -> None:
         await _safe(
             f"closing the offers of order {order_id}",
