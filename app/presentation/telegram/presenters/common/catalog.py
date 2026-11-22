@@ -1,22 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
 
 from aiogram import html
-from aiogram.types import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    InlineQueryResultArticle,
-    InputTextMessageContent,
-)
 from aiogram_i18n import I18nContext
 
 from app.application.cards import fmt_duration
-from app.application.i18n_text import fmt_usd, pick_i18n
+from app.application.i18n_text import pick_i18n
 from app.application.interactors.catalog import CategoryPage, ProductCard
-from app.domain.catalog import Product
-from app.presentation.telegram.callbacks.catalog import CDProduct
 from app.presentation.telegram.keyboards.catalog import category_keyboard, product_keyboard
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.view.models import View
@@ -52,33 +43,3 @@ class CatalogPresenter(BasePresenter):
 
     def unavailable(self) -> View:
         return View(text=self.i18n.messages.product.unavailable())
-
-    def inline_results(
-        self, items: list[tuple[Product, Decimal]]
-    ) -> list[InlineQueryResultArticle]:
-        locale = self.i18n.locale
-        results: list[InlineQueryResultArticle] = []
-        for product, price in items:
-            title = pick_i18n(product.title_i18n, locale)
-            results.append(
-                InlineQueryResultArticle(
-                    id=str(product.id),
-                    title=title,
-                    description=self.i18n.messages.inline.from_price(price=fmt_usd(price)),
-                    input_message_content=InputTextMessageContent(
-                        message_text=self.i18n.messages.inline.message(title=html.quote(title))
-                    ),
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(
-                                    text=self.i18n.buttons.open(),
-                                    callback_data=CDProduct(id=product.id).pack(),
-                                    style="primary",
-                                )
-                            ]
-                        ]
-                    ),
-                )
-            )
-        return results
