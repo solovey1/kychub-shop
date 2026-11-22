@@ -1,5 +1,5 @@
 """Upload assets/emoji as a custom emoji set. Run by hand:
-    uv run python scripts/emoji_pack.py --owner <telegram user id> [--update]
+    uv run python scripts/emoji_pack.py --owner <telegram user id> [--update | --replace]
 Writes assets/emoji/ids.json {emoji: custom_emoji_id}. Never prints the token.
 """
 
@@ -16,7 +16,7 @@ from app.providers.infrastructure.app import create_app_config
 DIR = Path(__file__).resolve().parent.parent / "assets" / "emoji"
 
 
-async def main(owner: int, update: bool) -> None:
+async def main(owner: int, update: bool, replace: bool) -> None:
     emoji_map = json.loads((DIR / "map.json").read_text("utf-8"))
     async with Bot(create_app_config().telegram.bot_token.get_secret_value()) as bot:
         set_name = f"farmhub_by_{(await bot.get_me()).username}"
@@ -28,7 +28,12 @@ async def main(owner: int, update: bool) -> None:
                 emoji_list=[emoji],
             )
 
-        if update:
+        if replace:  # new pictures in place: same positions, new custom_emoji_ids
+            old = (await bot.get_sticker_set(set_name)).stickers
+            for (emoji, item), was in zip(emoji_map.items(), old, strict=False):
+                new = sticker(emoji, item)
+                await bot.replace_sticker_in_set(owner, set_name, was.file_id, new)
+        elif update:
             have = {s.emoji for s in (await bot.get_sticker_set(set_name)).stickers}
             for emoji, item in emoji_map.items():
                 if emoji not in have:
@@ -52,5 +57,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--owner", type=int, required=True)
     ap.add_argument("--update", action="store_true")
+    ap.add_argument("--replace", action="store_true", help="redraw: swap every picture in place")
     a = ap.parse_args()
-    asyncio.run(main(a.owner, a.update))
+    asyncio.run(main(a.owner, a.update, a.replace))
