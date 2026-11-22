@@ -58,3 +58,10 @@ class TicketTipKey(StorageKey[int], prefix="ticket_tip", type=int):
     """Флаг: подсказка «отвечать удобнее в приложении» уже показана покупателю недавно."""
 
     user_id: int
+
+
+@dataclass(kw_only=True, frozen=True)
+class NavScreenKey(StorageKey[int], prefix="nav_screen", type=int):
+    """Значение — id последнего экрана меню (кнопки внизу или /start): его заменяет новый."""
+
+    user_id: int

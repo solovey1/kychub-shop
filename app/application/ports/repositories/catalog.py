@@ -29,7 +29,3 @@ class CatalogGateway(Protocol):
 
     async def min_prices(self, product_ids: list[int]) -> dict[int, Decimal]:
         """Cheapest active variant of each product (products without one are absent)."""
-
-    async def search(
-        self, text: str, locale: str, offset: int, limit: int
-    ) -> list[tuple[Product, Decimal]]: ...

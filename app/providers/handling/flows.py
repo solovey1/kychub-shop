@@ -6,6 +6,7 @@ from app.presentation.telegram.flows.common.chat import ChatFlow
 from app.presentation.telegram.flows.common.feedback import FeedbackFlow
 from app.presentation.telegram.flows.common.managers import ManagerAdminFlow
 from app.presentation.telegram.flows.common.menu import CommonMenuFlow
+from app.presentation.telegram.flows.common.nav import NavFlow, ScreenTracker
 from app.presentation.telegram.flows.common.orders import OrdersFlow
 from app.presentation.telegram.flows.common.purchase import PurchaseFlow
 from app.presentation.telegram.flows.common.relay import RelayFlow
@@ -22,6 +23,8 @@ class FlowsProvider(Provider):
 
     flows = provide_all(
         CommonMenuFlow,
+        ScreenTracker,
+        NavFlow,
         ExtraErrorsFlow,
         PMFlow,
         CatalogFlow,

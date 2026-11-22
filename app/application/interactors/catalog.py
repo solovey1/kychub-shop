@@ -6,7 +6,6 @@ from app.application.ports.repositories.catalog import CatalogGateway
 from app.domain.catalog import Category, Country, Product, ProductVariant
 
 PAGE_SIZE = 8
-INLINE_PAGE_SIZE = 20
 
 
 @dataclass(frozen=True)
@@ -31,12 +30,6 @@ class ProductCard:
     product: Product
     variants: list[VariantView]
     deadline_minutes: int | None
-
-
-@dataclass(frozen=True)
-class InlinePage:
-    items: list[tuple[Product, Decimal]]
-    next_offset: str  # empty string = no more pages
 
 
 @dataclass(frozen=True)
@@ -80,8 +73,3 @@ class CatalogInteractor(BaseInteractor):
         ]
         service = await self.gateway.service(product.service_id) if product.service_id else None
         return ProductCard(product, views, service.deadline_minutes if service else None)
-
-    async def search(self, text: str, locale: str, offset: int) -> InlinePage:
-        rows = await self.gateway.search(text, locale, offset, INLINE_PAGE_SIZE + 1)
-        more = len(rows) > INLINE_PAGE_SIZE
-        return InlinePage(rows[:INLINE_PAGE_SIZE], str(offset + INLINE_PAGE_SIZE) if more else "")

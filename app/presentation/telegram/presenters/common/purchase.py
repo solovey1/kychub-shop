@@ -51,16 +51,21 @@ def reason_code(error: str) -> str:
 
 
 def result_view(
-    i18n: I18nContext, header: str, text: str, back: CallbackData | None = None
+    i18n: I18nContext,
+    header: str,
+    text: str,
+    back: CallbackData | None = None,
+    extra: list[InlineKeyboardButton] | None = None,
 ) -> tuple[View, bytes | None]:
     """Delivery of a finished order: quoted text + copy button, or a .txt file when it is long."""
     back_row = [
         button(i18n.buttons.menu() if back is None else i18n.buttons.back(), back or CDMenu())
     ]
+    extra_rows = [extra] if extra else []
     if len(text) > FILE_LIMIT:
         view = View(
             text=f"{header}\n\n{i18n.messages.purchase.done_file()}",
-            reply_markup=markup([back_row]),
+            reply_markup=markup([*extra_rows, back_row]),
         )
         return view, text.encode("utf-8")
     rows: list[list[InlineKeyboardButton]] = []
@@ -72,7 +77,7 @@ def result_view(
                 )
             ]
         )
-    rows.append(back_row)
+    rows.extend([*extra_rows, back_row])
     body = f"{header}\n\n<blockquote>{html.quote(text)}</blockquote>"
     return View(text=body, reply_markup=markup(rows)), None
 

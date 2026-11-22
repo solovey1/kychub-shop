@@ -14,6 +14,7 @@ from app.presentation.telegram.keyboards.orders import (
     order_back_keyboard,
     order_keyboard,
     orders_keyboard,
+    reorder_row,
 )
 from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.presenters.common.purchase import result_view
@@ -103,7 +104,12 @@ class OrdersPresenter(BasePresenter):
         return messages.step_now(name=name)
 
     def order(
-        self, order: Order, page: int, events: list[OrderEvent], alias: str | None
+        self,
+        order: Order,
+        page: int,
+        events: list[OrderEvent],
+        alias: str | None,
+        reorder: bool = False,
     ) -> tuple[View, bytes | None]:
         i18n = self.i18n
         snap = order.snapshot
@@ -124,8 +130,14 @@ class OrdersPresenter(BasePresenter):
             else "",
         )
         if order.status is OrderStatus.completed and order.result:
-            return result_view(i18n, text, str(order.result.get("text", "")), CDOrders(page=page))
-        return View(text=text, reply_markup=order_keyboard(i18n, order, page)), None
+            return result_view(
+                i18n,
+                text,
+                str(order.result.get("text", "")),
+                CDOrders(page=page),
+                reorder_row(i18n, order) if reorder else None,
+            )
+        return View(text=text, reply_markup=order_keyboard(i18n, order, page, reorder)), None
 
     def cancel_confirm(self, order_id: int, page: int) -> View:
         return View(

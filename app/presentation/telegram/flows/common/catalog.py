@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from aiogram.types import InlineQuery
-
 from app.application.interactors.catalog import CatalogInteractor
 from app.domain.user import User
 from app.presentation.telegram.flows.base import BaseFlow
@@ -28,10 +26,3 @@ class CatalogFlow(BaseFlow):
         if card is None:
             return await self.renderer.apply(self.presenter.unavailable())
         return await self.renderer.apply(self.presenter.product(card))
-
-    async def inline(self, query: InlineQuery) -> None:
-        offset = int(query.offset) if query.offset.isdigit() else 0
-        page = await self.interactor.search(query.query, self.user.language, offset)
-        await self.renderer.answer_inline(
-            query, self.presenter.inline_results(page.items), page.next_offset
-        )

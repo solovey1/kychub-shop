@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import ForceReply, Message
+from aiogram.types import CallbackQuery, ForceReply, Message
 
 from app.application.errors.base import InsufficientFunds
 from app.application.errors.shop import InvalidInput, OutOfStock, ProductUnavailable, PromoError
@@ -54,6 +54,9 @@ class PurchaseFlow(BaseFlow):
         if current:
             view.mode = RenderMode.CURRENT
         await self._render(view)
+
+    async def _alert(self, query: CallbackQuery) -> None:
+        await query.answer(self.presenter.i18n.messages.reorder.unavailable(), show_alert=True)
 
     async def _drop_prompt(self) -> None:
         """Removes the short message that carries the input placeholder."""
@@ -104,6 +107,8 @@ class PurchaseFlow(BaseFlow):
         except OutOfStock:
             return await self._say("out_of_stock")
         except ProductUnavailable:
+            if isinstance(update := self.helper.update, CallbackQuery):  # a stale button
+                return await self._alert(update)
             return await self._say("unavailable")
         prev = (
             await self.interactor.previous_answers(self.user.id, prep.product.id)

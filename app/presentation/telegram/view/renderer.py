@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-from aiogram.types import BufferedInputFile, InlineQuery, InlineQueryResultArticle
+from aiogram.types import BufferedInputFile, Message
 
 from app.application.ports.telegram.messages_helper import MessageHelper
 from app.presentation.telegram.view.models import RenderMode, View
@@ -12,8 +12,16 @@ from app.presentation.telegram.view.models import RenderMode, View
 @dataclass
 class Renderer:
     helper: MessageHelper
+    # the last message this renderer sent or edited, for the callers that track their screens
+    last_sent: Message | None = field(default=None, init=False)
 
     async def apply(self, view: View) -> Any:
+        result = await self._apply(view)
+        if isinstance(result, Message):
+            self.last_sent = result
+        return result
+
+    async def _apply(self, view: View) -> Any:
         if view.mode is RenderMode.NONE or view.text is None:
             return None
 
@@ -43,16 +51,6 @@ class Renderer:
             delete=view.delete,
             force_edit=view.force_edit,
             **(view.kwargs or {}),
-        )
-
-    async def answer_inline(
-        self, query: InlineQuery, results: list[InlineQueryResultArticle], next_offset: str
-    ) -> None:
-        await query.answer(
-            results=results,  # type: ignore[arg-type]
-            cache_time=5,
-            is_personal=True,
-            next_offset=next_offset,
         )
 
     async def send_file(self, filename: str, data: bytes, caption: str | None = None) -> None:

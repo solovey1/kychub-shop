@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Protocol
 
+from app.domain.catalog import Country, Product, ProductVariant
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
 
@@ -25,6 +26,14 @@ class OrdersGateway(Protocol):
 
     async def last_for_product(self, user_id: int, product_id: int) -> Order | None:
         """The user's newest order of this product, whatever its status."""
+
+    async def reorderable(
+        self, user_id: int, limit: int
+    ) -> list[tuple[ProductVariant, Product, Country | None]]:
+        """The user's most recent distinct paid variants that can still be bought, newest first."""
+
+    async def variant_orderable(self, variant_id: int) -> bool:
+        """The variant, its product and its category are all active."""
 
     async def find_by_token(self, user_id: int, token: str) -> Order | None: ...
 

@@ -15,7 +15,7 @@ router: Final[Router] = Router(name=__name__)
 @router.message(CommandStart())
 async def start(_: Message, state: FSMContext, flow: FromDishka[CommonMenuFlow]) -> Any:
     await state.clear()
-    return await flow.greeting()
+    return await flow.start()
 
 
 @router.callback_query(CDMenu.filter())

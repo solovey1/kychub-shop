@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram_i18n import I18nContext
 
 from app.application.i18n_text import fmt_usd, pick_i18n
@@ -6,6 +6,7 @@ from app.application.interactors.catalog import PAGE_SIZE
 from app.application.interactors.conversations import CHAT_STATUSES
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order
+from app.presentation.telegram.callbacks.catalog import CDVariant
 from app.presentation.telegram.callbacks.chat import CDChat
 from app.presentation.telegram.callbacks.menu import CDMenu
 from app.presentation.telegram.callbacks.orders import CDCancel, CDOrder, CDOrders
@@ -34,11 +35,19 @@ def order_back_keyboard(i18n: I18nContext, page: int) -> InlineKeyboardMarkup:
     return markup([[button(i18n.buttons.back(), CDOrders(page=page))]])
 
 
-def order_keyboard(i18n: I18nContext, order: Order, page: int) -> InlineKeyboardMarkup:
+def reorder_row(i18n: I18nContext, order: Order) -> list[InlineKeyboardButton]:
+    return [button(i18n.buttons.reorder_again(), CDVariant(id=order.variant_id))]
+
+
+def order_keyboard(
+    i18n: I18nContext, order: Order, page: int, reorder: bool = False
+) -> InlineKeyboardMarkup:
     rows = []
     if order.status in CHAT_STATUSES:
         rows.append([button(i18n.buttons.chat_executor(), CDChat(action="order", id=order.id))])
     rows.append([button(i18n.buttons.chat_support(), CDChat(action="support", id=order.id))])
+    if reorder:
+        rows.append(reorder_row(i18n, order))
     if order.status is OrderStatus.in_queue:  # nobody has taken it yet
         rows.append(
             [button(i18n.buttons.cancel_order(), CDCancel(id=order.id, page=page), style="danger")]

@@ -9,10 +9,6 @@ from app.domain.catalog import Category, Country, Product, ProductVariant, Servi
 from app.infrastructure.postgres.repository_helper import SqlRepositoryHelper
 
 
-def _escape_like(text: str) -> str:
-    return text.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
-
-
 @dataclass
 class CatalogRepository(CatalogGateway):
     _helper: SqlRepositoryHelper[Category]
@@ -104,31 +100,3 @@ class CatalogRepository(CatalogGateway):
             .group_by(ProductVariant.product_id)
         )
         return {pid: Decimal(p) for pid, p in (await self._session.execute(query)).all()}
-
-    async def search(
-        self, text: str, locale: str, offset: int, limit: int
-    ) -> list[tuple[Product, Decimal]]:
-        price = func.min(ProductVariant.price)
-        query = (
-            select(Product, price)
-            .join(
-                ProductVariant,
-                (ProductVariant.product_id == Product.id) & ProductVariant.is_active,
-            )
-            .join(Category, Category.id == Product.category_id)
-            .where(Product.is_active, Category.is_active)
-            .group_by(Product.id)
-            .order_by(Product.position, Product.id)
-            .offset(offset)
-            .limit(limit)
-        )
-        if text.strip():
-            pattern = f"%{_escape_like(text.strip())}%"
-            query = query.where(
-                or_(
-                    Product.title_i18n.op("->>")(locale).ilike(pattern, escape="\\"),
-                    Product.title_i18n.op("->>")("ru").ilike(pattern, escape="\\"),
-                )
-            )
-        rows = (await self._session.execute(query)).all()
-        return [(product, Decimal(p)) for product, p in rows]

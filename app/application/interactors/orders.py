@@ -3,14 +3,17 @@ from dataclasses import dataclass
 from app.application.errors.shop import OrderUnavailable
 from app.application.fulfillment.base import move
 from app.application.interactors.base import BaseInteractor
-from app.application.interactors.catalog import PAGE_SIZE
+from app.application.interactors.catalog import PAGE_SIZE, VariantView
 from app.application.interactors.ledger import LedgerService
 from app.application.interactors.payouts import Refunded, refund_buyer
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.uow import UnitOfWork
+from app.domain.catalog import Product
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
+
+REORDER_LIMIT = 3
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,13 @@ class OrdersInteractor(BaseInteractor):
 
     async def active(self, user_id: int) -> list[Order]:
         return await self.gateway.active_for_user(user_id)
+
+    async def reorderable(self, user_id: int) -> list[tuple[VariantView, Product]]:
+        rows = await self.gateway.reorderable(user_id, REORDER_LIMIT)
+        return [(VariantView(v, True, country), p) for v, p, country in rows]
+
+    async def can_reorder(self, variant_id: int) -> bool:
+        return await self.gateway.variant_orderable(variant_id)
 
     async def events(self, order_id: int) -> list[OrderEvent]:
         return await self.gateway.events(order_id)

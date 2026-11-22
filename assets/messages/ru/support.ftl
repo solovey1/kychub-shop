@@ -32,7 +32,7 @@ buttons-chat_reply = ↩️ Ответить
 buttons-chat_close = ✖️ Закрыть тикет
 buttons-chat_open = 💬 Открыть чат
 
-buttons-support = 💬 Поддержка
+buttons-nav_support = 💬 Поддержка
 buttons-chat_support = 🆘 Связаться с поддержкой
 buttons-chat_executor = 💬 Написать исполнителю
 buttons-chat_buyer = Написать покупателю

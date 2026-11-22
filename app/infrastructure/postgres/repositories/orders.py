@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import ColumnElement, exists, func, select
 
 from app.application.ports.repositories.orders import OrdersGateway
-from app.domain.catalog import ProductVariant
+from app.domain.catalog import Category, Country, Product, ProductVariant
 from app.domain.enums.ledger import LedgerAccount, LedgerKind
 from app.domain.enums.order import OrderStatus
 from app.domain.ledger import LedgerEntry
@@ -63,6 +63,45 @@ class OrdersRepository(OrdersGateway):
         )
         order: Order | None = await self._helper.session.scalar(query)
         return order
+
+    async def reorderable(
+        self, user_id: int, limit: int
+    ) -> list[tuple[ProductVariant, Product, Country | None]]:
+        last = func.max(Order.id)
+        recent = (
+            select(Order.variant_id.label("variant_id"), last.label("last_id"))
+            .where(
+                Order.user_id == user_id,
+                Order.status.notin_((OrderStatus.awaiting_input, OrderStatus.cancelled)),
+            )
+            .group_by(Order.variant_id)
+            .subquery()
+        )
+        query = (
+            select(ProductVariant, Product, Country)
+            .join(recent, recent.c.variant_id == ProductVariant.id)
+            .join(Product, Product.id == ProductVariant.product_id)
+            .join(Category, Category.id == Product.category_id)
+            .outerjoin(Country, Country.code == ProductVariant.country_code)
+            .where(ProductVariant.is_active, Product.is_active, Category.is_active)
+            .order_by(recent.c.last_id.desc())
+            .limit(limit)
+        )
+        return [(v, p, c) for v, p, c in (await self._helper.session.execute(query)).all()]
+
+    async def variant_orderable(self, variant_id: int) -> bool:
+        query = (
+            select(ProductVariant.id)
+            .join(Product, Product.id == ProductVariant.product_id)
+            .join(Category, Category.id == Product.category_id)
+            .where(
+                ProductVariant.id == variant_id,
+                ProductVariant.is_active,
+                Product.is_active,
+                Category.is_active,
+            )
+        )
+        return await self._helper.session.scalar(query) is not None
 
     async def find_by_token(self, user_id: int, token: str) -> Order | None:
         return await self._helper.get_one(

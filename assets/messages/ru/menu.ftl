@@ -1,5 +1,9 @@
-messages-greeting =
+messages-welcome =
     👋 Привет, { $name }!
+
+    Меню внизу всегда под рукой.
+messages-greeting =
+    🏠 <b>Главная</b>
 
     💰 Баланс: <b>{ $balance }</b>{ $orders }
 messages-greeting-orders = 📦 В работе: { $count }
@@ -9,9 +13,12 @@ messages-language = 🌐 Выберите язык интерфейса.
 buttons-back = ⬅️ Назад
 buttons-menu = 🏠 Меню
 buttons-cancel = ✖️ Отмена
-buttons-catalog = 🛍 Каталог
-buttons-search = 🔎 Поиск
-buttons-orders = 📦 Мои заказы
-buttons-orders_n = 📦 Мои заказы ({ $count })
+buttons-nav_catalog = 🛍 Каталог
+buttons-nav_orders = 📦 Заказы
+buttons-nav_balance = 💰 Баланс
 buttons-language = 🌐 Язык
 buttons-app = 📱 Открыть приложение
+buttons-reorder = 🔁 { $title }
+buttons-reorder_again = 🔁 Заказать ещё
+buttons-admin = ⚙️ Управление
+messages-reorder-unavailable = Товар сейчас недоступен
