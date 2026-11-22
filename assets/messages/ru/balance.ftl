@@ -60,3 +60,6 @@ buttons-provider_test = Тестовый платёж
 ledger-kind-order_hold = 🔒 Резерв под заказ
 ledger-kind-order_capture = ✅ Списано за выполненный заказ
 ledger-kind-order_release = ↩️ Резерв возвращён
+
+messages-topup-done_resume = ✅ Баланс пополнен на { $amount } — можно оформить заказ 🛒
+buttons-resume_checkout = 🛒 Вернуться к заказу

@@ -85,5 +85,10 @@ def accepted_keyboard(i18n: I18nContext, order_id: int) -> InlineKeyboardMarkup:
     )
 
 
+def resume_markup(label: str) -> InlineKeyboardMarkup:
+    """Under the «balance topped up» message: back to the checkout that waits in the FSM."""
+    return markup([[button(label, CDPurchase(action="back"), style="success")]])
+
+
 def menu_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
     return markup([[button(i18n.buttons.menu(), CDMenu())]])

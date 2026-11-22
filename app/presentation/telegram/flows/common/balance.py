@@ -42,11 +42,23 @@ class BalanceFlow(BaseFlow):
     helper: MessageHelper
     bot: Bot
 
-    async def show(self, *, current: bool = False, notice: str | None = None) -> Any:
+    async def show(
+        self, *, current: bool = False, notice: str | None = None, resume: bool = False
+    ) -> Any:
         amount, entries = await self.interactor.summary(self.user.id, 5)
         held = await self.interactor.held(self.user.id)
         return await self.renderer.apply(
-            self.presenter.balance(amount, held, entries, current=current, notice=notice)
+            self.presenter.balance(
+                amount, held, entries, current=current, notice=notice, resume=resume
+            )
+        )
+
+    async def _checkout_waits(self) -> bool:
+        """A checkout screen of the purchase flow is still open for this user."""
+        fsm = self.helper.fsm
+        data = await fsm.get_data()
+        return bool(data.get("variant_id") and data.get("purchase_token")) and (
+            await fsm.get_state() is None
         )
 
     async def action(self, cd: CDBalance) -> None:
@@ -128,7 +140,10 @@ class BalanceFlow(BaseFlow):
             return await self.show()
         payment, _ = await self.topup_interactor.sync(payment.id)
         if payment.status is PaymentStatus.success:
-            return await self.show(notice=self.presenter.topup_done(payment.amount))
+            return await self.show(
+                notice=self.presenter.topup_done(payment.amount),
+                resume=await self._checkout_waits(),
+            )
         update = self.helper.update
         if isinstance(update, CallbackQuery):
             await update.answer(self.presenter.check_result(payment.status), show_alert=True)

@@ -60,3 +60,6 @@ buttons-provider_test = Test payment
 ledger-kind-order_hold = 🔒 Reserved for an order
 ledger-kind-order_capture = ✅ Charged for a completed order
 ledger-kind-order_release = ↩️ Reserve released
+
+messages-topup-done_resume = ✅ Balance topped up by { $amount } — you can place your order now 🛒
+buttons-resume_checkout = 🛒 Back to my order

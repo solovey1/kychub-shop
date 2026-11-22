@@ -34,6 +34,7 @@ class BalancePresenter(BasePresenter):
         *,
         current: bool = False,
         notice: str | None = None,
+        resume: bool = False,
     ) -> View:
         i18n = self.i18n
         if entries:
@@ -51,7 +52,9 @@ class BalancePresenter(BasePresenter):
         text = i18n.messages.balance(amount=fmt_usd(amount), held=line, history=history)
         if notice:
             text = f"{notice}\n\n{text}"
-        return View(text=text, reply_markup=balance_keyboard(i18n), mode=self._mode(current))
+        return View(
+            text=text, reply_markup=balance_keyboard(i18n, resume), mode=self._mode(current)
+        )
 
     def topup(self, enabled: bool, amounts: list[int]) -> View:
         text = (

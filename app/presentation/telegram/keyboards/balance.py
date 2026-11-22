@@ -6,14 +6,18 @@ from aiogram_i18n import I18nContext
 from app.application.i18n_text import fmt_usd
 from app.presentation.telegram.callbacks.balance import CDBalance, CDCheck, CDPay, CDTopup
 from app.presentation.telegram.callbacks.menu import CDMenu
+from app.presentation.telegram.callbacks.purchase import CDPurchase
 from app.presentation.telegram.keyboards.common import button, markup
 
 TOPUP_AMOUNTS = (5, 10, 25, 50)
 
 
-def balance_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
+def balance_keyboard(i18n: I18nContext, resume: bool = False) -> InlineKeyboardMarkup:
     return markup(
         [
+            [button(i18n.buttons.resume_checkout(), CDPurchase(action="back"), style="success")]
+            if resume
+            else [],
             [button(i18n.buttons.topup(), CDBalance(action="topup"), style="primary")],
             [button(i18n.buttons.redeem(), CDBalance(action="promo"))],
             [button(i18n.buttons.back(), CDMenu())],
