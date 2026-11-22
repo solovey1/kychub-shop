@@ -1,5 +1,6 @@
 from collections.abc import Collection
 from datetime import datetime
+from decimal import Decimal
 from typing import Protocol
 
 from app.domain.catalog import Country, Product, ProductVariant
@@ -82,6 +83,10 @@ class OrdersGateway(Protocol):
     ) -> list[Order]: ...
 
     async def count_for_executor(self, executor_id: int) -> int: ...
+
+    async def held_earnings(self, executor_id: int) -> list[tuple[datetime, Decimal]]:
+        """(when the hold ends, the earning) of his completed orders still in hold, earliest
+        first."""
 
     async def hold_due_ids(self, now: datetime) -> list[int]:
         """Completed orders past their hold with an accrual that was not released yet."""

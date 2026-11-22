@@ -161,6 +161,7 @@ export const en: typeof ru = {
   "form.fileBlocks": "A required file is submitted in the bot. Send the result there.",
 
   "wallet.available": "Available",
+  "wallet.holdOn": "🔒 Available on {date}",
   "wallet.hold": "On hold",
   "wallet.min": "Minimum withdrawal",
   "wallet.address": "Withdrawal address",

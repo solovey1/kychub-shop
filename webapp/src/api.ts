@@ -141,6 +141,7 @@ export type Stats = {
   avg_score: number | null;
 };
 export type Wallet = {
+  hold_days: { date: string; amount: string }[]; // what turns available on which day
   hold: string;
   available: string;
   wallet: string | null;

@@ -1,6 +1,7 @@
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import ColumnElement, exists, func, select
 
@@ -236,6 +237,25 @@ class OrdersRepository(OrdersGateway):
 
     async def count_for_executor(self, executor_id: int) -> int:
         return await self._helper.count(Order.executor_id == executor_id)
+
+    async def held_earnings(self, executor_id: int) -> list[tuple[datetime, Decimal]]:
+        query = (
+            select(Order.hold_until, LedgerEntry.amount)
+            .join(
+                LedgerEntry,
+                (LedgerEntry.user_id == Order.executor_id)
+                & (LedgerEntry.ref == func.concat("order:", Order.id)),
+            )
+            .where(
+                Order.executor_id == executor_id,
+                Order.status == OrderStatus.completed,
+                Order.hold_until.is_not(None),
+                LedgerEntry.account == LedgerAccount.executor_hold,
+                LedgerEntry.kind == LedgerKind.executor_earning,
+            )
+            .order_by(Order.hold_until)
+        )
+        return [(at, amount) for at, amount in (await self._helper.session.execute(query)).all()]
 
     async def hold_due_ids(self, now: datetime) -> list[int]:
         def entry(kind: LedgerKind) -> ColumnElement[bool]:

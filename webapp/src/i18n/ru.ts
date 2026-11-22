@@ -160,6 +160,7 @@ export const ru = {
   "form.fileBlocks": "Обязательный файл сдаётся в боте. Отправьте результат там.",
 
   "wallet.available": "Доступно",
+  "wallet.holdOn": "🔒 Станет доступно {date}",
   "wallet.hold": "В холде",
   "wallet.min": "Минимум вывода",
   "wallet.address": "Адрес для вывода",

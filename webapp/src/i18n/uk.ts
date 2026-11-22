@@ -161,6 +161,7 @@ export const uk: typeof ru = {
   "form.fileBlocks": "Обов'язковий файл здається в боті. Надішліть результат там.",
 
   "wallet.available": "Доступно",
+  "wallet.holdOn": "🔒 Стане доступним {date}",
   "wallet.hold": "У холді",
   "wallet.min": "Мінімум виведення",
   "wallet.address": "Адреса для виведення",

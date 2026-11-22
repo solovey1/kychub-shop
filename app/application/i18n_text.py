@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,6 +34,10 @@ def fmt_time(dt: datetime, tz: Optional[str]) -> str:
     today = datetime.now(zone or timezone.utc).date()
     text = local.strftime("%H:%M" if local.date() == today else "%d.%m %H:%M")
     return text if zone else f"{text} UTC"
+
+
+def local_date(dt: datetime, tz: Optional[str]) -> date:
+    return dt.astimezone(_zone(tz) or timezone.utc).date()
 
 
 def fmt_date(dt: datetime, tz: Optional[str]) -> str:

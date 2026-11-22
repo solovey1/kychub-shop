@@ -30,12 +30,14 @@ messages-executor-rating =
     Average score: { $score }
 messages-executor-balance =
     💰 <b>Executor balance</b>
-    On hold: { $hold }
-    Available: { $available }
-    Minimum withdrawal: { $minimum }
+    💵 Available: { $available }
+    { $holds }
+    Withdrawals from { $minimum }
 
     Latest operations:
     { $history }
+messages-executor-hold_line = 🔒 { $amount } becomes available on { $date }
+messages-executor-hold_none = 🔒 Nothing in hold
 messages-executor-wallet =
     👛 <b>Payout wallet</b>
     <code>{ $address }</code>

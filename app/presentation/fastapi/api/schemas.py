@@ -361,7 +361,13 @@ class StatsOut(PydanticModel):
     avg_score: float | None
 
 
+class HoldDayOut(PydanticModel):
+    date: str  # ISO date in the user's time zone
+    amount: str
+
+
 class WalletDetailOut(PydanticModel):
+    hold_days: list[HoldDayOut] = []  # what turns available on which day
     hold: str
     available: str
     wallet: str | None

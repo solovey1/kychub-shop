@@ -30,12 +30,14 @@ messages-executor-rating =
     Средняя оценка: { $score }
 messages-executor-balance =
     💰 <b>Баланс исполнителя</b>
-    В холде: { $hold }
-    Доступно: { $available }
-    Минимум для вывода: { $minimum }
+    💵 Доступно: { $available }
+    { $holds }
+    Вывод от { $minimum }
 
     Последние операции:
     { $history }
+messages-executor-hold_line = 🔒 { $amount } станет доступно { $date }
+messages-executor-hold_none = 🔒 В холде ничего нет
 messages-executor-wallet =
     👛 <b>Кошелёк для выплат</b>
     <code>{ $address }</code>

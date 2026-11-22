@@ -63,6 +63,9 @@ export function fmtDate(iso: string, timeOnlyToday = false) {
   return new Intl.DateTimeFormat(lang, opts).format(d);
 }
 
+/** `2026-11-25` (a calendar date, no zone) as `25.11`. */
+export const fmtDay = (iso: string) => iso.slice(8, 10) + "." + iso.slice(5, 7);
+
 /** Money as whole cents for comparing, never a float. */
 export function cents(value: string): bigint {
   const [int = "0", frac = ""] = value.split(".");

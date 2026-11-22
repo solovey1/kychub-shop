@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Final
 
@@ -9,10 +10,12 @@ from app.application.errors.shop import (
     InvalidInput,
     WalletNotSet,
 )
+from app.application.i18n_text import local_date
 from app.application.interactors.base import BaseInteractor
 from app.application.interactors.ledger import LedgerService
 from app.application.ports.repositories.executors import ExecutorsGateway
 from app.application.ports.repositories.ledger import LedgerGateway
+from app.application.ports.repositories.orders import OrdersGateway
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.uow import UnitOfWork
 from app.application.settings_keys import DEFAULT_MIN_WITHDRAWAL, MIN_WITHDRAWAL
@@ -31,12 +34,22 @@ class WalletSummary:
     wallet: str | None
     minimum: Decimal
     entries: list[LedgerEntry]
+    holds: list[tuple[datetime, Decimal]]  # (hold ends, earning), earliest first
+
+    def hold_days(self, tz: str | None) -> list[tuple[date, Decimal]]:
+        """What becomes available on which day (his time zone), earliest first."""
+        days: dict[date, Decimal] = {}
+        for at, amount in self.holds:
+            day = local_date(at, tz)
+            days[day] = days.get(day, Decimal(0)) + amount
+        return sorted(days.items())
 
 
 @dataclass(frozen=True)
 class ExecutorWalletInteractor(BaseInteractor):
     uow: UnitOfWork
     executors: ExecutorsGateway
+    orders: OrdersGateway
     ledger: LedgerService
     ledger_gateway: LedgerGateway
     settings: SettingsGateway
@@ -56,6 +69,7 @@ class ExecutorWalletInteractor(BaseInteractor):
             wallet=profile.payout_wallet,
             minimum=await self._minimum(),
             entries=await self.executors.wallet_entries(executor_id, HISTORY_LIMIT),
+            holds=await self.orders.held_earnings(executor_id),
         )
 
     async def set_wallet(self, executor_id: int, address: str) -> None:

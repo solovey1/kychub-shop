@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { report, useBusy } from "../../action";
 import { ApiError, send, useFetch, type Stats, type Wallet } from "../../api";
-import { cents, fmtDate, fmtMoney, named, t } from "../../i18n";
+import { cents, fmtDate, fmtDay, fmtMoney, named, t } from "../../i18n";
 import { alert, confirm, success, useMainButton } from "../../telegram";
 import { Failure, Field, Loading, Money, Row, Section } from "../../ui/kit";
 
@@ -80,7 +80,13 @@ export function WalletScreen() {
         <Money value={w.available} big />
       </div>
       <Section footer={why}>
-        <Row title={t("wallet.hold")} right={<Money value={w.hold} />} />
+        {w.hold_days.length === 0 ? (
+          <Row title={t("wallet.hold")} right={<Money value={w.hold} />} />
+        ) : (
+          w.hold_days.map((d) => (
+            <Row key={d.date} title={t("wallet.holdOn", { date: fmtDay(d.date) })} right={<Money value={d.amount} />} />
+          ))
+        )}
         <Row title={t("wallet.min")} right={<Money value={w.minimum} />} />
       </Section>
       <Address wallet={w} reload={reload} />

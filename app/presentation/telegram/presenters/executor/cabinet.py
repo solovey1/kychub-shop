@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from html import escape
+from typing import Final
 
 from aiogram_i18n import I18nContext
 
@@ -30,6 +31,8 @@ from app.presentation.telegram.presenters.base import BasePresenter
 from app.presentation.telegram.presenters.common.orders import dispute_line
 from app.presentation.telegram.view.models import RenderMode, View
 from app.utils.time import datetime_now
+
+HOLD_DAYS_SHOWN: Final = 5
 
 
 @dataclass(frozen=True)
@@ -200,8 +203,17 @@ class ExecutorPresenter(BasePresenter):
             )
         else:
             history = i18n.messages.balance.history_empty()
+        days = summary.hold_days(self.user.timezone)[:HOLD_DAYS_SHOWN]
+        holds = "\n".join(
+            i18n.get(
+                "messages-executor-hold_line",
+                amount=fmt_usd(amount),
+                date=f"{day:%d.%m}",
+            )
+            for day, amount in days
+        ) or i18n.get("messages-executor-hold_none")
         text = i18n.messages.executor.balance(
-            hold=fmt_usd(summary.hold),
+            holds=holds,
             available=fmt_usd(summary.available),
             minimum=fmt_usd(summary.minimum),
             history=history,

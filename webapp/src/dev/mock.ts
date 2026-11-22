@@ -1181,6 +1181,7 @@ function route(method: string, url: URL, body: unknown): unknown {
   if (path === "/executor/stats") return { completed: 41, failed: 1, overdue: 2, refused: 3, avg_minutes: 54.4, avg_score: 4.8 };
   if (path === "/executor/balance" || path === "/executor/wallet")
     return {
+      hold_days: [{ date: "2026-11-25", amount: "7.40" }, { date: "2026-11-27", amount: "5.00" }],
       hold: "12.40",
       available: "58.75",
       wallet: "TQrZ9sT3xJ4kLw8vUe2Yb7NcMdHfPa6GhV",
