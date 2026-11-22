@@ -108,6 +108,7 @@ export type QueueItem = {
 };
 export type ExecutorOrder = QueueItem & {
   deadline_at: string | null;
+  accept_until: string | null; // auto-assigned: confirm until then, the term starts after
   fields: CardField[];
   result_form: ResultField[] | null;
   result: Record<string, string> | null;
@@ -125,7 +126,7 @@ export type ExecutorListItem = {
   country: string | null;
   deadline_at: string | null;
   unread: number;
-  action?: "work" | "dispute" | "cancel" | null; // assigned (working) / a dispute waits / buyer asks to cancel
+  action?: "work" | "dispute" | "cancel" | "accept" | null; // assigned (working) / a dispute waits / buyer asks to cancel
 };
 export type Stats = {
   completed: number;
@@ -356,6 +357,7 @@ export type Tunables = {
   review_delay_hours: number;
   min_withdrawal: string;
   confirm_hours: number;
+  accept_minutes: number;
   dispute_reply_hours: number;
 };
 export type AuditRow = {

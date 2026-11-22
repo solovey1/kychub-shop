@@ -121,6 +121,17 @@ export function ExecOrder({ id }: { id: number }) {
         } else await report(e);
       }
     });
+  const accept = () =>
+    run(async () => {
+      try {
+        await send("POST", `/executor/orders/${id}/accept`);
+        success();
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) await alert(t("exec.acceptFailed"));
+        else return report(e);
+      }
+      reload();
+    });
   const answerCancel = (agree: boolean) =>
     run(async () => {
       const req = o.cancel_request;
@@ -153,6 +164,11 @@ export function ExecOrder({ id }: { id: number }) {
         <h1>{o.product}</h1>
         <p>{list(o.country?.toUpperCase(), `№${o.id}`)}</p>
       </div>
+      {o.accept_until && (
+        <Section title={t("exec.acceptTitle")} footer={t("exec.acceptUntil", { time: fmtDate(o.accept_until, true) })}>
+          <Row title={t("exec.accept")} tone="link" onClick={accept} />
+        </Section>
+      )}
       {o.cancel_request && (
         <Section title={t("exec.cancelAsk")} footer={t("exec.cancelAskUntil", { time: fmtDate(o.cancel_request.until, true) })}>
           <Row title={t("exec.cancelYes")} tone="link" onClick={() => answerCancel(true)} />

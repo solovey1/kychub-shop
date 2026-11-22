@@ -158,7 +158,7 @@ class OrdersRepository(OrdersGateway):
 
     async def excluded_executor_ids(self, order_id: int) -> set[int]:
         query = select(OrderEvent.payload.op("->>")("executor_id")).where(
-            OrderEvent.order_id == order_id, OrderEvent.type.in_(("refused", "overdue"))
+            OrderEvent.order_id == order_id, OrderEvent.type.in_(("refused", "overdue", "ignored"))
         )
         return {int(v) for v in await self._helper.session.scalars(query) if v is not None}
 
@@ -166,6 +166,14 @@ class OrdersRepository(OrdersGateway):
         query = (
             select(Order.id)
             .where(Order.status == OrderStatus.assigned, Order.deadline_at < now, _no_dispute())
+            .order_by(Order.id)
+        )
+        return list(await self._helper.session.scalars(query))
+
+    async def unaccepted_ids(self, now: datetime) -> list[int]:
+        query = (
+            select(Order.id)
+            .where(Order.status == OrderStatus.assigned, Order.accept_until < now, _no_dispute())
             .order_by(Order.id)
         )
         return list(await self._helper.session.scalars(query))

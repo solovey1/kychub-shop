@@ -99,6 +99,11 @@ class ExecutorPresenter(BasePresenter):
         if order.status is OrderStatus.assigned and ext.pending is not None:
             wait = fmt_duration(i18n.get, ext.pending.minutes)
             text += "\n" + i18n.messages.executor.ext_waiting(duration=wait)
+        accept = order.status is OrderStatus.assigned and order.accept_until is not None
+        if accept and order.accept_until is not None:
+            text += "\n" + i18n.messages.executor.accept_wait(
+                time=fmt_time(order.accept_until, self.user.timezone)
+            )
         pending = view.cancel.pending
         asked = (
             pending is not None and order.status is OrderStatus.assigned and view.dispute is None
@@ -118,6 +123,7 @@ class ExecutorPresenter(BasePresenter):
                 can_extend,
                 view.dispute is not None,
                 pending.request_id if asked and pending is not None else None,
+                accept,
             ),
         )
 

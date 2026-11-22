@@ -500,6 +500,7 @@ class SettingsBody(PydanticModel):
     min_withdrawal: str
     confirm_hours: int
     dispute_reply_hours: int
+    accept_minutes: int
 
 
 class AuditOut(PydanticModel):

@@ -180,6 +180,7 @@ const execDetail = (id: number) => {
     ],
     extension: o.status === "assigned" ? { pending_minutes: null, can_request: true, options: [15, 30, 60, 120, 360, 1440] } : null,
     cancel_request: null,
+    accept_until: null,
     result_form: o.status === "assigned" ? form : null,
     result: o.status === "assigned" ? null : { login: "farm_account_01", password: "••••••••" },
   };
@@ -999,7 +1000,7 @@ const broadcastById = (id: number) => {
   return b;
 };
 
-let mSettings = { hold_days: 7, review_delay_hours: 24, min_withdrawal: "10.00", confirm_hours: 24, dispute_reply_hours: 12 };
+let mSettings = { hold_days: 7, review_delay_hours: 24, min_withdrawal: "10.00", confirm_hours: 24, dispute_reply_hours: 12, accept_minutes: 3 };
 const mAudit = [
   { id: 6, actor_id: 1, actor_name: "Сергей", action: "withdrawal.pay", target: "withdrawal:11", payload: { tx_hash: "0x9f3a…" }, created_at: ago(4000) },
   { id: 5, actor_id: 3, actor_name: "Maria", action: "catalog.product.update", target: "product:2", payload: { is_active: true }, created_at: ago(3500) },

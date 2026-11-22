@@ -12,7 +12,9 @@ from app.application.ports.repositories.catalog import CatalogGateway
 from app.application.ports.repositories.disputes import DisputesGateway
 from app.application.ports.repositories.executors import Candidate, ExecutorsGateway
 from app.application.ports.repositories.orders import OrdersGateway
+from app.application.ports.repositories.settings import SettingsGateway
 from app.application.ports.uow import UnitOfWork
+from app.application.settings_keys import ACCEPT_MINUTES, DEFAULT_ACCEPT_MINUTES
 from app.domain.enums.catalog import AssignMode
 from app.domain.enums.order import OrderStatus
 from app.domain.order import Order, OrderEvent
@@ -38,7 +40,7 @@ class DispatchResult:
     executor_ids: list[int] = field(default_factory=list)
     first_no_executor: bool = False
     released_executor_id: int | None = None  # who lost the order just before this dispatch
-    release_reason: Literal["refused", "overdue"] | None = None
+    release_reason: Literal["refused", "overdue", "ignored"] | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,7 @@ class DispatchInteractor(BaseInteractor):
     catalog: CatalogGateway
     cards: CardBuilder
     disputes: DisputesGateway
+    settings: SettingsGateway
 
     async def queue_for(self, executor_id: int) -> list[OrderCard]:
         """The waiting orders this executor may take now (permission, limit, not refused).
@@ -169,6 +172,7 @@ class DispatchInteractor(BaseInteractor):
                 now = datetime_now()
                 order.executor_id = executor_id
                 order.assigned_at = now
+                order.accept_until = None  # a manager's choice needs no confirmation
                 order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
             await self.orders.add_event(
                 OrderEvent(
@@ -202,6 +206,64 @@ class DispatchInteractor(BaseInteractor):
         except BaseException:
             await self.uow.rollback()
             raise
+
+    async def accept(self, executor_id: int, order_id: int) -> Order:
+        """The executor confirms an auto-assigned order: the deadline starts now. Under the order
+        lock, the one the unaccepted-order job takes: either he is in time or the order has gone
+        back to the queue (OrderUnavailable). Accepting twice changes nothing."""
+        try:
+            order = await self.orders.get_for_update(order_id)
+            if (
+                order is None
+                or order.status is not OrderStatus.assigned
+                or order.executor_id != executor_id
+            ):
+                raise OrderUnavailable(order_id)
+            if order.accept_until is not None:
+                ctx = await load_context(self.catalog, order)
+                minutes = ctx.service.deadline_minutes if ctx and ctx.service else 0
+                now = datetime_now()
+                order.accept_until = None
+                order.deadline_at = now + timedelta(minutes=minutes)
+                await self.orders.add_event(
+                    OrderEvent(order_id=order_id, actor_id=executor_id, type="accepted")
+                )
+            await self.uow.commit()
+            return order
+        except BaseException:
+            await self.uow.rollback()
+            raise
+
+    async def release_unaccepted(self) -> list[DispatchResult]:
+        """Auto-assigned orders nobody accepted in time go back to the queue (this executor is
+        left out of the next round) and the executor goes offline. One transaction per order."""
+        results: list[DispatchResult] = []
+        for order_id in await self.orders.unaccepted_ids(datetime_now()):
+            try:
+                order = await self.orders.get_for_update(order_id)
+                if (
+                    order is None
+                    or order.status is not OrderStatus.assigned  # refused / handed in meanwhile
+                    or order.executor_id is None
+                    or order.accept_until is None  # accepted a moment ago
+                    or order.accept_until >= datetime_now()
+                    or await self.disputes.open_for_order(order_id) is not None
+                ):
+                    await self.uow.rollback()
+                    continue
+                executor_id = order.executor_id
+                profile = await self.executors.get_profile_for_update(executor_id)
+                if profile is not None and profile.is_online:
+                    profile.is_online = False
+                    profile.online_changed_at = datetime_now()
+                await self._release(order, "ignored", executor_id)
+                result = await self._dispatch(order, released=(executor_id, "ignored"))
+                await self.uow.commit()
+                results.append(result)
+            except Exception:
+                await self.uow.rollback()
+                logger.exception("releasing the unaccepted order %s failed", order_id)
+        return results
 
     async def expire_overdue(self) -> list[DispatchResult]:
         """Every order in its own transaction; a broken one does not stop the rest."""
@@ -253,7 +315,10 @@ class DispatchInteractor(BaseInteractor):
         )
 
     async def _release(
-        self, order: Order, reason: Literal["refused", "overdue"], executor_id: int
+        self,
+        order: Order,
+        reason: Literal["refused", "overdue", "ignored"],
+        executor_id: int,
     ) -> None:
         """assigned -> in_queue and the event that keeps this executor out of the next round."""
         await move(
@@ -262,6 +327,7 @@ class DispatchInteractor(BaseInteractor):
         order.executor_id = None
         order.assigned_at = None
         order.deadline_at = None
+        order.accept_until = None
         await self.orders.add_event(
             OrderEvent(
                 order_id=order.id,
@@ -279,7 +345,13 @@ class DispatchInteractor(BaseInteractor):
         order.executor_id = executor_id  # first: move() flushes and the CHECK needs the executor
         await move(self.orders, order, OrderStatus.assigned, executor_id)
         order.assigned_at = now
-        order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
+        if mode == "auto":  # the term starts when he accepts (`accept`)
+            minutes = int(await self.settings.get(ACCEPT_MINUTES, DEFAULT_ACCEPT_MINUTES))
+            order.accept_until = now + timedelta(minutes=minutes)
+            order.deadline_at = None
+        else:
+            order.accept_until = None
+            order.deadline_at = now + timedelta(minutes=ctx.service.deadline_minutes)
         await self.orders.add_event(
             OrderEvent(
                 order_id=order.id,
@@ -292,7 +364,7 @@ class DispatchInteractor(BaseInteractor):
     async def _dispatch(
         self,
         order: Order,
-        released: tuple[int, Literal["refused", "overdue"]] | None = None,
+        released: tuple[int, Literal["refused", "overdue", "ignored"]] | None = None,
     ) -> DispatchResult:
         """Runs under the order lock, commits nothing."""
         lost, reason = released if released else (None, None)

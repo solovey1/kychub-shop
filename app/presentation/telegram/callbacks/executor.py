@@ -6,7 +6,7 @@ class CDCabinet(CallbackData, prefix="cab"):
 
 
 class CDOrderAct(CallbackData, prefix="xo"):
-    action: str  # take | refuse
+    action: str  # take | accept | refuse
     id: int
 
 

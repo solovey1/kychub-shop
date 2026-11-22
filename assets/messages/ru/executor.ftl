@@ -70,3 +70,15 @@ messages-executor-no_executor = Для заказа № { $id } нет подх�
 
 buttons-go_offline = ⚪️ Выйти из сети
 buttons-go_online = 🟢 Выйти в сеть
+
+messages-executor-assigned_accept =
+    📌 <b>Вам назначен заказ</b>
+
+    { $card }
+
+    ⏳ Подтвердите, что берёте заказ, до { $time }. Срок на выполнение начнётся после подтверждения.
+messages-executor-accepted = ✅ Заказ № { $id } принят. Срок пошёл, удачи!
+messages-executor-accept_failed = Заказ № { $id } уже нельзя принять: время вышло или он ушёл другому.
+messages-executor-ignored = 🌙 Вы не приняли заказ № { $id } — поставили статус «не в сети». Включите, когда будете готовы.
+messages-executor-accept_wait = ⏳ Подтвердите, что берёте заказ, до { $time }.
+buttons-accept = ✅ Беру

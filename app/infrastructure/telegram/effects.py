@@ -89,6 +89,9 @@ class Effects:
         )
         await self._order_event(order_id, OrderStatus.assigned, queue=True, extra=[executor_id])
 
+    async def order_accepted(self, order_id: int) -> None:
+        await self._order_event(order_id, OrderStatus.assigned)
+
     async def order_assigned(self, assigned: Assigned) -> None:
         """A manager gave the order to an executor: the new one gets the card, the old one (or
         the other executors still holding the offer) lose it."""

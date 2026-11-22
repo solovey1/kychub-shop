@@ -82,6 +82,7 @@ async def _order(
     return ExecutorOrderOut(
         **card_brief(view.card, view.order.status, locale),
         deadline_at=view.order.deadline_at,
+        accept_until=view.order.accept_until if assigned else None,
         fields=card_fields(view.card, locale),
         result_form=form,
         result=dict(result.get("fields", {})) if result else None,
@@ -200,6 +201,26 @@ async def get_order(
     work: FromDishka[FulfillmentWorkInteractor],
     chat: FromDishka[ConversationInteractor],
 ) -> ExecutorOrderOut:
+    return await _order(order_id, user.id, user.language, work, chat)
+
+
+@router.post("/orders/{order_id}/accept")
+@inject
+async def accept(
+    order_id: int,
+    user: ExecutorUser,
+    dispatcher: FromDishka[DispatchInteractor],
+    work: FromDishka[FulfillmentWorkInteractor],
+    chat: FromDishka[ConversationInteractor],
+    effects: FromDishka[Effects],
+) -> ExecutorOrderOut:
+    """Confirm an auto-assigned order; its term starts now. 404: the time ran out and the order
+    went back to the queue, or it is not his."""
+    try:
+        await dispatcher.accept(user.id, order_id)
+    except OrderUnavailable:
+        raise HTTPException(404, "Not found") from None
+    await effects.order_accepted(order_id)
     return await _order(order_id, user.id, user.language, work, chat)
 
 

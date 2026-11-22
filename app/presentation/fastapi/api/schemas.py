@@ -303,6 +303,9 @@ class ExecutorOrderBrief(PydanticModel):
 
 class ExecutorOrderOut(ExecutorOrderBrief):
     deadline_at: datetime | None = None
+    accept_until: datetime | None = (
+        None  # auto-assigned: confirm until then, the term starts after
+    )
     fields: list[CardFieldOut]
     result_form: list[ResultFieldOut] | None = None  # while the order waits for a result
     result: dict[str, str] | None = None  # what the executor handed in
@@ -322,7 +325,7 @@ class ExecutorOrderListItem(PydanticModel):
     deadline_at: datetime | None
     unread: int = 0
     # assigned: working; the buyer asks to cancel; a dispute waits for him
-    action: Literal["work", "dispute", "cancel"] | None = None
+    action: Literal["work", "dispute", "cancel", "accept"] | None = None
 
 
 class ExecutorOrderListOut(PydanticModel):

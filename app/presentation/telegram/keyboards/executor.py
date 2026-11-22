@@ -89,8 +89,19 @@ def order_keyboard(
     can_extend: bool = False,
     dispute: bool = False,
     cancel_request: int | None = None,
+    accept: bool = False,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
+    if accept:  # auto-assigned: he has to confirm first
+        rows.append(
+            [
+                button(
+                    i18n.buttons.accept(),
+                    CDOrderAct(action="accept", id=order.id),
+                    style="success",
+                )
+            ]
+        )
     if cancel_request is not None:  # the buyer asks to cancel: answer first
         rows.append(
             [

@@ -20,7 +20,7 @@ SOON_MINUTES: Final = 15
 HALF_MIN_TOTAL_MINUTES: Final = 60
 
 # the events after which a request that is still open belongs to nobody any more
-NEW_ASSIGNMENT: Final = ("assigned", "reassigned", "overdue", "refused", "sent_back")
+NEW_ASSIGNMENT: Final = ("assigned", "reassigned", "overdue", "refused", "ignored", "sent_back")
 
 
 EXTENSION_EVENTS: Final = (

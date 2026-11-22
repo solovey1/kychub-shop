@@ -32,21 +32,32 @@ def _take_keyboard(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]
     return build
 
 
-def _text(key: str, card: OrderCard) -> Callable[[Translate, str], str]:
-    return lambda tr, locale: tr(key, card=render_card(tr, locale, card))
+def _text(key: str, card: OrderCard, **kwargs: object) -> Callable[[Translate, str], str]:
+    return lambda tr, locale: tr(key, card=render_card(tr, locale, card), **kwargs)
 
 
-def _refuse_keyboard(order_id: int) -> Callable[[Translate], InlineKeyboardMarkup]:
+def _refuse_keyboard(
+    order_id: int, accept: bool = False
+) -> Callable[[Translate], InlineKeyboardMarkup]:
     def build(tr: Translate) -> InlineKeyboardMarkup:
         return markup(
             [
+                [
+                    button(
+                        tr("buttons-accept"),
+                        CDOrderAct(action="accept", id=order_id),
+                        style="success",
+                    )
+                ]
+                if accept
+                else [],
                 [
                     button(
                         tr("buttons-refuse"),
                         CDOrderAct(action="refuse", id=order_id),
                         style="danger",
                     )
-                ]
+                ],
             ]
         )
 
@@ -107,12 +118,17 @@ class OfferService:
         except Exception:
             logger.exception("publishing dispatch of order %s failed", result.order_id)
 
+    async def _tell_released(self, result: DispatchResult) -> None:
+        """The executor who just lost the order: it went overdue, or he did not accept it."""
+        key = {"overdue": "messages-executor-overdue", "ignored": "messages-executor-ignored"}.get(
+            result.release_reason or ""
+        )
+        if result.released_executor_id is not None and key is not None:
+            await self.notifier.send(result.released_executor_id, key, id=str(result.order_id))
+
     async def _announce(self, result: DispatchResult) -> None:
         order_id = result.order_id
-        if result.released_executor_id is not None and result.release_reason == "overdue":
-            await self.notifier.send(
-                result.released_executor_id, "messages-executor-overdue", id=str(order_id)
-            )
+        await self._tell_released(result)
         if result.kind in ("skipped", "none"):
             if result.kind == "none" and result.first_no_executor:
                 await self.notifier.staff("messages-executor-no_executor", id=str(order_id))
@@ -124,9 +140,18 @@ class OfferService:
         if result.kind == "assigned":
             executor_id = result.executor_ids[0]
             card = await self.cards.build(order, executor_id)
-            await self.notifier.send(
-                executor_id, _text("messages-executor-assigned", card), _refuse_keyboard(order_id)
-            )
+            if order.accept_until is not None:  # auto-assigned: he has to confirm
+                await self.notifier.send(
+                    executor_id,
+                    _text("messages-executor-assigned_accept", card, time=order.accept_until),
+                    _refuse_keyboard(order_id, accept=True),
+                )
+            else:
+                await self.notifier.send(
+                    executor_id,
+                    _text("messages-executor-assigned", card),
+                    _refuse_keyboard(order_id),
+                )
             await self.send_files(order_id, executor_id)
             return
         key = OrderOfferKey(order_id=order_id)

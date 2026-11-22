@@ -69,3 +69,15 @@ messages-executor-no_executor = No suitable executor for order #{ $id }.
 
 buttons-go_offline = ⚪️ Go offline
 buttons-go_online = 🟢 Go online
+
+messages-executor-assigned_accept =
+    📌 <b>An order is assigned to you</b>
+
+    { $card }
+
+    ⏳ Confirm that you take it by { $time }. The time to do it starts after you confirm.
+messages-executor-accepted = ✅ Order #{ $id } accepted. The clock is running, good luck!
+messages-executor-accept_failed = Order #{ $id } can no longer be accepted: time is up or it went to someone else.
+messages-executor-ignored = 🌙 You did not accept order #{ $id } — we set your status to «offline». Turn it on when you are ready.
+messages-executor-accept_wait = ⏳ Confirm that you take the order by { $time }.
+buttons-accept = ✅ I take it

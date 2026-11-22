@@ -17,13 +17,15 @@ function Editor({ start }: { start: Tunables }) {
   const [min, setMin] = useState(start.min_withdrawal);
   const [confirm, setConfirm] = useState(String(start.confirm_hours));
   const [reply, setReply] = useState(String(start.dispute_reply_hours));
+  const [accept, setAccept] = useState(String(start.accept_minutes));
   const [saved, setSaved] = useState(start);
 
   const body: Tunables = { hold_days: Number(hold), review_delay_hours: Number(delay), min_withdrawal: min.trim(),
     confirm_hours: Number(confirm),
     dispute_reply_hours: Number(reply),
+    accept_minutes: Number(accept),
   };
-  const valid = hold !== "" && delay !== "" && Number(confirm) >= 1 && Number(confirm) <= 168 && Number(reply) >= 1 && Number(reply) <= 72 && /^\d{1,8}(\.\d{1,2})?$/.test(body.min_withdrawal);
+  const valid = hold !== "" && delay !== "" && Number(confirm) >= 1 && Number(confirm) <= 168 && Number(reply) >= 1 && Number(reply) <= 72 && Number(accept) >= 1 && Number(accept) <= 30 && /^\d{1,8}(\.\d{1,2})?$/.test(body.min_withdrawal);
   const changed = JSON.stringify(body) !== JSON.stringify(saved);
 
   useSave(valid && changed ? t("save") : null, async () => {
@@ -47,6 +49,9 @@ function Editor({ start }: { start: Tunables }) {
         </Field>
         <Field label={t("settings.disputeReply")} invalid={Number(reply) < 1 || Number(reply) > 72}>
           <input inputMode="numeric" value={reply} onChange={(e) => setReply(e.target.value.replace(/\D/g, ""))} />
+        </Field>
+        <Field label={t("settings.acceptMinutes")} invalid={Number(accept) < 1 || Number(accept) > 30}>
+          <input inputMode="numeric" value={accept} onChange={(e) => setAccept(e.target.value.replace(/\D/g, ""))} />
         </Field>
         <Field label={t("settings.minWithdrawal")} invalid={!valid && min !== ""}>
           <input inputMode="decimal" value={min} onChange={(e) => setMin(e.target.value.replace(",", "."))} />

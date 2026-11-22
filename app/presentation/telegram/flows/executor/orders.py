@@ -47,6 +47,8 @@ class ExecutorOrdersFlow(BaseFlow):
         match cd.action:
             case "take":
                 await self.take(cd.id)
+            case "accept":
+                await self.accept(cd.id)
             case "refuse":
                 await self.refuse(cd.id)
 
@@ -55,6 +57,15 @@ class ExecutorOrdersFlow(BaseFlow):
             return await self._say("messages-executor-take_failed", order_id)
         await self.renderer.apply(self.presenter.taken(order_id))
         await self.effects.order_taken(order_id, self.user.id)
+
+    async def accept(self, order_id: int) -> None:
+        """«I take it» under an auto-assignment: the deadline starts now."""
+        try:
+            await self.dispatcher.accept(self.user.id, order_id)
+        except OrderUnavailable:  # the time ran out and the order went back to the queue
+            return await self._say("messages-executor-accept_failed", order_id)
+        await self.renderer.apply(self.presenter.note("messages-executor-accepted", order_id))
+        await self.effects.order_accepted(order_id)
 
     async def refuse(self, order_id: int) -> None:
         await self.helper.fsm.clear()

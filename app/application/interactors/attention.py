@@ -61,16 +61,16 @@ class AttentionInteractor(BaseInteractor):
 
     async def executor_actions(
         self, orders: list[Order]
-    ) -> dict[int, Literal["work", "dispute", "cancel"]]:
-        """«work» for an assigned order, «cancel» when the buyer asks to cancel it, «dispute»
-        when a dispute waits for his answer."""
+    ) -> dict[int, Literal["work", "dispute", "cancel", "accept"]]:
+        """«work» for an assigned order, «accept» while he has to confirm it, «cancel» when the
+        buyer asks to cancel it, «dispute» when a dispute waits for his answer."""
         in_work = [o for o in orders if o.status in _IN_WORK]
         disputes = await self.disputes.open_for_orders([o.id for o in in_work])
         assigned = [
             o.id for o in in_work if o.status is OrderStatus.assigned and o.id not in disputes
         ]
         events = await self.orders.extension_events(assigned, CANCEL_EVENTS)
-        found: dict[int, Literal["work", "dispute", "cancel"]] = {}
+        found: dict[int, Literal["work", "dispute", "cancel", "accept"]] = {}
         for order in in_work:
             dispute = disputes.get(order.id)
             if dispute is not None:
@@ -78,7 +78,9 @@ class AttentionInteractor(BaseInteractor):
                     found[order.id] = "dispute"
             elif order.status is OrderStatus.assigned:
                 pending = cancel_state(events.get(order.id, [])).pending
-                found[order.id] = "cancel" if pending is not None else "work"
+                found[order.id] = (
+                    "accept" if order.accept_until is not None else "cancel" if pending else "work"
+                )
         return found
 
     async def counts(self, user_id: int, is_executor: bool) -> Attention:

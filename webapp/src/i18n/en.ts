@@ -615,4 +615,10 @@ export const en: typeof ru = {
   "exec.cancelNo": "I will keep working",
   "exec.cancelStale": "That cancel request is no longer valid.",
   "action.cancel": "Asked to cancel",
+  "settings.acceptMinutes": "Minutes to accept an auto-assigned order",
+  "exec.acceptTitle": "Confirm the order",
+  "exec.acceptUntil": "Confirm that you take the order by {time}. The clock starts after you confirm.",
+  "exec.accept": "I take it",
+  "exec.acceptFailed": "The order can no longer be accepted: time is up or it went to someone else.",
+  "action.accept": "Please confirm",
 };

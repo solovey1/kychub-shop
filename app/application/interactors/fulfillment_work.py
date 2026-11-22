@@ -129,6 +129,7 @@ class FulfillmentWorkInteractor(BaseInteractor):
                     raise InvalidInput(f"{f.key}: {e}") from e
             order.result = pack_result(form, values)
             order.ready_at = now
+            order.accept_until = None  # handing in the result is taking the order
             await move(self.orders, order, OrderStatus.ready, executor_id)
             await self.orders.add_event(
                 OrderEvent(order_id=order.id, actor_id=executor_id, type="submitted")

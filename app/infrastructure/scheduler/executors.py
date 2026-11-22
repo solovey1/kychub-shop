@@ -32,6 +32,18 @@ async def expire_overdue(container: AsyncContainer) -> None:
             await offers.announce(result)
 
 
+async def release_unaccepted(container: AsyncContainer) -> None:
+    """Auto-assigned orders the executor did not accept in time go back to the queue."""
+    async with container() as request:
+        results = await (await request.get(DispatchInteractor)).release_unaccepted()
+        offers = await request.get(OfferService)
+        effects = await request.get(Effects)
+        for result in results:
+            await offers.announce(result)
+            if result.released_executor_id is not None:
+                await effects.executor_offline(result.released_executor_id)
+
+
 async def requeue_stale(container: AsyncContainer) -> None:
     """Queued orders nobody was offered for 10 minutes: look for newly permitted executors."""
     async with container() as request:
@@ -134,6 +146,7 @@ def _job(
 
 def register(scheduler: AsyncIOScheduler, container: AsyncContainer) -> None:
     _job(scheduler, container, expire_overdue, "expire_overdue", 60)
+    _job(scheduler, container, release_unaccepted, "release_unaccepted", 60)
     _job(scheduler, container, remind_deadlines, "remind_deadlines", 60)
     _job(scheduler, container, agree_cancels, "agree_cancels", 60)
     _job(scheduler, container, auto_confirm, "auto_confirm", 60)

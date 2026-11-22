@@ -9,7 +9,9 @@ from app.application.interactors.balance import parse_money
 from app.application.ports.repositories.admin import StatsData
 from app.application.ports.repositories.settings import SettingsGateway
 from app.application.settings_keys import (
+    ACCEPT_MINUTES,
     CONFIRM_HOURS,
+    DEFAULT_ACCEPT_MINUTES,
     DEFAULT_CONFIRM_HOURS,
     DEFAULT_DISPUTE_REPLY_HOURS,
     DEFAULT_HOLD_DAYS,
@@ -42,6 +44,7 @@ class Tunables:
     min_withdrawal: Decimal
     confirm_hours: int
     dispute_reply_hours: int
+    accept_minutes: int
 
 
 @dataclass(frozen=True)
@@ -55,6 +58,7 @@ class SettingsAdminInteractor(AdminInteractor):
             parse_money(str(await self.settings.get(MIN_WITHDRAWAL, str(DEFAULT_MIN_WITHDRAWAL)))),
             int(await self.settings.get(CONFIRM_HOURS, DEFAULT_CONFIRM_HOURS)),
             int(await self.settings.get(DISPUTE_REPLY_HOURS, DEFAULT_DISPUTE_REPLY_HOURS)),
+            int(await self.settings.get(ACCEPT_MINUTES, DEFAULT_ACCEPT_MINUTES)),
         )
 
     async def update(
@@ -65,6 +69,7 @@ class SettingsAdminInteractor(AdminInteractor):
         min_withdrawal: str,
         confirm_hours: int,
         dispute_reply_hours: int,
+        accept_minutes: int,
     ) -> Tunables:
         if not 0 <= hold_days <= 60:
             raise InvalidField("hold_days", "0..60")
@@ -74,6 +79,8 @@ class SettingsAdminInteractor(AdminInteractor):
             raise InvalidField("confirm_hours", "1..168")
         if not 1 <= dispute_reply_hours <= 72:
             raise InvalidField("dispute_reply_hours", "1..72")
+        if not 1 <= accept_minutes <= 30:
+            raise InvalidField("accept_minutes", "1..30")
         try:
             minimum = parse_money(min_withdrawal)
         except InvalidAmount as e:
@@ -88,6 +95,7 @@ class SettingsAdminInteractor(AdminInteractor):
                 MIN_WITHDRAWAL: str(minimum),
                 CONFIRM_HOURS: confirm_hours,
                 DISPUTE_REPLY_HOURS: dispute_reply_hours,
+                ACCEPT_MINUTES: accept_minutes,
             }
             old = {
                 HOLD_DAYS: before.hold_days,
@@ -95,6 +103,7 @@ class SettingsAdminInteractor(AdminInteractor):
                 MIN_WITHDRAWAL: str(before.min_withdrawal),
                 CONFIRM_HOURS: before.confirm_hours,
                 DISPUTE_REPLY_HOURS: before.dispute_reply_hours,
+                ACCEPT_MINUTES: before.accept_minutes,
             }
             diff = {k: [old[k], v] for k, v in new.items() if old[k] != v}
             for key, value in new.items():

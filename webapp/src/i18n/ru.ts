@@ -614,4 +614,10 @@ export const ru = {
   "exec.cancelNo": "Продолжу выполнять",
   "exec.cancelStale": "Просьба об отмене уже неактуальна.",
   "action.cancel": "Просят отменить",
+  "settings.acceptMinutes": "Время принять авто-заказ, минут",
+  "exec.acceptTitle": "Подтвердите заказ",
+  "exec.acceptUntil": "Подтвердите, что берёте заказ, до {time}. Срок начнётся после подтверждения.",
+  "exec.accept": "Беру",
+  "exec.acceptFailed": "Заказ уже нельзя принять: время вышло или он ушёл другому.",
+  "action.accept": "Подтвердите заказ",
 };
